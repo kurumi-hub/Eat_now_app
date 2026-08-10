@@ -15,15 +15,16 @@ import { useState } from "react";
 import type { PublicUser } from "@/types/auth";
 import CustomerHeader from "./CustomerHeader";
 import {
-  featuredRestaurants,
   homeCategories,
   homeHeroImage,
   nearbyFoods,
   recommendedRecipes,
 } from "./homeData";
+import type { HomeRestaurant } from "./homeData";
 
 type HomePageProps = {
   user: PublicUser | null;
+  featuredRestaurants: HomeRestaurant[];
 };
 
 type SnackbarState = {
@@ -38,7 +39,7 @@ function scrollToSection(sectionId: string) {
   });
 }
 
-export default function HomePage({ user }: HomePageProps) {
+export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
   const router = useRouter();
   const [snackbar, setSnackbar] = useState<SnackbarState>({
     open: false,

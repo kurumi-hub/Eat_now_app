@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import RestaurantDetailPage from "@/components/restaurant/RestaurantDetailPage";
-import { getRestaurantDetailBySlug } from "@/components/restaurant/restaurantDetailData";
+import { getRestaurantDetailBySlug } from "@/lib/data/restaurants";
 import { getCurrentPublicUser } from "@/utils/auth/guards";
 
 type RestaurantDetailRouteProps = {
@@ -14,7 +14,7 @@ export default async function RestaurantDetailRoute({
   params,
 }: RestaurantDetailRouteProps) {
   const { restaurantId } = await params;
-  const restaurant = getRestaurantDetailBySlug(restaurantId);
+  const restaurant = await getRestaurantDetailBySlug(restaurantId);
   const user = await getCurrentPublicUser();
 
   if (!restaurant) {
