@@ -6,14 +6,23 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:unit": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test ./tests/phase2/validation-and-roles.test.mjs ./tests/phase3/routes.test.mjs ./tests/phase4/home-migration.test.mjs ./tests/phase5/auth-migration.test.mjs ./tests/phase6/account-profile-migration.test.mjs ./tests/phase7/restaurant-detail-migration.test.mjs"
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^9.2.0",
+    "@mui/material": "^9.2.0",
+    "@mui/material-nextjs": "^9.1.1",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.8",
+    "axios": "^1.19.0",
     "next": "16.2.12",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
