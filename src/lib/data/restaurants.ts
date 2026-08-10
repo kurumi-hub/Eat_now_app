@@ -18,6 +18,10 @@ function formatReviewCount(count: number) {
   return `${count}+ đánh giá`;
 }
 
+function firstRelation<T>(value: T | T[] | null | undefined): T | undefined {
+  return Array.isArray(value) ? value[0] : value ?? undefined;
+}
+
 // ---------------------------------------------------------------------
 // Trang chủ: danh sách nhà hàng nổi bật
 // ---------------------------------------------------------------------
@@ -105,9 +109,9 @@ export async function getRestaurantDetailBySlug(
   const categoriesMap = new Map<string, RestaurantMenuCategory>();
 
   for (const food of restaurant.foods) {
-    const categoryName =
-      food.food_categories[0]?.categories?.name ?? "Món Khác";
-    const categoryId = food.food_categories[0]?.categories?.id ?? "khac";
+    const category = firstRelation(food.food_categories[0]?.categories);
+    const categoryName = category?.name ?? "Món Khác";
+    const categoryId = category?.id ?? "khac";
 
     if (!categoriesMap.has(categoryId)) {
       categoriesMap.set(categoryId, {
@@ -123,7 +127,9 @@ export async function getRestaurantDetailBySlug(
       food.food_images[0]?.img_url ??
       "";
 
-    const isPopular = food.food_tags.some((ft) => ft.tags?.name === "popular");
+    const isPopular = food.food_tags.some(
+      (ft) => firstRelation(ft.tags)?.name === "popular"
+    );
 
     categoriesMap.get(categoryId)!.items.push({
       id: food.id,

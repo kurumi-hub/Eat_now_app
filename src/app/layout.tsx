@@ -12,6 +12,7 @@ import "@/styles/home.css";
 import "@/styles/auth.css";
 import "@/styles/account.css";
 import "@/styles/restaurant-detail.css";
+import "@/styles/search-filter.css";
 
 const baloo = Baloo_2({
   variable: "--font-baloo",

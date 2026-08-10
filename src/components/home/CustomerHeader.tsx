@@ -22,6 +22,7 @@ import {
   MenuItem,
 } from "@mui/material";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { logout } from "@/app/auth/actions";
 import type { PublicUser } from "@/types/auth";
@@ -31,6 +32,7 @@ type CustomerHeaderProps = {
   user: PublicUser | null;
   onPlaceholder: (message: string) => void;
   onSectionNavigate: (sectionId: string) => void;
+  searchValue?: string;
 };
 
 const navItems = [
@@ -54,17 +56,25 @@ export default function CustomerHeader({
   user,
   onPlaceholder,
   onSectionNavigate,
+  searchValue = "",
 }: CustomerHeaderProps) {
+  const router = useRouter();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [searchTerm, setSearchTerm] = useState(searchValue);
   const sellerLabel = hasRole(user, "RESTAURANT_OWNER")
     ? "Kênh người bán"
     : "Mở quán trên EatNow";
 
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onPlaceholder(
-      "Tính năng tìm kiếm sẽ được triển khai ở sprint tiếp theo."
-    );
+    const normalizedQuery = searchTerm.trim();
+
+    if (!normalizedQuery) {
+      router.push("/search");
+      return;
+    }
+
+    router.push(`/search?q=${encodeURIComponent(normalizedQuery)}`);
   };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -102,6 +112,8 @@ export default function CustomerHeader({
           <InputBase
             className="home-search__input"
             placeholder="Tìm kiếm món ăn, nhà hàng..."
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
             inputProps={{ "aria-label": "Tìm kiếm món ăn hoặc nhà hàng" }}
           />
           <IconButton
