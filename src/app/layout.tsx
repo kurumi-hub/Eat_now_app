@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Baloo_2, Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "./ThemeProvider";
+import ThemeSwitcher from "./ThemeSwitcher";
 
 const baloo = Baloo_2({
   variable: "--font-baloo",
@@ -20,6 +22,13 @@ export const metadata: Metadata = {
     "EatNow — app đặt đồ ăn giao nhanh, hơn 2.000 quán ăn quanh bạn, giao trung bình 15 phút.",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover" as const,
+  themeColor: "#0d0d0f",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,7 +40,10 @@ export default function RootLayout({
       className={`${baloo.variable} ${beVietnamPro.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans bg-background text-foreground">
-        {children}
+        <ThemeProvider>
+          {children}
+          <ThemeSwitcher />
+        </ThemeProvider>
       </body>
     </html>
   );

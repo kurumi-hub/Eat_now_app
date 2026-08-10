@@ -1,94 +1,206 @@
 import Link from "next/link";
 import {
-  IconApple,
   IconBike,
   IconBowl,
   IconBurger,
   IconCake,
-  IconCheckCircle,
-  IconClipboard,
   IconClock,
   IconCup,
+  IconFlame,
   IconLeaf,
+  IconMapPin,
+  IconPercent,
   IconPizza,
-  IconPlay,
   IconRiceBowl,
+  IconSearch,
   IconStar,
   IconTakeoutBox,
+  IconUser,
 } from "./icons";
 import { createClient } from "@/utils/supabase/server";
 import { logout } from "@/app/auth/actions";
+import MobileBottomNav from "./MobileBottomNav";
 
-const menuCategories = [
-  { Icon: IconRiceBowl, name: "Cơm & Món chính", count: "450+ quán", bg: "bg-pink-100" },
-  { Icon: IconCup, name: "Trà sữa & Nước", count: "320+ quán", bg: "bg-[#fff0d9]" },
-  { Icon: IconLeaf, name: "Đồ chay lành", count: "180+ quán", bg: "bg-[#e3f6e8]" },
-  { Icon: IconCake, name: "Tráng miệng", count: "210+ quán", bg: "bg-pink-100" },
-  { Icon: IconPizza, name: "Pizza & Fast food", count: "260+ quán", bg: "bg-[#fff0d9]" },
-  { Icon: IconBowl, name: "Mì & Phở", count: "300+ quán", bg: "bg-[#e3f6e8]" },
-  { Icon: IconTakeoutBox, name: "Ăn vặt", count: "400+ quán", bg: "bg-pink-100" },
-  { Icon: IconBurger, name: "Burger & Gà rán", count: "150+ quán", bg: "bg-[#fff0d9]" },
+// ---------------------------------------------------------------------
+// MOCK DATA — sẽ thay bằng query Supabase thật (restaurants, foods,
+// categories, vouchers) khi nối API. Field đặt tên theo đúng cột
+// trong 01_schema.sql để sau này swap gần như 1-1.
+// ---------------------------------------------------------------------
+const categories = [
+  { Icon: IconRiceBowl, name: "Cơm phần", bg: "bg-pink-100" },
+  { Icon: IconBowl, name: "Bún · Phở · Mì", bg: "bg-[#f2e2d0]" },
+  { Icon: IconCup, name: "Trà sữa", bg: "bg-[#e6ead9]" },
+  { Icon: IconPizza, name: "Pizza", bg: "bg-pink-100" },
+  { Icon: IconBurger, name: "Gà rán · Burger", bg: "bg-[#f2e2d0]" },
+  { Icon: IconLeaf, name: "Đồ chay", bg: "bg-[#e6ead9]" },
+  { Icon: IconCake, name: "Tráng miệng", bg: "bg-pink-100" },
+  { Icon: IconTakeoutBox, name: "Ăn vặt", bg: "bg-[#f2e2d0]" },
 ];
 
-const steps = [
+const vouchers = [
   {
-    num: "01",
-    Icon: IconClipboard,
-    title: "Chọn món",
-    desc: "Lướt thực đơn theo món ăn, quán yêu thích hoặc mức giá. Thêm vào giỏ trong vài giây.",
+    Icon: IconPercent,
+    code: "FREESHIP15",
+    title: "Miễn phí vận chuyển",
+    desc: "Đơn từ 50.000đ · giảm tối đa 15.000đ",
   },
   {
-    num: "02",
-    Icon: IconCheckCircle,
-    title: "Xác nhận đơn",
-    desc: "Kiểm tra địa chỉ, chọn cách thanh toán và gửi đơn. Quán bắt đầu nấu ngay lập tức.",
+    Icon: IconPercent,
+    code: "GIAM30K",
+    title: "Giảm 30.000đ",
+    desc: "Áp dụng cho đơn từ 150.000đ",
   },
   {
-    num: "03",
-    Icon: IconBike,
-    title: "Giao tận nơi",
-    desc: "Theo dõi tài xế trên bản đồ theo thời gian thực, món ăn nóng hổi tới ngay cửa nhà.",
-  },
-];
-
-const testimonials = [
-  {
-    quote:
-      "Giao nhanh không tưởng, đặt lúc đói xíu là có cơm nóng trước mặt luôn.",
-    name: "Minh Anh",
-    place: "Quận 3, TP.HCM",
-    initials: "MA",
-  },
-  {
-    quote:
-      "Giao diện dễ thương, đặt đồ chay cực dễ tìm, có hẳn mục riêng.",
-    name: "Quốc Bảo",
-    place: "Cầu Giấy, Hà Nội",
-    initials: "QB",
-  },
-  {
-    quote:
-      "Theo dõi tài xế realtime, biết chính xác khi nào món tới, khỏi phải đợi.",
-    name: "Thuỳ Linh",
-    place: "Hải Châu, Đà Nẵng",
-    initials: "TL",
+    Icon: IconFlame,
+    code: "MOIQUAY30",
+    title: "Giảm 30% đơn đầu",
+    desc: "Dành cho khách hàng mới · tối đa 20.000đ",
   },
 ];
 
-function Stars() {
-  return (
-    <div className="flex gap-0.5 text-mango">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <IconStar key={i} className="w-4 h-4" />
-      ))}
-    </div>
-  );
+const restaurants = [
+  {
+    name: "Cơm Tấm Sài Gòn",
+    category: "Cơm phần",
+    rating_average: 4.8,
+    rating_count: 612,
+    eta: "15-25 phút",
+    distance: "1.2 km",
+    price_range: "20.000đ – 60.000đ",
+    promo: "Giảm 20%",
+    signature: "Sườn nướng than hoa",
+    bg: "bg-pink-100",
+    Icon: IconRiceBowl,
+  },
+  {
+    name: "Phở Hà Nội Xưa",
+    category: "Bún · Phở · Mì",
+    rating_average: 4.7,
+    rating_count: 389,
+    eta: "20-30 phút",
+    distance: "0.8 km",
+    price_range: "35.000đ – 65.000đ",
+    signature: "Nước dùng ninh 12 tiếng",
+    bg: "bg-[#f2e2d0]",
+    Icon: IconBowl,
+  },
+  {
+    name: "Gong Chiu Trà Sữa",
+    category: "Trà sữa",
+    rating_average: 4.6,
+    rating_count: 940,
+    eta: "10-20 phút",
+    distance: "0.5 km",
+    price_range: "25.000đ – 55.000đ",
+    promo: "Freeship",
+    signature: "Trân châu đường đen nấu mỗi 2 tiếng",
+    bg: "bg-[#e6ead9]",
+    Icon: IconCup,
+  },
+  {
+    name: "Pizza Ý Napoli",
+    category: "Pizza",
+    rating_average: 4.5,
+    rating_count: 271,
+    eta: "25-35 phút",
+    distance: "2.1 km",
+    price_range: "89.000đ – 189.000đ",
+    signature: "Lò củi 400°C",
+    bg: "bg-pink-100",
+    Icon: IconPizza,
+  },
+  {
+    name: "Gà Rán KFriedC",
+    category: "Gà rán · Burger",
+    rating_average: 4.4,
+    rating_count: 803,
+    eta: "15-25 phút",
+    distance: "1.5 km",
+    price_range: "45.000đ – 120.000đ",
+    signature: "Gà tẩm bột giòn kiểu Hàn",
+    bg: "bg-[#f2e2d0]",
+    Icon: IconBurger,
+  },
+  {
+    name: "Chay Thanh Tịnh",
+    category: "Đồ chay",
+    rating_average: 4.9,
+    rating_count: 156,
+    eta: "20-30 phút",
+    distance: "1.9 km",
+    price_range: "30.000đ – 70.000đ",
+    signature: "Rau hái trong ngày",
+    bg: "bg-[#e6ead9]",
+    Icon: IconLeaf,
+  },
+];
+
+const popularFoods = [
+  {
+    name: "Cơm sườn bì chả",
+    restaurant: "Cơm Tấm Sài Gòn",
+    base_price: 42000,
+    rating_average: 4.8,
+    bg: "bg-pink-100",
+    Icon: IconRiceBowl,
+    hot: true,
+  },
+  {
+    name: "Phở bò tái nạm",
+    restaurant: "Phở Hà Nội Xưa",
+    base_price: 49000,
+    rating_average: 4.7,
+    bg: "bg-[#f2e2d0]",
+    Icon: IconBowl,
+    hot: true,
+  },
+  {
+    name: "Trà sữa trân châu đường đen",
+    restaurant: "Gong Chiu Trà Sữa",
+    base_price: 35000,
+    rating_average: 4.6,
+    bg: "bg-[#e6ead9]",
+    Icon: IconCup,
+  },
+  {
+    name: "Pizza hải sản phô mai",
+    restaurant: "Pizza Ý Napoli",
+    base_price: 129000,
+    rating_average: 4.5,
+    bg: "bg-pink-100",
+    Icon: IconPizza,
+    hot: true,
+  },
+  {
+    name: "Gà rán giòn cay",
+    restaurant: "Gà Rán KFriedC",
+    base_price: 55000,
+    rating_average: 4.4,
+    bg: "bg-[#f2e2d0]",
+    Icon: IconBurger,
+  },
+  {
+    name: "Cơm chay thập cẩm",
+    restaurant: "Chay Thanh Tịnh",
+    base_price: 38000,
+    rating_average: 4.9,
+    bg: "bg-[#e6ead9]",
+    Icon: IconLeaf,
+    hot: true,
+  },
+];
+
+// Từ khoá được tìm nhiều nhất quanh khu vực này — bấm là tìm luôn
+const quickPicks = ["Cơm tấm", "Phở bò", "Trà sữa", "Bún chả", "Gà rán"];
+
+function formatVnd(n: number) {
+  return n.toLocaleString("vi-VN") + "đ";
 }
 
 function Logo({ light = false }: { light?: boolean }) {
   return (
     <div
-      className={`flex items-center gap-2 font-display font-extrabold text-[22px] ${
+      className={`flex items-center gap-2 font-display font-extrabold text-[22px] shrink-0 ${
         light ? "text-white" : "text-pink-600"
       }`}
     >
@@ -98,37 +210,12 @@ function Logo({ light = false }: { light?: boolean }) {
   );
 }
 
-function StoreBadge({ dark = true }: { dark?: boolean }) {
-  return (
-    <div
-      className={`flex items-center gap-2.5 rounded-2xl px-[18px] py-2.5 text-[13px] font-semibold ${
-        dark ? "bg-ink text-white" : "bg-white/15 text-white"
-      }`}
-    >
-      <IconApple className="w-5 h-5" />
-      <span className="flex flex-col leading-tight">
-        <small className="font-normal opacity-70 text-[10px]">Tải trên</small>
-        App Store
-      </span>
-    </div>
-  );
-}
-
-function StoreBadgePlay({ dark = true }: { dark?: boolean }) {
-  return (
-    <div
-      className={`flex items-center gap-2.5 rounded-2xl px-[18px] py-2.5 text-[13px] font-semibold ${
-        dark ? "bg-ink text-white" : "bg-white/15 text-white"
-      }`}
-    >
-      <IconPlay className="w-4 h-4" />
-      <span className="flex flex-col leading-tight">
-        <small className="font-normal opacity-70 text-[10px]">Tải trên</small>
-        Google Play
-      </span>
-    </div>
-  );
-}
+const navLinks = [
+  { href: "#thuc-don", label: "Thực đơn" },
+  { href: "#uu-dai", label: "Ưu đãi" },
+  { href: "#quan-an", label: "Quán ăn gần bạn" },
+  { href: "#danh-gia", label: "Đánh giá" },
+];
 
 export default async function Home() {
   const supabase = await createClient();
@@ -137,315 +224,526 @@ export default async function Home() {
   } = await supabase.auth.getUser();
 
   return (
-    <div className="flex flex-col flex-1">
+    <div id="top" className="flex flex-col flex-1 pb-24 md:pb-0">
       {/* NAV */}
-      <header className="sticky top-0 z-50 bg-[rgba(255,246,248,0.85)] backdrop-blur-md border-b border-pink-500/15">
+      <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-ink/[0.08]">
         <nav className="max-w-[1160px] mx-auto flex items-center justify-between px-6 py-4">
           <Logo />
           <div className="hidden md:flex gap-9 font-semibold text-[15px] text-ink">
-            <a href="#thuc-don" className="hover:text-pink-600 transition-colors">
-              Thực đơn
-            </a>
-            <a href="#cach-hoat-dong" className="hover:text-pink-600 transition-colors">
-              Cách hoạt động
-            </a>
-            <a href="#danh-gia" className="hover:text-pink-600 transition-colors">
-              Đánh giá
-            </a>
-            <a href="#tai-app" className="hover:text-pink-600 transition-colors">
-              Tải app
-            </a>
+            {navLinks.map((l) => (
+              <a key={l.href} href={l.href} className="hover:text-pink-600 transition-colors">
+                {l.label}
+              </a>
+            ))}
           </div>
 
           {user ? (
             <div className="flex items-center gap-4">
-              <span className="hidden sm:block text-[14px] font-semibold text-ink">
+              <span className="hidden md:block text-[14px] font-semibold text-ink">
                 Chào, {user.user_metadata?.full_name?.split(" ").pop() || "bạn"}
               </span>
-              <form action={logout}>
+              <form action={logout} className="hidden md:block">
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center rounded-full border-2 border-pink-300 px-5 py-2.5 text-[14px] font-bold text-pink-600 hover:bg-pink-50 transition-colors"
+                  className="inline-flex items-center justify-center rounded-lg border-2 border-pink-300 px-5 py-2.5 text-[14px] font-bold text-pink-600 hover:bg-pink-50 transition-colors"
                 >
                   Đăng xuất
                 </button>
               </form>
+              {/* icon tài khoản — chỉ hiện trên mobile, thay cho nút chữ */}
+              <Link
+                href="#"
+                aria-label="Tài khoản"
+                className="md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-pink-50 text-pink-600"
+              >
+                <IconUser className="w-[18px] h-[18px]" />
+              </Link>
             </div>
           ) : (
             <div className="flex items-center gap-3">
               <Link
                 href="/login"
-                className="hidden sm:inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[14px] font-bold text-ink hover:text-pink-600 transition-colors"
+                className="hidden md:inline-flex items-center justify-center rounded-lg px-5 py-2.5 text-[14px] font-bold text-ink hover:text-pink-600 transition-colors"
               >
                 Đăng nhập
               </Link>
               <Link
                 href="/signup"
-                className="inline-flex items-center justify-center rounded-full bg-pink-500 px-[22px] py-2.5 text-[14px] font-bold text-white shadow-[0_10px_24px_-8px_rgba(255,111,145,0.65)] transition-transform hover:-translate-y-0.5 hover:shadow-[0_14px_28px_-8px_rgba(255,111,145,0.75)]"
+                className="hidden md:inline-flex items-center justify-center rounded-lg bg-pink-500 px-[22px] py-2.5 text-[14px] font-bold text-white transition-transform hover:-translate-y-0.5"
               >
                 Đăng ký
+              </Link>
+              {/* icon đăng nhập — chỉ hiện trên mobile, thay cho 2 nút chữ */}
+              <Link
+                href="/login"
+                aria-label="Đăng nhập"
+                className="md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-pink-500 text-white"
+              >
+                <IconUser className="w-[18px] h-[18px]" />
               </Link>
             </div>
           )}
         </nav>
       </header>
 
-      {/* HERO */}
-      <section className="relative overflow-hidden pt-[88px] pb-[60px]">
-        <div className="pointer-events-none absolute -top-[140px] -right-[120px] w-[420px] h-[420px] rounded-full bg-pink-100 opacity-55" />
-        <div className="pointer-events-none absolute -bottom-20 -left-20 w-[260px] h-[260px] rounded-full bg-mint opacity-35" />
-
-        <div className="relative z-10 max-w-[1160px] mx-auto px-6 grid grid-cols-1 md:grid-cols-[1.05fr_0.95fr] gap-12 items-center text-center md:text-left">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[13px] font-bold text-pink-600 shadow-[0_6px_16px_-8px_rgba(255,111,145,0.4)] mb-5">
-              <IconClock className="w-4 h-4" />
-              Giao trung bình 15 phút
-            </div>
-            <h1 className="font-display font-extrabold text-ink leading-[1.05] text-[38px] sm:text-[48px] lg:text-[62px]">
-              Đói bụng?
-              <br />
-              <span className="text-pink-500">EatNow lo hết.</span>
-            </h1>
-            <p className="mt-5 text-lg text-ink-soft leading-relaxed max-w-[460px] mx-auto md:mx-0">
-              Hơn 2.000 quán ăn ngon trong khu vực của bạn, đặt vài chạm là
-              món nóng hổi tới tận cửa. Không cần suy nghĩ, chỉ cần đói.
-            </p>
-
-            <div className="flex gap-3.5 mt-8 flex-wrap justify-center md:justify-start">
-              <a
-                href="#tai-app"
-                className="inline-flex items-center justify-center rounded-full bg-pink-500 px-[26px] py-3 text-[15px] font-bold text-white shadow-[0_10px_24px_-8px_rgba(255,111,145,0.65)] transition-transform hover:-translate-y-0.5"
-              >
-                Tải app miễn phí
-              </a>
-              <a
-                href="#thuc-don"
-                className="inline-flex items-center justify-center rounded-full border-2 border-pink-300 px-[26px] py-3 text-[15px] font-bold text-pink-600 hover:bg-pink-50 transition-colors"
-              >
-                Xem thực đơn
-              </a>
-            </div>
-
-            <div className="flex gap-3 mt-6 flex-wrap justify-center md:justify-start">
-              <StoreBadge />
-              <StoreBadgePlay />
-            </div>
-
-            <div className="flex gap-7 mt-9 flex-wrap justify-center md:justify-start">
-              <div>
-                <b className="block font-display text-[26px] text-pink-600">2.000+</b>
-                <span className="text-[13px] text-ink-soft">quán ăn đối tác</span>
-              </div>
-              <div>
-                <b className="block font-display text-[26px] text-pink-600">15 phút</b>
-                <span className="text-[13px] text-ink-soft">giao trung bình</span>
-              </div>
-              <div>
-                <b className="block font-display text-[26px] text-pink-600">4.9★</b>
-                <span className="text-[13px] text-ink-soft">đánh giá người dùng</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative flex justify-center">
-            <div className="relative w-[300px] h-[300px] sm:w-[340px] sm:h-[340px] rounded-full bg-gradient-to-br from-white to-pink-50 flex items-center justify-center shadow-[0_30px_60px_-20px_rgba(255,111,145,0.45)]">
-              <span className="animate-steam absolute w-1.5 rounded-md bg-white/90 blur-[1px] left-[44%] top-[6%] h-10" />
-              <span className="animate-steam absolute w-1.5 rounded-md bg-white/90 blur-[1px] left-[52%] top-[2%] h-[52px] [animation-delay:0.6s]" />
-              <span className="animate-steam absolute w-1.5 rounded-md bg-white/90 blur-[1px] left-[60%] top-[8%] h-[34px] [animation-delay:1.2s]" />
-              <IconBowl className="w-[150px] h-[150px] sm:w-[170px] sm:h-[170px] text-pink-500" />
-            </div>
-            <div className="animate-bob absolute top-[8%] -left-[6%] flex items-center gap-2 bg-white rounded-[18px] px-4 py-2.5 shadow-[0_14px_30px_-12px_rgba(58,31,43,0.25)] font-bold text-[13px]">
-              <IconClock className="w-4 h-4 text-pink-500" />
-              Giao sau 12 phút
-            </div>
-            <div className="animate-bob absolute bottom-[6%] -right-[8%] flex items-center gap-1.5 bg-white rounded-[18px] px-4 py-2.5 shadow-[0_14px_30px_-12px_rgba(58,31,43,0.25)] font-bold text-[13px] [animation-delay:1.3s]">
-              <IconStar className="w-4 h-4 text-mango" />
-              4.9 · 800 đánh giá
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* MARQUEE */}
-      <div className="bg-pink-500 py-3.5 overflow-hidden">
-        <div className="animate-marquee flex gap-12 whitespace-nowrap font-display font-bold text-white text-base">
-          <span>
-            Pizza · Trà sữa · Burger · Lẩu · Đồ chay · Cơm văn phòng ·
-            Tráng miệng · Pizza · Trà sữa · Burger · Lẩu · Đồ chay · Cơm
-            văn phòng · Tráng miệng ·
-          </span>
-        </div>
-      </div>
-
-      {/* HOW IT WORKS */}
-      <section id="cach-hoat-dong" className="py-24 max-w-[1160px] mx-auto px-6 w-full">
-        <div className="text-center max-w-[600px] mx-auto mb-14">
-          <div className="text-pink-600 font-bold text-[13px] uppercase tracking-wider">
-            Cách hoạt động
-          </div>
-          <h2 className="font-display font-extrabold text-[28px] sm:text-[40px] mt-2.5">
-            Ba bước, xong luôn
-          </h2>
-          <p className="mt-3.5 text-ink-soft leading-relaxed">
-            Đơn hàng của bạn được xử lý như một tấm vé — rõ ràng từng bước,
-            không hồi hộp.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
-          {steps.map((s) => (
+      {/* =================================================================
+          HERO — "bảng hiệu quán ăn": khối đỏ full-bleed, chữ Baloo cỡ đại
+          nói đúng kiểu gọi món ngoài quán. Tấm phiếu đặt hàng (ticket)
+          đè lên mép dưới khối đỏ — đây là chi tiết ký hiệu của cả trang.
+          ================================================================= */}
+      <section className="relative">
+        <div className="relative bg-pink-500 text-white overflow-hidden pt-14 pb-32 sm:pt-20 sm:pb-40">
+          {/* đốm sáng trôi chậm — tạo chiều sâu cho mảng đỏ phẳng */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="animate-drift absolute -top-20 -left-16 w-[380px] h-[380px] rounded-full bg-mango/25 blur-[90px]" />
             <div
-              key={s.num}
-              className="ticket-edge relative bg-white rounded-[20px] px-6 pt-[34px] pb-[30px] shadow-[0_16px_40px_-20px_rgba(58,31,43,0.25)]"
-            >
-              <span className="inline-flex items-center justify-center w-[34px] h-[34px] rounded-[10px] bg-pink-100 text-pink-600 font-display font-extrabold text-sm mb-4">
-                {s.num}
-              </span>
-              <s.Icon className="w-8 h-8 text-pink-500 mb-3.5" />
-              <h3 className="text-[19px] font-bold mb-2">{s.title}</h3>
-              <p className="text-ink-soft text-[14.5px] leading-relaxed">{s.desc}</p>
+              className="animate-drift absolute top-1/3 -right-24 w-[420px] h-[420px] rounded-full bg-white/15 blur-[100px]"
+              style={{ animationDelay: "-6s" }}
+            />
+            <div
+              className="animate-drift absolute -bottom-24 left-1/3 w-[300px] h-[300px] rounded-full bg-black/25 blur-[80px]"
+              style={{ animationDelay: "-12s" }}
+            />
+          </div>
+
+          <div className="absolute inset-0 paper-grid-light pointer-events-none" />
+
+          {/* icon món ăn mờ, trôi rất chậm — nhắc chủ đề mà không tranh chỗ với chữ */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <IconBowl className="animate-drift absolute top-14 right-[6%] w-16 h-16 sm:top-16 sm:right-[12%] sm:w-28 sm:h-28 text-white/[0.07] sm:text-white/[0.09]" />
+            <IconCup
+              className="animate-drift absolute bottom-16 right-[22%] w-12 h-12 sm:bottom-24 sm:right-[30%] sm:w-20 sm:h-20 text-white/[0.06] sm:text-white/[0.07]"
+              style={{ animationDelay: "-8s" }}
+            />
+            <IconRiceBowl
+              className="animate-drift absolute top-1/2 right-[2%] w-14 h-14 sm:w-24 sm:h-24 text-white/[0.05] sm:text-white/[0.06]"
+              style={{ animationDelay: "-14s" }}
+            />
+          </div>
+
+          {/* chuyển màu về phía đậm ở đáy — giảm chói, tăng độ nổi của chữ trắng */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30 pointer-events-none" />
+
+          <div className="relative max-w-[1160px] mx-auto px-6">
+            <p className="flex items-center gap-2.5 font-bold text-[12px] tracking-[0.2em] uppercase text-white/70 mb-5">
+              <span className="animate-pulse-dot inline-block w-2 h-2 rounded-full bg-mango" />
+              Đang mở cửa · Bạch Mai, Hà Nội
+            </p>
+
+            <h1 className="font-display font-extrabold leading-[0.88] tracking-tight text-[56px] sm:text-[88px] lg:text-[110px]">
+              Đói chưa?
+              <br />
+              <span className="text-mango">Gọi một tô.</span>
+            </h1>
+
+            <p className="mt-6 text-[15px] sm:text-[17px] text-white/75 max-w-[440px] leading-relaxed">
+              2.043 quán quanh bạn đang đỏ lửa. Chọn quán, gõ món, xe tới
+              trong 15 phút.
+            </p>
+          </div>
+        </div>
+
+        {/* PHIẾU ĐẶT HÀNG — đè lên mép khối đỏ, mép răng cưa kiểu hóa đơn.
+            Chứa địa chỉ giao + ô tìm món, tức là chức năng thật chứ không
+            phải hộp trang trí. */}
+        <div className="relative max-w-[1160px] mx-auto px-6 -mt-24 sm:-mt-28">
+          <div
+            className="ticket-edge relative bg-surface max-w-[720px] px-6 sm:px-9 py-7 shadow-[0_24px_60px_-24px_rgba(26,15,12,0.45)]"
+            style={{ "--ticket-notch": "var(--background)" } as React.CSSProperties}
+          >
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-2 text-[12px] font-bold tracking-[0.12em] uppercase text-ink-soft">
+                <IconMapPin className="w-4 h-4 text-pink-500" />
+                Giao đến
+              </div>
+              <button className="text-[12px] font-bold uppercase tracking-[0.12em] text-pink-600 hover:underline">
+                Đổi địa chỉ
+              </button>
             </div>
-          ))}
+
+            <p className="font-display font-bold text-[19px] sm:text-[22px] mt-1.5 text-ink">
+              12 Tạ Quang Bửu, Bạch Mai, Hà Nội
+            </p>
+
+            <div className="dotted-rule text-ink/25 my-6" />
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 flex items-center gap-3 bg-background rounded-lg px-4 py-3.5 border-2 border-ink/[0.08] focus-within:border-pink-500 transition-colors">
+                <IconSearch className="w-5 h-5 text-ink-soft shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Gõ tên món: cơm tấm, phở, trà sữa…"
+                  className="flex-1 outline-none text-[15px] placeholder:text-ink-soft/70 bg-transparent"
+                />
+              </div>
+              <button className="lift inline-flex items-center justify-center rounded-lg bg-ink px-8 py-3.5 text-[15px] font-bold text-white">
+                Tìm quán
+              </button>
+            </div>
+
+            {/* Gợi ý tìm nhanh — bấm là ra kết quả, đỡ phải gõ */}
+            <div className="flex items-center gap-2 mt-5 flex-wrap">
+              <span className="text-[11.5px] font-bold uppercase tracking-[0.12em] text-ink-soft mr-1">
+                Đang tìm nhiều
+              </span>
+              {quickPicks.map((q) => (
+                <button
+                  key={q}
+                  className="lift rounded-full bg-pink-50 text-pink-600 text-[12.5px] font-bold px-3.5 py-1.5 hover:bg-pink-100"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+
+            <div className="dotted-rule text-ink/25 my-6" />
+
+            {/* Dải trạng thái — nằm trong phiếu, cùng một khối với tìm kiếm
+                thay vì trôi nổi bên ngoài */}
+            <div className="flex items-center gap-x-6 gap-y-2.5 flex-wrap text-[12.5px] font-semibold text-ink-soft">
+              <span className="flex items-center gap-2">
+                <span className="animate-pulse-dot inline-block w-1.5 h-1.5 rounded-full bg-mint" />
+                142 đơn đang giao quanh đây
+              </span>
+              <span className="flex items-center gap-1.5">
+                <IconClock className="w-4 h-4 text-pink-500" /> Trung bình 15 phút
+              </span>
+              <span className="flex items-center gap-1.5">
+                <IconStar className="w-4 h-4 text-mango" /> 4.7 / 5 từ 12.480 lượt chấm
+              </span>
+              <span className="flex items-center gap-1.5">
+                <IconBike className="w-4 h-4 text-pink-500" /> 2.043 quán đang mở
+              </span>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* MENU */}
-      <section id="thuc-don" className="bg-pink-50 py-24">
-        <div className="max-w-[1160px] mx-auto px-6">
-          <div className="text-center max-w-[600px] mx-auto mb-14">
-            <div className="text-pink-600 font-bold text-[13px] uppercase tracking-wider">
-              Thực đơn
-            </div>
-            <h2 className="font-display font-extrabold text-[28px] sm:text-[40px] mt-2.5">
-              Thèm gì, có nấy
-            </h2>
-            <p className="mt-3.5 text-ink-soft leading-relaxed">
-              Từ cơm văn phòng đến trà sữa xế chiều, mọi cơn thèm đều có chỗ
-              đứng.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-            {menuCategories.map((c) => (
-              <div
+      {/* THỰC ĐƠN — thanh lọc theo nhóm món */}
+      <section id="thuc-don" className="max-w-[1160px] mx-auto px-6 w-full pt-16 pb-2 reveal">
+        <h2 className="font-display font-extrabold text-[13px] tracking-[0.2em] uppercase text-ink-soft mb-4">
+          Chọn nhóm món
+        </h2>
+        <div className="relative -mx-6 px-6">
+          <div className="flex gap-2.5 overflow-x-auto no-scrollbar snap-x snap-proximity pb-1">
+            {categories.map((c, i) => (
+              <a
                 key={c.name}
-                className="bg-white rounded-[22px] px-5 py-6 text-center border border-pink-500/10 transition-all hover:-translate-y-1.5 hover:shadow-[0_18px_34px_-18px_rgba(255,111,145,0.5)]"
+                href="#quan-an"
+                className={`shrink-0 snap-start inline-flex items-center gap-2 rounded-lg px-4 py-3 sm:py-2.5 text-[13.5px] font-bold border-2 active:scale-[0.97] ${
+                  i === 0
+                    ? "bg-ink text-white border-ink"
+                    : "bg-surface text-ink border-ink/[0.1] hover:bg-pink-50 hover:border-pink-500/40"
+                }`}
+                style={{ transition: "background-color .28s var(--ease-soft), border-color .28s var(--ease-soft), transform .12s var(--ease-soft)" }}
               >
-                <div
-                  className={`w-16 h-16 rounded-[18px] mx-auto mb-3.5 flex items-center justify-center ${c.bg}`}
-                >
-                  <c.Icon className="w-7 h-7 text-ink" />
-                </div>
-                <h4 className="text-[15px] font-bold">{c.name}</h4>
-                <span className="text-[12.5px] text-ink-soft">{c.count}</span>
-              </div>
+                <c.Icon className="w-4 h-4" />
+                {c.name}
+              </a>
             ))}
           </div>
+          {/* gợi ý còn nội dung để cuộn — chỉ trên mobile */}
+          <div className="sm:hidden pointer-events-none absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-background to-transparent" />
         </div>
       </section>
 
-      {/* APP CTA */}
-      <section className="max-w-[1160px] mx-auto px-6 py-24 w-full">
-        <div
-          id="tai-app"
-          className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-pink-500 to-pink-600 px-7 py-12 sm:px-12 sm:py-16 grid grid-cols-1 md:grid-cols-[1.1fr_0.9fr] gap-10 items-center text-white text-center md:text-left"
-        >
+      {/* =================================================================
+          BẢNG XẾP HẠNG QUÁN — thay lưới card bằng bảng menu đánh số.
+          Số ở đây là THỨ HẠNG thật (quán được đặt nhiều nhất tuần), nên
+          việc đánh số mang thông tin chứ không phải trang trí.
+          ================================================================= */}
+      <section id="quan-an" className="max-w-[1160px] mx-auto px-6 w-full py-14">
+        <div className="flex items-end justify-between gap-4 mb-2">
           <div>
-            <h2 className="font-display font-extrabold text-[26px] sm:text-[36px] leading-tight">
-              Đói là mở app,
-              <br />
-              không đói cũng mở app.
+            <h2 className="font-display font-extrabold text-[30px] sm:text-[40px] leading-none tracking-tight">
+              Quán đắt khách tuần này
             </h2>
-            <p className="mt-3.5 opacity-90 max-w-[420px] mx-auto md:mx-0">
-              Tải EatNow ngay để nhận ưu đãi miễn phí giao hàng cho đơn đầu
-              tiên.
+            <p className="text-[13.5px] text-ink-soft mt-2">
+              Xếp theo số đơn trong bán kính 3 km quanh bạn
             </p>
-            <div className="flex gap-3.5 mt-7 flex-wrap justify-center md:justify-start">
-              <StoreBadge dark={false} />
-              <StoreBadgePlay dark={false} />
-            </div>
           </div>
-          <div className="flex justify-center">
-            <div className="w-[190px] h-[380px] bg-white rounded-[34px] p-2.5 shadow-[0_30px_60px_-18px_rgba(0,0,0,0.35)]">
-              <div className="w-full h-full rounded-[26px] bg-gradient-to-b from-pink-50 to-white flex flex-col items-center justify-center gap-3">
-                <IconBowl className="w-14 h-14 text-pink-500" />
-                <b className="font-display text-ink">EatNow</b>
+          <a
+            href="#"
+            className="hidden sm:block text-[12px] font-bold uppercase tracking-[0.12em] text-pink-600 hover:underline shrink-0 pb-1"
+          >
+            Xem tất cả
+          </a>
+        </div>
+
+        <div className="mt-9 stagger flex flex-col gap-1">
+          {restaurants.map((r, i) => (
+            <a
+              key={r.name}
+              href="#"
+              className="rank-row group grid grid-cols-[40px_1fr_auto] sm:grid-cols-[74px_92px_1fr_auto] items-start gap-3.5 sm:gap-7 py-5 sm:py-6 px-3 sm:px-4 -mx-3 sm:-mx-4"
+            >
+              {/* Thứ hạng */}
+              <span className="rank-numeral font-display font-extrabold text-[34px] sm:text-[54px] leading-none text-ink/35 self-start pt-1">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+
+              {/* Ảnh món (hiện đang là icon trên nền màu) */}
+              <div
+                className={`hidden sm:flex relative h-[92px] w-[92px] rounded-xl items-center justify-center overflow-hidden ${r.bg}`}
+              >
+                <r.Icon className="zoom-slow w-10 h-10 text-ink/70" />
               </div>
+
+              {/* Thông tin quán */}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h3
+                    className="font-display font-extrabold text-[18px] sm:text-[22px] leading-tight tracking-tight group-hover:text-pink-600"
+                    style={{ transition: "color .42s var(--ease-soft)" }}
+                  >
+                    {r.name}
+                  </h3>
+                  {r.promo && (
+                    <span className="bg-mango text-ink text-[10.5px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded">
+                      {r.promo}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[13px] text-ink-soft mt-1 truncate">
+                  {r.category} · {r.signature}
+                </p>
+                <div className="flex items-center gap-3.5 mt-2 text-[12.5px] font-semibold text-ink-soft">
+                  <span className="flex items-center gap-1 text-ink">
+                    <IconStar className="w-3.5 h-3.5 text-mango" />
+                    {r.rating_average}
+                    <span className="font-normal text-ink-soft">({r.rating_count})</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <IconClock className="w-3.5 h-3.5" />
+                    {r.eta}
+                  </span>
+                  <span className="hidden sm:inline">{r.distance}</span>
+                </div>
+              </div>
+
+              {/* Khoảng giá */}
+              <div className="text-right shrink-0">
+                <p className="text-[11px] uppercase tracking-[0.12em] text-ink-soft font-bold hidden sm:block">
+                  Khoảng giá
+                </p>
+                <p className="font-display font-bold text-[13.5px] sm:text-[15px] text-ink mt-0.5 whitespace-nowrap">
+                  {r.price_range}
+                </p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* =================================================================
+          ƯU ĐÃI — mỗi voucher là một tấm phiếu cắt rời thật, dùng lại
+          mô-típ răng cưa của phiếu đặt hàng ở hero.
+          ================================================================= */}
+      <section id="uu-dai" className="bg-ink py-16 mt-4">
+        <div className="max-w-[1160px] mx-auto px-6">
+          <div className="flex items-end justify-between gap-4 mb-9">
+            <h2 className="font-display font-extrabold text-[30px] sm:text-[40px] leading-none tracking-tight text-white">
+              Phiếu giảm giá
+              <br />
+              <span className="text-mango">còn hiệu lực hôm nay</span>
+            </h2>
+            <a
+              href="#"
+              className="hidden sm:block text-[12px] font-bold uppercase tracking-[0.12em] text-white/60 hover:text-white transition-colors shrink-0 pb-1"
+            >
+              Xem tất cả
+            </a>
+          </div>
+
+          <div className="relative -mx-6 px-6 sm:mx-0 sm:px-0">
+            <div className="flex sm:grid sm:grid-cols-3 gap-5 sm:gap-7 overflow-x-auto sm:overflow-visible no-scrollbar snap-x snap-mandatory stagger pb-1">
+              {vouchers.map((v) => (
+                <div
+                  key={v.code}
+                  className="ticket-edge coupon relative shrink-0 w-[78vw] sm:w-auto snap-start bg-surface px-6 py-6 shadow-[0_16px_40px_-24px_rgba(0,0,0,0.5)]"
+                  style={{ "--ticket-notch": "var(--ink)" } as React.CSSProperties}
+                >
+                  <span className="coupon-shine" />
+                  <v.Icon className="w-7 h-7 text-pink-500" />
+                  <h3 className="font-display font-extrabold text-[19px] leading-tight mt-4 text-ink">
+                    {v.title}
+                  </h3>
+                  <p className="text-[13px] text-ink-soft mt-1.5 leading-snug">{v.desc}</p>
+
+                  <div className="dotted-rule text-ink/25 my-5" />
+
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="coupon-code font-display font-extrabold tracking-[0.1em] text-[15px] text-pink-600">
+                      {v.code}
+                    </span>
+                    <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-soft">
+                      Chạm để lưu
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
+            {/* gợi ý còn nội dung để cuộn — chỉ trên mobile */}
+            <div className="sm:hidden pointer-events-none absolute right-0 top-0 bottom-1 w-14 bg-gradient-to-l from-ink to-transparent" />
           </div>
         </div>
       </section>
 
-      {/* TESTIMONIALS */}
-      <section id="danh-gia" className="py-24 max-w-[1160px] mx-auto px-6 w-full">
-        <div className="text-center max-w-[600px] mx-auto mb-14">
-          <div className="text-pink-600 font-bold text-[13px] uppercase tracking-wider">
-            Đánh giá
+      {/* MÓN ĐANG NÓNG — carousel, hơi bốc lên trên món đang hot (dùng
+          animate-steam có sẵn) */}
+      <section className="max-w-[1160px] mx-auto px-6 w-full py-16">
+        <div className="flex items-end justify-between gap-4 mb-7 reveal">
+          <div>
+            <h2 className="font-display font-extrabold text-[30px] sm:text-[40px] leading-none tracking-tight">
+              Món đang nóng
+            </h2>
+            <p className="text-[13.5px] text-ink-soft mt-2">
+              Vừa ra lò trong 30 phút qua
+            </p>
           </div>
-          <h2 className="font-display font-extrabold text-[28px] sm:text-[40px] mt-2.5">
-            Người dùng nói gì
-          </h2>
+          <a
+            href="#"
+            className="hidden sm:block text-[12px] font-bold uppercase tracking-[0.12em] text-pink-600 hover:underline shrink-0 pb-1"
+          >
+            Xem tất cả
+          </a>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {testimonials.map((t) => (
-            <div
-              key={t.name}
-              className="bg-white rounded-[20px] p-7 shadow-[0_14px_30px_-18px_rgba(58,31,43,0.2)]"
-            >
-              <div className="mb-3">
-                <Stars />
-              </div>
-              <p className="text-[14.5px] leading-relaxed mb-4">“{t.quote}”</p>
-              <div className="flex items-center gap-2.5">
-                <div className="w-[38px] h-[38px] rounded-full bg-pink-100 flex items-center justify-center text-[12px] font-bold text-pink-600">
-                  {t.initials}
+
+        <div className="relative -mx-6 px-6 sm:mx-0 sm:px-0">
+          <div className="grid grid-cols-2 sm:flex gap-4 sm:gap-5 sm:overflow-x-auto sm:pb-3 sm:scrollbar-brand sm:snap-x sm:snap-mandatory pb-4 pt-1">
+            {popularFoods.map((f) => (
+              <a
+                key={f.name}
+                href="#"
+                className="lift group w-full sm:shrink-0 sm:w-[200px] sm:snap-start bg-surface rounded-xl overflow-hidden border border-ink/[0.12] hover:shadow-[0_18px_40px_-20px_rgba(26,15,12,0.4)]"
+              >
+                <div
+                  className={`relative h-[110px] sm:h-[140px] flex items-center justify-center overflow-hidden ${f.bg}`}
+                >
+                  {/* hơi nóng bốc lên — chỉ hiện ở món đang hot */}
+                  {f.hot && (
+                    <div className="pointer-events-none absolute inset-x-0 top-2 flex justify-center gap-3">
+                      <span className="animate-steam block w-[3px] h-8 rounded-full bg-white/70 blur-[1.5px]" />
+                      <span
+                        className="animate-steam block w-[3px] h-11 rounded-full bg-white/70 blur-[1.5px]"
+                        style={{ animationDelay: "1.5s" }}
+                      />
+                      <span
+                        className="animate-steam block w-[3px] h-8 rounded-full bg-white/70 blur-[1.5px]"
+                        style={{ animationDelay: "2.9s" }}
+                      />
+                    </div>
+                  )}
+                  <f.Icon className="zoom-slow w-10 h-10 sm:w-14 sm:h-14 text-ink/70" />
                 </div>
-                <div>
-                  <b className="text-[13.5px] block">{t.name}</b>
-                  <span className="text-xs text-ink-soft">{t.place}</span>
+
+                <div className="p-3 sm:p-4 flex flex-col min-h-[104px] sm:min-h-[122px]">
+                  <h3
+                    className="font-display font-bold text-[13.5px] sm:text-[15px] leading-tight line-clamp-2 group-hover:text-pink-600"
+                    style={{ transition: "color .28s var(--ease-soft)" }}
+                  >
+                    {f.name}
+                  </h3>
+                  <p className="text-[11px] sm:text-[12px] text-ink-soft mt-1 truncate">{f.restaurant}</p>
+
+                  <div className="dotted-rule text-ink/20 my-2.5 sm:my-3 mt-auto" />
+
+                  <div className="flex items-center justify-between">
+                    <span className="font-display font-extrabold text-[15px] sm:text-[17px] text-ink">
+                      {formatVnd(f.base_price)}
+                    </span>
+                    <span className="flex items-center gap-1 text-[12px] sm:text-[12.5px] font-bold">
+                      <IconStar className="w-3.5 h-3.5 text-mango" />
+                      {f.rating_average}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              </a>
+            ))}
+          </div>
+          {/* gợi ý còn nội dung để cuộn — chỉ khi ở chế độ cuộn ngang (sm trở lên) */}
+          <div className="hidden sm:block pointer-events-none absolute right-0 top-1 bottom-4 w-12 bg-gradient-to-l from-background to-transparent" />
+        </div>
+      </section>
+
+      {/* CAM KẾT — ba dòng, đặt trên nền kẻ ô như tờ giấy ghi đơn */}
+      <section
+        id="danh-gia"
+        className="paper-grid border-y-2 border-ink/10 py-16"
+      >
+        <div className="max-w-[1160px] mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 stagger">
+            <div>
+              <IconClock className="w-7 h-7 text-pink-500" />
+              <p className="font-display font-extrabold text-[26px] leading-tight mt-4 tracking-tight">
+                Nóng khi tới cửa
+              </p>
+              <p className="text-[13.5px] text-ink-soft mt-2 leading-relaxed max-w-[260px]">
+                Ưu tiên quán gần địa chỉ giao, trung bình 15 phút từ lúc bếp
+                nhận đơn.
+              </p>
             </div>
-          ))}
+            <div>
+              <IconBike className="w-7 h-7 text-pink-500" />
+              <p className="font-display font-extrabold text-[26px] leading-tight mt-4 tracking-tight">
+                Biết xe đang ở đâu
+              </p>
+              <p className="text-[13.5px] text-ink-soft mt-2 leading-relaxed max-w-[260px]">
+                Theo dõi tài xế trên bản đồ theo thời gian thực, không phải
+                đoán.
+              </p>
+            </div>
+            <div>
+              <IconStar className="w-7 h-7 text-mango" />
+              <p className="font-display font-extrabold text-[26px] leading-tight mt-4 tracking-tight">
+                Đánh giá từ người ăn thật
+              </p>
+              <p className="text-[13.5px] text-ink-soft mt-2 leading-relaxed max-w-[260px]">
+                Chỉ tài khoản đã đặt đơn mới chấm sao được, trung bình 4.7/5.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="bg-ink text-white pt-14 pb-7 mt-10">
+      <footer className="bg-footer text-white pt-16 pb-7">
         <div className="max-w-[1160px] mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-9">
             <div>
               <Logo light />
-              <p className="text-[#c7b3ba] text-sm leading-relaxed max-w-[280px] mt-3">
+              <p className="text-white/50 text-sm leading-relaxed max-w-[280px] mt-3">
                 Ứng dụng đặt đồ ăn giao nhanh, thực đơn phong phú từ hàng
                 nghìn quán ăn quanh bạn.
               </p>
             </div>
             <div>
-              <h5 className="text-[13px] uppercase tracking-wider text-[#f0a9bd] mb-3.5">
+              <h3 className="text-[11px] uppercase tracking-[0.16em] text-mango font-bold mb-4">
                 Sản phẩm
-              </h5>
-              <ul className="flex flex-col gap-2.5 text-[#e9d7dc] text-sm">
+              </h3>
+              <ul className="flex flex-col gap-2.5 text-white/70 text-sm">
                 <li>
                   <a href="#thuc-don" className="hover:text-white transition-colors">
                     Thực đơn
                   </a>
                 </li>
                 <li>
-                  <a href="#cach-hoat-dong" className="hover:text-white transition-colors">
-                    Cách hoạt động
+                  <a href="#quan-an" className="hover:text-white transition-colors">
+                    Quán ăn gần bạn
                   </a>
                 </li>
                 <li>
-                  <a href="#tai-app" className="hover:text-white transition-colors">
-                    Tải app
+                  <a href="#uu-dai" className="hover:text-white transition-colors">
+                    Ưu đãi
                   </a>
                 </li>
               </ul>
             </div>
             <div>
-              <h5 className="text-[13px] uppercase tracking-wider text-[#f0a9bd] mb-3.5">
+              <h3 className="text-[11px] uppercase tracking-[0.16em] text-mango font-bold mb-4">
                 Công ty
-              </h5>
-              <ul className="flex flex-col gap-2.5 text-[#e9d7dc] text-sm">
+              </h3>
+              <ul className="flex flex-col gap-2.5 text-white/70 text-sm">
                 <li>
                   <a href="#" className="hover:text-white transition-colors">
                     Về chúng tôi
@@ -464,10 +762,10 @@ export default async function Home() {
               </ul>
             </div>
             <div>
-              <h5 className="text-[13px] uppercase tracking-wider text-[#f0a9bd] mb-3.5">
+              <h3 className="text-[11px] uppercase tracking-[0.16em] text-mango font-bold mb-4">
                 Hỗ trợ
-              </h5>
-              <ul className="flex flex-col gap-2.5 text-[#e9d7dc] text-sm">
+              </h3>
+              <ul className="flex flex-col gap-2.5 text-white/70 text-sm">
                 <li>
                   <a href="#" className="hover:text-white transition-colors">
                     Trung tâm trợ giúp
@@ -486,12 +784,14 @@ export default async function Home() {
               </ul>
             </div>
           </div>
-          <div className="mt-11 pt-6 border-t border-white/10 flex justify-between flex-wrap gap-3 text-[13px] text-[#a98d95]">
+          <div className="mt-12 pt-6 border-t border-white/10 flex justify-between flex-wrap gap-3 text-[13px] text-white/40">
             <span>© 2026 EatNow. Đói bụng, có ngay.</span>
             <span>Thiết kế tại Việt Nam</span>
           </div>
         </div>
       </footer>
+
+      <MobileBottomNav />
     </div>
   );
 }
