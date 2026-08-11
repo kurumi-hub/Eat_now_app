@@ -16,7 +16,10 @@
 # next.js
 /.next/
 /out/
-
+# version
+/version
+# schema
+/schema
 # production
 /build
 
