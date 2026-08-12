@@ -141,7 +141,7 @@ export default function CartPage({ user }: CartPageProps) {
       />
 
       <main style={{ maxWidth: 720, margin: "0 auto", padding: "32px 16px 96px" }}>
-        <Typography variant="h5" fontWeight={700} gutterBottom>
+        <Typography variant="h5" sx={{ fontWeight: 700 }} gutterBottom>
           Giỏ hàng của bạn
         </Typography>
 
@@ -197,7 +197,7 @@ export default function CartPage({ user }: CartPageProps) {
                   </Box>
 
                   <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Typography fontWeight={600} noWrap>
+                    <Typography sx={{ fontWeight: 600 }} noWrap>
                       {line.foodName}
                     </Typography>
                     {lineDescription(line) && (
@@ -205,7 +205,7 @@ export default function CartPage({ user }: CartPageProps) {
                         {lineDescription(line)}
                       </Typography>
                     )}
-                    <Typography variant="body2" fontWeight={600} sx={{ mt: 0.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
                       {formatCurrency(line.unitPrice)}
                     </Typography>
                   </Box>
@@ -252,7 +252,7 @@ export default function CartPage({ user }: CartPageProps) {
 
             {showCheckoutForm && (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 3 }}>
-                <Typography variant="subtitle1" fontWeight={600}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                   Thông tin giao hàng
                 </Typography>
                 <TextField
@@ -296,7 +296,7 @@ export default function CartPage({ user }: CartPageProps) {
             </Box>
             <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
               <Typography variant="h6">Tổng cộng (tạm tính + phí ship)</Typography>
-              <Typography variant="h6" fontWeight={700}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 {formatCurrency(totalPrice + 15000)}
               </Typography>
             </Box>

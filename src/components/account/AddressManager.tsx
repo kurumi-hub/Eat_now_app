@@ -111,7 +111,7 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
             >
               <PlaceOutlinedIcon color="action" sx={{ mt: 0.5 }} />
               <Box sx={{ flex: 1 }}>
-                <Typography variant="body1" fontWeight={600}>
+                <Typography variant="body1" sx={{ fontWeight: 600 }}>
                   {address.line1}
                   {address.isDefault && (
                     <Typography

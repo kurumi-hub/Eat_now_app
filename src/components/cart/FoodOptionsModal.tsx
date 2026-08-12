@@ -161,7 +161,7 @@ export default function FoodOptionsModal({
 
         {food.sizes && food.sizes.length > 0 && (
           <div style={{ marginBottom: 24 }}>
-            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
               Chọn size
             </Typography>
             <RadioGroup
@@ -198,7 +198,7 @@ export default function FoodOptionsModal({
 
           return (
             <div key={group.id} style={{ marginBottom: 24 }}>
-              <Typography variant="subtitle1" fontWeight={600}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 {group.name}
                 {group.minSelect > 0 && (
                   <Typography component="span" variant="caption" color="error" sx={{ ml: 1 }}>
@@ -259,7 +259,7 @@ export default function FoodOptionsModal({
         />
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Typography variant="subtitle1" fontWeight={600}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
             Số lượng
           </Typography>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

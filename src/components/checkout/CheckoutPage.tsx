@@ -201,7 +201,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
           gap: 3,
         }}
       >
-        <Typography variant="h5" fontWeight={700}>
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>
           Xác nhận đơn hàng
         </Typography>
 
@@ -214,7 +214,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
         {error && <Alert severity="error">{error}</Alert>}
 
         <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
             Địa chỉ giao hàng
           </Typography>
 
@@ -258,7 +258,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
             Mã giảm giá
           </Typography>
           <TextField
@@ -276,7 +276,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
             Phương thức thanh toán
           </Typography>
           <RadioGroup
@@ -309,7 +309,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
             Tổng thanh toán
           </Typography>
 
@@ -381,11 +381,11 @@ function Row({
       <Typography
         variant="body2"
         color={bold ? "text.primary" : "text.secondary"}
-        fontWeight={bold ? 700 : 400}
+        sx={{ fontWeight: bold ? 700 : 400 }}
       >
         {label}
       </Typography>
-      <Typography variant="body2" fontWeight={bold ? 700 : 500}>
+      <Typography variant="body2" sx={{ fontWeight: bold ? 700 : 500 }}>
         {value}
       </Typography>
     </Box>
