@@ -105,9 +105,12 @@ export async function getRestaurantDetailBySlug(
   const categoriesMap = new Map<string, RestaurantMenuCategory>();
 
   for (const food of restaurant.foods) {
-    const categoryName =
-      food.food_categories[0]?.categories?.name ?? "Món Khác";
-    const categoryId = food.food_categories[0]?.categories?.id ?? "khac";
+    // Supabase suy luận quan hệ lồng nhau (many-to-one) thành mảng dù thực
+    // tế mỗi dòng chỉ có 1 category -- xử lý an toàn cho cả 2 khả năng.
+    const categoryRel = food.food_categories[0]?.categories;
+    const category = Array.isArray(categoryRel) ? categoryRel[0] : categoryRel;
+    const categoryName = category?.name ?? "Món Khác";
+    const categoryId = category?.id ?? "khac";
 
     if (!categoriesMap.has(categoryId)) {
       categoriesMap.set(categoryId, {
@@ -123,7 +126,11 @@ export async function getRestaurantDetailBySlug(
       food.food_images[0]?.img_url ??
       "";
 
-    const isPopular = food.food_tags.some((ft) => ft.tags?.name === "popular");
+    const isPopular = food.food_tags.some((ft) => {
+      const tagRel = ft.tags;
+      const tag = Array.isArray(tagRel) ? tagRel[0] : tagRel;
+      return tag?.name === "popular";
+    });
 
     categoriesMap.get(categoryId)!.items.push({
       id: food.id,
