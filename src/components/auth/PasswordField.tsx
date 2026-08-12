@@ -1,66 +1,71 @@
 "use client";
 
-import { Eye, EyeOff, Lock } from "lucide-react";
-import { useState, type InputHTMLAttributes } from "react";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import {
+  IconButton,
+  InputAdornment,
+  TextField,
+  type TextFieldProps,
+} from "@mui/material";
+import { useState } from "react";
 
-import TextField from "@/components/ui/TextField";
-import { IconButton } from "@/components/ui/Primitives";
-
-type PasswordFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
-  label?: string;
+type PasswordFieldProps = Omit<TextFieldProps, "type" | "error"> & {
   errorMessage?: string;
-  helperText?: string;
 };
 
 export default function PasswordField({
   errorMessage,
   helperText,
-  label,
-  name,
-  className = "",
+  slotProps,
   ...props
 }: PasswordFieldProps) {
   const [isVisible, setIsVisible] = useState(false);
 
+  const handleToggleVisibility = () => {
+    setIsVisible((current) => !current);
+  };
+
   return (
-    <div className="w-full">
-      {label && (
-        <label className="mb-1.5 block text-[13px] font-semibold leading-[18px] text-[var(--brand-text-soft)]">
-          {label}
-        </label>
-      )}
-      <div className="relative">
-        <Lock
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--brand-text-soft)]"
-        />
-        <TextField
-          {...props}
-          name={name}
-          type={isVisible ? "text" : "password"}
-          error={Boolean(errorMessage)}
-          aria-label={label || name || "Mật khẩu"}
-          className={`pl-10 ${className}`}
-          endAdornment={
-            <IconButton
-              type="button"
-              aria-label={isVisible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-              onClick={() => setIsVisible((v) => !v)}
-              className="min-h-9 min-w-9"
-            >
-              {isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </IconButton>
-          }
-        />
-      </div>
-      {(errorMessage || helperText) && (
-        <p
-          className={`mt-1 text-xs ${
-            errorMessage ? "text-[var(--brand-error)]" : "text-[var(--brand-text-soft)]"
-          }`}
-        >
-          {errorMessage || helperText}
-        </p>
-      )}
-    </div>
+    <TextField
+      {...props}
+      type={isVisible ? "text" : "password"}
+      error={Boolean(errorMessage)}
+      helperText={errorMessage || helperText}
+      slotProps={{
+        ...slotProps,
+        htmlInput: {
+          "aria-label":
+            typeof props.label === "string"
+              ? props.label
+              : props.name || "Mật khẩu",
+          ...slotProps?.htmlInput,
+        },
+        input: {
+          startAdornment: (
+            <InputAdornment position="start">
+              <LockOutlinedIcon color="action" fontSize="small" />
+            </InputAdornment>
+          ),
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                aria-label={isVisible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                edge="end"
+                onClick={handleToggleVisibility}
+              >
+                {isVisible ? (
+                  <VisibilityOffOutlinedIcon />
+                ) : (
+                  <VisibilityOutlinedIcon />
+                )}
+              </IconButton>
+            </InputAdornment>
+          ),
+          ...slotProps?.input,
+        },
+      }}
+    />
   );
 }

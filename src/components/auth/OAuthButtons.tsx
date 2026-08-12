@@ -1,9 +1,10 @@
 "use client";
 
+import AppleIcon from "@mui/icons-material/Apple";
+import FacebookIcon from "@mui/icons-material/Facebook";
+import GoogleIcon from "@mui/icons-material/Google";
+import { Button, Stack } from "@mui/material";
 import type { ReactNode } from "react";
-
-import Button from "@/components/ui/Button";
-import { AppleIcon, FacebookIcon, GoogleIcon } from "@/components/icons/BrandIcons";
 
 export type OAuthProvider = "Google" | "Apple" | "Facebook";
 
@@ -13,9 +14,9 @@ type OAuthButtonsProps = {
 };
 
 const providerIcons: Record<OAuthProvider, ReactNode> = {
-  Google: <GoogleIcon className="h-4 w-4" />,
-  Apple: <AppleIcon className="h-4 w-4" />,
-  Facebook: <FacebookIcon className="h-4 w-4" />,
+  Google: <GoogleIcon fontSize="small" />,
+  Apple: <AppleIcon fontSize="small" />,
+  Facebook: <FacebookIcon fontSize="small" />,
 };
 
 export default function OAuthButtons({
@@ -23,7 +24,7 @@ export default function OAuthButtons({
   onPlaceholder,
 }: OAuthButtonsProps) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row">
+    <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
       {providers.map((provider) => (
         <Button
           key={provider}
@@ -36,6 +37,6 @@ export default function OAuthButtons({
           {provider}
         </Button>
       ))}
-    </div>
+    </Stack>
   );
 }

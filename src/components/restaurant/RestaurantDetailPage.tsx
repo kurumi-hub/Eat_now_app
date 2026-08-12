@@ -1,16 +1,26 @@
 "use client";
 
+import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
+import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
+import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
+import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
+import StarOutlinedIcon from "@mui/icons-material/StarOutlined";
 import {
-  Clock,
-  Home as HomeIcon,
-  MapPin,
-  Plus,
-  Receipt,
-  Star,
-  Truck,
-  UtensilsCrossed,
-  BookOpen,
-} from "lucide-react";
+  Alert,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  IconButton,
+  Snackbar,
+} from "@mui/material";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,10 +30,6 @@ import type { PublicUser } from "@/types/auth";
 import CustomerHeader from "@/components/home/CustomerHeader";
 import FoodOptionsModal from "@/components/cart/FoodOptionsModal";
 import { useCartStore } from "@/store/cartStore";
-import Button from "@/components/ui/Button";
-import Dialog, { DialogActions, DialogContent } from "@/components/ui/Dialog";
-import { IconButton } from "@/components/ui/Primitives";
-import SnackbarToast from "@/components/ui/Snackbar";
 import type {
   RestaurantDetail,
   RestaurantMenuItem,
@@ -32,6 +38,11 @@ import type {
 type RestaurantDetailPageProps = {
   restaurant: RestaurantDetail;
   user: PublicUser | null;
+};
+
+type SnackbarState = {
+  open: boolean;
+  message: string;
 };
 
 function formatCurrency(value: number) {
@@ -50,8 +61,12 @@ export default function RestaurantDetailPage({
   const [activeCategory, setActiveCategory] = useState(
     restaurant.menuCategories[0]?.id || ""
   );
-  const [snackbar, setSnackbar] = useState({ open: false, message: "" });
+  const [snackbar, setSnackbar] = useState<SnackbarState>({
+    open: false,
+    message: "",
+  });
 
+  // ---- Giỏ hàng ----
   const addItem = useCartStore((state) => state.addItem);
   const hasConflictingRestaurant = useCartStore(
     (state) => state.hasConflictingRestaurant
@@ -63,6 +78,8 @@ export default function RestaurantDetailPage({
   );
   const [optionsModalOpen, setOptionsModalOpen] = useState(false);
 
+  // Khi thêm món của quán khác trong lúc giỏ đang có món của quán A,
+  // giữ lại lựa chọn (selection) đang chờ để add sau khi người dùng xác nhận xoá giỏ cũ.
   const [pendingConflictSelection, setPendingConflictSelection] = useState<{
     food: RestaurantMenuItem;
     selection: {
@@ -81,6 +98,10 @@ export default function RestaurantDetailPage({
 
   const showPlaceholder = (message: string) => {
     setSnackbar({ open: true, message });
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar((current) => ({ ...current, open: false }));
   };
 
   const handleSectionNavigate = (sectionId: string) => {
@@ -106,6 +127,7 @@ export default function RestaurantDetailPage({
       return;
     }
 
+    // Không check đăng nhập ở đây -- chỉ check khi người dùng xác nhận đặt đơn.
     setSelectedFood(item);
     setOptionsModalOpen(true);
   };
@@ -142,6 +164,7 @@ export default function RestaurantDetailPage({
   }) => {
     if (!selectedFood) return;
 
+    // Giỏ đang có món của quán khác -> hỏi xác nhận trước khi xoá & thêm món mới.
     if (hasConflictingRestaurant(restaurant.id)) {
       setPendingConflictSelection({ food: selectedFood, selection });
       return;
@@ -184,27 +207,23 @@ export default function RestaurantDetailPage({
           <div className="restaurant-hero__body">
             <div>
               <div className="restaurant-hero__status-row">
-                <span
-                  className={[
-                    "restaurant-status-chip",
-                    restaurant.isOpen
-                      ? "bg-[var(--brand-success)]/10 text-[var(--brand-success)]"
-                      : "bg-[var(--brand-error)]/10 text-[var(--brand-error)]",
-                  ].join(" ")}
-                >
-                  {restaurant.isOpen ? "Đang mở cửa" : "Đang đóng cửa"}
-                </span>
+                <Chip
+                  size="small"
+                  label={restaurant.isOpen ? "Đang mở cửa" : "Đang đóng cửa"}
+                  color={restaurant.isOpen ? "success" : "error"}
+                  className="restaurant-status-chip"
+                />
                 <span>Mở đến {restaurant.openUntil}</span>
               </div>
               <h1 id="restaurant-title">{restaurant.name}</h1>
               <div className="restaurant-meta-row">
                 <span>
-                  <Star className="inline h-3.5 w-3.5" />
+                  <StarOutlinedIcon fontSize="inherit" />
                   <strong>{restaurant.rating}</strong>
                   <span>{restaurant.reviewCount}</span>
                 </span>
                 <span>
-                  <MapPin className="inline h-3.5 w-3.5" />
+                  <LocationOnOutlinedIcon fontSize="inherit" />
                   {restaurant.address}
                 </span>
               </div>
@@ -212,11 +231,11 @@ export default function RestaurantDetailPage({
 
             <div className="restaurant-service-row">
               <span>
-                <Clock className="inline h-4 w-4" />
+                <AccessTimeOutlinedIcon fontSize="small" />
                 {restaurant.deliveryTime}
               </span>
               <span>
-                <Truck className="inline h-4 w-4" />
+                <LocalShippingOutlinedIcon fontSize="small" />
                 {restaurant.deliveryFee}
               </span>
             </div>
@@ -285,7 +304,7 @@ export default function RestaurantDetailPage({
                           onClick={() => handleAddItem(item)}
                           disabled={!restaurant.isOpen || !item.isAvailable}
                         >
-                          <Plus className="h-4 w-4" />
+                          <AddOutlinedIcon fontSize="small" />
                         </IconButton>
                       </div>
                     </article>
@@ -354,11 +373,11 @@ export default function RestaurantDetailPage({
 
       <nav className="restaurant-bottom-nav" aria-label="Điều hướng nhanh">
         <button type="button" onClick={() => router.push("/")}>
-          <HomeIcon />
+          <HomeOutlinedIcon />
           <span>Trang chủ</span>
         </button>
         <button className="is-active" type="button">
-          <UtensilsCrossed />
+          <RestaurantMenuOutlinedIcon />
           <span>Khám phá</span>
         </button>
         <button
@@ -369,7 +388,7 @@ export default function RestaurantDetailPage({
             )
           }
         >
-          <Receipt />
+          <ReceiptLongOutlinedIcon />
           <span>Đơn hàng</span>
         </button>
         <button
@@ -380,7 +399,7 @@ export default function RestaurantDetailPage({
             )
           }
         >
-          <BookOpen />
+          <MenuBookOutlinedIcon />
           <span>Công thức</span>
         </button>
       </nav>
@@ -395,36 +414,33 @@ export default function RestaurantDetailPage({
       <Dialog
         open={Boolean(pendingConflictSelection)}
         onClose={handleCancelReplaceCart}
-        title="Bắt đầu giỏ hàng mới?"
       >
+        <DialogTitle>Bắt đầu giỏ hàng mới?</DialogTitle>
         <DialogContent>
-          <p className="text-sm text-[var(--brand-text-soft)]">
+          <DialogContentText>
             Giỏ hàng của bạn đang có món từ một nhà hàng khác. Bạn chỉ có thể
             đặt món từ một nhà hàng trong mỗi đơn. Xoá giỏ hàng hiện tại để
             thêm món từ {restaurant.name}?
-          </p>
+          </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button variant="text" onClick={handleCancelReplaceCart}>
-            Huỷ
-          </Button>
-          <Button
-            variant="contained"
-            className="!bg-[var(--brand-error)] hover:!bg-[var(--brand-error)]/90"
-            onClick={handleConfirmReplaceCart}
-          >
+          <Button onClick={handleCancelReplaceCart}>Huỷ</Button>
+          <Button variant="contained" color="error" onClick={handleConfirmReplaceCart}>
             Xoá giỏ & thêm món mới
           </Button>
         </DialogActions>
       </Dialog>
 
-      <SnackbarToast
+      <Snackbar
         open={snackbar.open}
-        message={snackbar.message}
-        severity="info"
         autoHideDuration={2600}
-        onClose={() => setSnackbar((current) => ({ ...current, open: false }))}
-      />
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert severity="info" variant="filled" onClose={handleSnackbarClose}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 }

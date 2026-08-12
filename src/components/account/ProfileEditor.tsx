@@ -1,14 +1,24 @@
 "use client";
 
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
+import CameraAltOutlinedIcon from "@mui/icons-material/CameraAltOutlined";
+import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import {
-  Calendar,
-  Camera,
-  CheckCircle2,
-  Pencil,
-  Save,
-  Trash2,
-  X,
-} from "lucide-react";
+  Alert,
+  Avatar,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { useRouter } from "next/navigation";
 import {
   useMemo,
@@ -29,11 +39,6 @@ import type { PublicUser, UserStatus } from "@/types/auth";
 import { formatRole, getUserRoles } from "@/utils/roles";
 import type { ProfileField, ValidationErrors } from "@/utils/validation";
 import { validateProfileValues } from "@/utils/validation";
-import AlertBox from "@/components/ui/Alert";
-import Button from "@/components/ui/Button";
-import TextField from "@/components/ui/TextField";
-import Dialog, { DialogActions, DialogContent } from "@/components/ui/Dialog";
-import { Avatar, Spinner } from "@/components/ui/Primitives";
 
 const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024;
 const AVATAR_ACCEPT = "image/png,image/jpeg,image/webp";
@@ -268,21 +273,26 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
   return (
     <form className="profile-design-card" onSubmit={handleSubmit} noValidate>
       {feedback ? (
-        <AlertBox className="profile-feedback" severity={feedback.severity}>
+        <Alert
+          className="profile-feedback"
+          severity={feedback.severity}
+          iconMapping={{
+            success: <CheckCircleOutlineOutlinedIcon fontSize="inherit" />,
+          }}
+        >
           {feedback.message}
-        </AlertBox>
+        </Alert>
       ) : null}
 
       <section className="profile-avatar-section" aria-labelledby="avatar-title">
-        <h2 id="avatar-title">Ảnh đại diện</h2>
+        <Typography id="avatar-title" variant="h2" component="h2">
+          Ảnh đại diện
+        </Typography>
 
         <div className="profile-avatar-actions">
-          <Avatar
-            className="profile-avatar-preview"
-            src={avatarSource}
-            fallback={getInitials(values.fullName || user.fullName)}
-            size={96}
-          />
+          <Avatar className="profile-avatar-preview" src={avatarSource}>
+            {getInitials(values.fullName || user.fullName)}
+          </Avatar>
 
           <div className="profile-avatar-buttons">
             <input
@@ -295,21 +305,19 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
             />
             <Button
               variant="contained"
-              startIcon={<Camera className="h-4 w-4" />}
+              startIcon={<CameraAltOutlinedIcon />}
               onClick={handleAvatarClick}
               disabled={!isEditing || isSaving}
-              type="button"
             >
               Thay đổi ảnh
             </Button>
             <Button
               variant="outlined"
               color="secondary"
-              startIcon={<Trash2 className="h-4 w-4" />}
+              startIcon={<DeleteOutlineOutlinedIcon />}
               onClick={() => setIsDeleteDialogOpen(true)}
               disabled={!isEditing || isSaving || !avatarSource}
               aria-label="Xóa ảnh đại diện"
-              type="button"
             >
               Xóa ảnh
             </Button>
@@ -333,7 +341,7 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
                 helperText={fieldErrors.fullName || ""}
                 autoComplete="name"
                 disabled={isSaving}
-                aria-label="Họ và tên"
+                slotProps={{ htmlInput: { "aria-label": "Họ và tên" } }}
               />
             ) : (
               <div className="profile-readonly-value">{displayUser.fullName}</div>
@@ -356,7 +364,7 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
                 helperText={fieldErrors.phone || ""}
                 autoComplete="tel"
                 disabled={isSaving}
-                aria-label="Số điện thoại"
+                slotProps={{ htmlInput: { "aria-label": "Số điện thoại" } }}
               />
             ) : (
               <div className="profile-readonly-value">
@@ -376,7 +384,7 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
           <ReadonlyField
             label="Ngày tham gia"
             value={formatDate(displayUser.createdAt)}
-            leading={<Calendar className="h-4 w-4" />}
+            leading={<CalendarMonthOutlinedIcon />}
           />
         </div>
 
@@ -387,7 +395,7 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
                 type="button"
                 variant="outlined"
                 color="secondary"
-                startIcon={<X className="h-4 w-4" />}
+                startIcon={<CloseOutlinedIcon />}
                 onClick={handleCancel}
                 disabled={isSaving}
               >
@@ -397,7 +405,11 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
                 type="submit"
                 variant="contained"
                 startIcon={
-                  isSaving ? <Spinner size={18} /> : <Save className="h-4 w-4" />
+                  isSaving ? (
+                    <CircularProgress color="inherit" size={18} />
+                  ) : (
+                    <SaveOutlinedIcon />
+                  )
                 }
                 disabled={isSaving}
               >
@@ -408,7 +420,7 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
             <Button
               type="button"
               variant="contained"
-              startIcon={<Pencil className="h-4 w-4" />}
+              startIcon={<EditOutlinedIcon />}
               onClick={handleEdit}
             >
               Chỉnh sửa hồ sơ
@@ -420,19 +432,17 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
       <Dialog
         open={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
-        title="Xóa ảnh đại diện?"
+        aria-labelledby="delete-avatar-title"
       >
+        <DialogTitle id="delete-avatar-title">Xóa ảnh đại diện?</DialogTitle>
         <DialogContent>
           Ảnh đại diện sẽ được gỡ khỏi phần xem trước hồ sơ của bạn.
         </DialogContent>
         <DialogActions>
-          <Button variant="text" type="button" onClick={() => setIsDeleteDialogOpen(false)}>
-            Hủy
-          </Button>
+          <Button onClick={() => setIsDeleteDialogOpen(false)}>Hủy</Button>
           <Button
+            color="error"
             variant="contained"
-            type="button"
-            className="!bg-[var(--brand-error)] hover:!bg-[var(--brand-error)]/90"
             onClick={handleDeleteAvatar}
           >
             Xóa ảnh

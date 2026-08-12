@@ -1,3 +1,4 @@
+import { Box, Paper } from "@mui/material";
 import type { ReactNode } from "react";
 
 import AuthBrandPanel from "./AuthBrandPanel";
@@ -36,13 +37,13 @@ export default function AuthLayout({
 
   return (
     <main className="auth-page">
-      <section className={`auth-card auth-card--${variant}`}>
+      <Paper component="section" className={`auth-card auth-card--${variant}`}>
         <AuthBrandPanel {...brand} />
-        <div className="auth-form-panel">
+        <Box className="auth-form-panel">
           <AuthBrandPanel {...brand} compact />
-          <div className="auth-form-content">{children}</div>
-        </div>
-      </section>
+          <Box className="auth-form-content">{children}</Box>
+        </Box>
+      </Paper>
     </main>
   );
 }
