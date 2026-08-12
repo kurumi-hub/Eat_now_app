@@ -1,0 +1,41 @@
+:root {
+  --eatnow-primary: #d94720;
+  --eatnow-primary-dark: #b93618;
+  --eatnow-secondary: #70645d;
+  --eatnow-accent: #ffb84d;
+  --eatnow-background: #fff8f4;
+  --eatnow-surface: #ffffff;
+  --eatnow-text-primary: #251d18;
+  --eatnow-text-secondary: #70645d;
+  --eatnow-border: #eadfd8;
+  --eatnow-success: #27865c;
+  --eatnow-warning: #e59a21;
+  --eatnow-error: #d63a3a;
+  --eatnow-info: #005f9d;
+
+  --eatnow-radius-small: 8px;
+  --eatnow-radius-control: 12px;
+  --eatnow-radius-card: 16px;
+  --eatnow-radius-large-card: 20px;
+  --eatnow-radius-dialog: 24px;
+  --eatnow-radius-pill: 999px;
+
+  --eatnow-space-1: 4px;
+  --eatnow-space-2: 8px;
+  --eatnow-space-3: 12px;
+  --eatnow-space-4: 16px;
+  --eatnow-space-5: 24px;
+  --eatnow-space-6: 32px;
+  --eatnow-space-7: 40px;
+  --eatnow-space-8: 48px;
+  --eatnow-space-9: 64px;
+  --eatnow-space-10: 80px;
+  --eatnow-space-11: 96px;
+
+  --eatnow-shadow-1: 0 14px 34px rgba(37, 29, 24, 0.08);
+  --eatnow-shadow-2: 0 18px 42px rgba(37, 29, 24, 0.12);
+  --eatnow-shadow-3: 0 24px 64px rgba(37, 29, 24, 0.16);
+
+  --background: var(--eatnow-background);
+  --foreground: var(--eatnow-text-primary);
+}
