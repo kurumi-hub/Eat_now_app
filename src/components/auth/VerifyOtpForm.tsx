@@ -1,25 +1,15 @@
 "use client";
 
-import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined";
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  InputAdornment,
-  Snackbar,
-  Stack,
-  TextField,
-} from "@mui/material";
+import { MailCheck } from "lucide-react";
 import NextLink from "next/link";
-import {
-  useActionState,
-  useState,
-  type FormEvent,
-  type SyntheticEvent,
-} from "react";
+import { useActionState, useState, type FormEvent } from "react";
 
 import { resendSignupOtp, verifySignupOtp } from "@/app/auth/actions";
+import AlertBox from "@/components/ui/Alert";
+import Button from "@/components/ui/Button";
+import TextField from "@/components/ui/TextField";
+import { Spinner } from "@/components/ui/Primitives";
+import SnackbarToast from "@/components/ui/Snackbar";
 
 type VerifyOtpFormProps = {
   email: string;
@@ -66,66 +56,47 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
     });
   };
 
-  const handleSnackbarClose = (
-    _event?: SyntheticEvent | Event,
-    reason?: string
-  ) => {
-    if (reason === "clickaway") {
-      return;
-    }
-
-    setSnackbar((current) => ({ ...current, open: false }));
-  };
-
   return (
     <>
-      <Box
-        component="form"
+      <form
         action={formAction}
         className="auth-form"
         noValidate
         onSubmit={handleSubmit}
       >
         <input type="hidden" name="email" value={email} />
-        <Stack spacing={2.5}>
-          {state?.error ? <Alert severity="error">{state.error}</Alert> : null}
+        <div className="flex flex-col gap-5">
+          {state?.error ? <AlertBox severity="error">{state.error}</AlertBox> : null}
 
-          <TextField
-            label="Mã xác nhận"
-            name="token"
-            value={token}
-            onChange={(event) => setToken(event.target.value)}
-            error={Boolean(tokenError)}
-            helperText={tokenError || "Nhập mã 6 chữ số trong email của bạn."}
-            autoComplete="one-time-code"
-            inputMode="numeric"
-            placeholder="000000"
-            slotProps={{
-              htmlInput: {
-                maxLength: 6,
-                pattern: "[0-9]*",
-              },
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <MarkEmailReadOutlinedIcon color="action" fontSize="small" />
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
+          <div className="relative">
+            <MailCheck className="pointer-events-none absolute left-3 top-[38px] h-4 w-4 -translate-y-1/2 text-[var(--brand-text-soft)]" />
+            <TextField
+              label="Mã xác nhận"
+              name="token"
+              value={token}
+              onChange={(event) => setToken(event.target.value)}
+              error={Boolean(tokenError)}
+              helperText={tokenError || "Nhập mã 6 chữ số trong email của bạn."}
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              placeholder="000000"
+              maxLength={6}
+              pattern="[0-9]*"
+              className="pl-10"
+            />
+          </div>
 
           <Button
             fullWidth
             type="submit"
             variant="contained"
             disabled={pending || !email}
-            startIcon={pending ? <CircularProgress color="inherit" size={18} /> : null}
+            startIcon={pending ? <Spinner size={18} /> : null}
           >
             {pending ? "Đang xác nhận..." : "Xác nhận"}
           </Button>
 
-          <Box className="auth-otp-actions">
+          <div className="auth-otp-actions">
             <Button
               type="button"
               variant="text"
@@ -139,24 +110,17 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
             <NextLink className="auth-text-link" href="/register">
               Dùng email khác
             </NextLink>
-          </Box>
-        </Stack>
-      </Box>
+          </div>
+        </div>
+      </form>
 
-      <Snackbar
+      <SnackbarToast
         open={snackbar.open}
+        message={snackbar.message}
+        severity={snackbar.severity}
         autoHideDuration={2600}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          severity={snackbar.severity}
-          variant="filled"
-          onClose={handleSnackbarClose}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        onClose={() => setSnackbar((current) => ({ ...current, open: false }))}
+      />
     </>
   );
 }

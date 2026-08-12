@@ -1,20 +1,6 @@
 "use client";
 
-import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Divider,
-  FormControl,
-  FormControlLabel,
-  Paper,
-  Radio,
-  RadioGroup,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
@@ -27,6 +13,11 @@ import {
   previewOrder,
   syncCartToServer,
 } from "@/app/checkout/actions";
+import AlertBox from "@/components/ui/Alert";
+import Button from "@/components/ui/Button";
+import TextField from "@/components/ui/TextField";
+import { Radio, RadioGroup, FormControlLabel } from "@/components/ui/SelectionControls";
+import { Divider, Spinner } from "@/components/ui/Primitives";
 
 type CheckoutPageProps = {
   user: PublicUser;
@@ -73,11 +64,10 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   const [preview, setPreview] = useState<PreviewState>(null);
   const [previewError, setPreviewError] = useState("");
   const [error, setError] = useState("");
+  const [snackbarMessage, setSnackbarMessage] = useState("");
   const [isSyncing, startSyncing] = useTransition();
   const [isPlacing, startPlacing] = useTransition();
 
-  // Đồng bộ giỏ hàng lên server 1 lần khi vào trang checkout, để lấy cart_id
-  // dùng cho preview_order/place_order.
   useEffect(() => {
     if (!hydrated) return;
     if (lines.length === 0) return;
@@ -90,11 +80,9 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
       }
       setCartId(result.cartId);
     });
-    // Chỉ chạy 1 lần khi vào trang, không refetch mỗi lần user gõ voucher.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 
-  // Tính lại preview mỗi khi đổi địa chỉ/voucher, sau khi đã có cartId.
   useEffect(() => {
     if (!cartId || !addressId) {
       setPreview(null);
@@ -162,8 +150,6 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
     });
   };
 
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-
   if (hydrated && lines.length === 0) {
     return (
       <>
@@ -172,14 +158,12 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
           onPlaceholder={setSnackbarMessage}
           onSectionNavigate={(sectionId) => router.push(`/#${sectionId}`)}
         />
-        <Box sx={{ maxWidth: 640, mx: "auto", p: 4, textAlign: "center" }}>
-          <Typography variant="h6" gutterBottom>
-            Giỏ hàng đang trống
-          </Typography>
+        <div className="mx-auto max-w-[640px] p-8 text-center">
+          <p className="mb-4 text-lg font-semibold">Giỏ hàng đang trống</p>
           <Button variant="contained" onClick={() => router.push("/")}>
             Quay lại trang chủ
           </Button>
-        </Box>
+        </div>
       </>
     );
   }
@@ -191,141 +175,120 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
         onPlaceholder={setSnackbarMessage}
         onSectionNavigate={(sectionId) => router.push(`/#${sectionId}`)}
       />
-      <Box
-        sx={{
-          maxWidth: 720,
-          mx: "auto",
-          p: { xs: 2, md: 4 },
-          display: "flex",
-          flexDirection: "column",
-          gap: 3,
-        }}
-      >
-        <Typography variant="h5" fontWeight={700}>
-          Xác nhận đơn hàng
-        </Typography>
+      <div className="mx-auto flex max-w-[720px] flex-col gap-6 p-4 md:p-8">
+        <h1 className="text-2xl font-bold">Xác nhận đơn hàng</h1>
 
         {restaurantName && (
-          <Typography variant="body2" color="text.secondary">
+          <p className="text-sm text-[var(--brand-text-soft)]">
             Nhà hàng: {restaurantName}
-          </Typography>
+          </p>
         )}
 
-        {error && <Alert severity="error">{error}</Alert>}
+        {error && <AlertBox severity="error">{error}</AlertBox>}
 
-        <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-            Địa chỉ giao hàng
-          </Typography>
+        <div className="rounded-2xl border border-[var(--brand-border)] p-5">
+          <p className="mb-3 font-semibold">Địa chỉ giao hàng</p>
 
           {addresses.length === 0 ? (
-            <Alert severity="warning" sx={{ mb: 1 }}>
-              Bạn chưa có địa chỉ giao hàng nào.{" "}
-              <Button
-                size="small"
-                onClick={() => router.push("/account/addresses")}
-              >
-                Thêm địa chỉ
-              </Button>
-            </Alert>
+            <AlertBox severity="warning">
+              <span className="flex flex-wrap items-center gap-2">
+                Bạn chưa có địa chỉ giao hàng nào.
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => router.push("/account/addresses")}
+                >
+                  Thêm địa chỉ
+                </Button>
+              </span>
+            </AlertBox>
           ) : (
-            <FormControl fullWidth>
-              <RadioGroup
-                value={addressId}
-                onChange={(e) => setAddressId(e.target.value)}
-              >
-                {addresses.map((address) => (
-                  <FormControlLabel
-                    key={address.id}
-                    value={address.id}
-                    control={<Radio />}
-                    label={
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <PlaceOutlinedIcon fontSize="small" color="action" />
-                        <Typography variant="body2">
-                          {address.line1}
-                          {address.isDefault && " (Mặc định)"}
-                        </Typography>
-                      </Box>
-                    }
-                  />
-                ))}
-              </RadioGroup>
-            </FormControl>
+            <RadioGroup>
+              {addresses.map((address) => (
+                <FormControlLabel
+                  key={address.id}
+                  control={
+                    <Radio
+                      name="address"
+                      checked={addressId === address.id}
+                      onChange={() => setAddressId(address.id)}
+                    />
+                  }
+                  label={
+                    <span className="flex items-center gap-2 text-sm">
+                      <MapPin className="h-4 w-4 text-[var(--brand-text-soft)]" />
+                      {address.line1}
+                      {address.isDefault && " (Mặc định)"}
+                    </span>
+                  }
+                />
+              ))}
+            </RadioGroup>
           )}
-        </Paper>
+        </div>
 
-        <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-            Mã giảm giá
-          </Typography>
+        <div className="rounded-2xl border border-[var(--brand-border)] p-5">
+          <p className="mb-3 font-semibold">Mã giảm giá</p>
           <TextField
-            fullWidth
-            size="small"
             placeholder="Nhập mã voucher (không bắt buộc)"
             value={voucherCode}
             onChange={(e) => setVoucherCode(e.target.value.trim())}
           />
           {preview?.voucher && voucherCode && !preview.voucher.valid && (
-            <Typography variant="caption" color="error">
+            <p className="mt-1 text-xs text-[var(--brand-error)]">
               {preview.voucher.reason || "Voucher không hợp lệ"}
-            </Typography>
+            </p>
           )}
-        </Paper>
+        </div>
 
-        <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-            Phương thức thanh toán
-          </Typography>
-          <RadioGroup
-            value={paymentMethod}
-            onChange={(e) =>
-              setPaymentMethod(e.target.value as "cod" | "vnpay")
-            }
-          >
+        <div className="rounded-2xl border border-[var(--brand-border)] p-5">
+          <p className="mb-3 font-semibold">Phương thức thanh toán</p>
+          <RadioGroup>
             <FormControlLabel
-              value="cod"
-              control={<Radio />}
+              control={
+                <Radio
+                  name="payment"
+                  checked={paymentMethod === "cod"}
+                  onChange={() => setPaymentMethod("cod")}
+                />
+              }
               label="Thanh toán khi nhận hàng (COD)"
             />
             <FormControlLabel
-              value="vnpay"
-              control={<Radio />}
+              control={
+                <Radio
+                  name="payment"
+                  checked={paymentMethod === "vnpay"}
+                  onChange={() => setPaymentMethod("vnpay")}
+                />
+              }
               label="Thanh toán qua VNPay (quét QR / thẻ)"
             />
           </RadioGroup>
-        </Paper>
+        </div>
 
-        <Paper variant="outlined" sx={{ p: 2.5 }}>
+        <div className="rounded-2xl border border-[var(--brand-border)] p-5">
           <TextField
-            fullWidth
-            size="small"
             label="Ghi chú cho đơn hàng (không bắt buộc)"
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
-        </Paper>
+        </div>
 
-        <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-            Tổng thanh toán
-          </Typography>
+        <div className="rounded-2xl border border-[var(--brand-border)] p-5">
+          <p className="mb-3 font-semibold">Tổng thanh toán</p>
 
           {isSyncing && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
-              <CircularProgress size={16} />
-              <Typography variant="body2" color="text.secondary">
-                Đang chuẩn bị giỏ hàng...
-              </Typography>
-            </Box>
+            <div className="flex items-center gap-2 py-1 text-sm text-[var(--brand-text-soft)]">
+              <Spinner size={16} />
+              Đang chuẩn bị giỏ hàng...
+            </div>
           )}
 
-          {previewError && <Alert severity="error">{previewError}</Alert>}
+          {previewError && <AlertBox severity="error">{previewError}</AlertBox>}
 
           {preview && (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <div className="flex flex-col gap-1">
               <Row label="Tạm tính" value={formatCurrency(preview.subtotal)} />
               <Row
                 label="Phí giao hàng"
@@ -337,32 +300,26 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
                   value={`-${formatCurrency(preview.discount_amount)}`}
                 />
               )}
-              <Divider sx={{ my: 1 }} />
+              <Divider className="my-2" />
               <Row
                 label="Tổng cộng"
                 value={formatCurrency(preview.total_price)}
                 bold
               />
-            </Box>
+            </div>
           )}
-        </Paper>
+        </div>
 
         <Button
           variant="contained"
           size="large"
-          disabled={
-            !cartId ||
-            !addressId ||
-            !preview ||
-            isSyncing ||
-            isPlacing
-          }
+          disabled={!cartId || !addressId || !preview || isSyncing || isPlacing}
           onClick={handlePlaceOrder}
-          startIcon={isPlacing ? <CircularProgress size={18} /> : undefined}
+          startIcon={isPlacing ? <Spinner size={18} /> : undefined}
         >
           {paymentMethod === "vnpay" ? "Thanh toán qua VNPay" : "Đặt hàng"}
         </Button>
-      </Box>
+      </div>
     </>
   );
 }
@@ -377,17 +334,17 @@ function Row({
   bold?: boolean;
 }) {
   return (
-    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-      <Typography
-        variant="body2"
-        color={bold ? "text.primary" : "text.secondary"}
-        fontWeight={bold ? 700 : 400}
+    <div className="flex justify-between">
+      <span
+        className={
+          bold
+            ? "font-bold text-[var(--brand-text)]"
+            : "text-[var(--brand-text-soft)]"
+        }
       >
         {label}
-      </Typography>
-      <Typography variant="body2" fontWeight={bold ? 700 : 500}>
-        {value}
-      </Typography>
-    </Box>
+      </span>
+      <span className={bold ? "font-bold" : "font-medium"}>{value}</span>
+    </div>
   );
 }

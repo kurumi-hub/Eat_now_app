@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import { Baloo_2, Be_Vietnam_Pro } from "next/font/google";
 
-import AppThemeProvider from "@/theme/AppThemeProvider";
 import "./globals.css";
 import "@/styles/variables.css";
 import "@/styles/global.css";
@@ -42,11 +40,7 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${baloo.variable} ${beVietnamPro.variable}`}
     >
-      <body className="eatnow-body">
-        <AppRouterCacheProvider options={{ enableCssLayer: true }}>
-          <AppThemeProvider>{children}</AppThemeProvider>
-        </AppRouterCacheProvider>
-      </body>
+      <body className="eatnow-body">{children}</body>
     </html>
   );
 }

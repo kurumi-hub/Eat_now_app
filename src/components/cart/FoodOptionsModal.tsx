@@ -1,22 +1,6 @@
 "use client";
 
-import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
-import RemoveOutlinedIcon from "@mui/icons-material/RemoveOutlined";
-import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
-import {
-  Button,
-  Checkbox,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  FormControlLabel,
-  IconButton,
-  Radio,
-  RadioGroup,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Minus, Plus, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import type { RestaurantMenuItem } from "@/components/restaurant/restaurantDetailData";
@@ -24,6 +8,10 @@ import type {
   CartSizeSelection,
   CartToppingSelection,
 } from "@/store/cartStore";
+import Button from "@/components/ui/Button";
+import Dialog, { DialogContent } from "@/components/ui/Dialog";
+import { Checkbox, FormControlLabel, Radio, RadioGroup } from "@/components/ui/SelectionControls";
+import { Divider, IconButton } from "@/components/ui/Primitives";
 
 type FoodOptionsModalProps = {
   open: boolean;
@@ -54,7 +42,6 @@ export default function FoodOptionsModal({
   const [note, setNote] = useState("");
   const [quantity, setQuantity] = useState(1);
 
-  // Reset lại state mỗi khi mở modal cho món khác
   useEffect(() => {
     if (open && food) {
       const availableSizes = food.sizes?.filter((s) => s.isAvailable) ?? [];
@@ -87,7 +74,6 @@ export default function FoodOptionsModal({
     return base + toppingsTotal;
   }, [food, selectedSize, selectedToppings]);
 
-  // Validate từng group theo min_select / max_select trước khi cho confirm
   const invalidGroups = useMemo(() => {
     return toppingGroups.filter((group) => {
       const selectedCount = group.toppings.filter((t) =>
@@ -114,14 +100,12 @@ export default function FoodOptionsModal({
         return next;
       }
 
-      // maxSelect === 1 -> hành xử như radio: bỏ chọn cũ trong cùng group
       const currentInGroup = [...next].filter((id) =>
         groupToppingIds.has(id)
       );
       if (maxSelect === 1 && currentInGroup.length >= 1) {
         currentInGroup.forEach((id) => next.delete(id));
       } else if (currentInGroup.length >= maxSelect) {
-        // đã đạt max, không cho chọn thêm
         return prev;
       }
 
@@ -144,38 +128,40 @@ export default function FoodOptionsModal({
   if (!food) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Typography variant="h6" component="span">
-          {food.name}
-        </Typography>
-        <IconButton onClick={onClose} size="small">
-          <CloseOutlinedIcon />
+    <Dialog open={open} onClose={onClose} maxWidthClassName="max-w-lg">
+      <div className="flex items-center justify-between px-6 pt-5">
+        <h2 className="text-lg font-bold text-[var(--brand-text)]">{food.name}</h2>
+        <IconButton onClick={onClose} className="min-h-9 min-w-9">
+          <X className="h-5 w-5" />
         </IconButton>
-      </DialogTitle>
+      </div>
 
-      <DialogContent dividers>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <DialogContent>
+        <p className="mb-2 text-sm text-[var(--brand-text-soft)]">
           {food.description}
-        </Typography>
+        </p>
 
         {food.sizes && food.sizes.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+          <div className="mb-6">
+            <p className="mb-2 font-semibold text-[var(--brand-text)]">
               Chọn size
-            </Typography>
-            <RadioGroup
-              value={selectedSizeId ?? ""}
-              onChange={(e) => setSelectedSizeId(e.target.value)}
-            >
+            </p>
+            <RadioGroup>
               {food.sizes.map((size) => (
                 <FormControlLabel
                   key={size.id}
-                  value={size.id}
-                  disabled={!size.isAvailable}
-                  control={<Radio />}
+                  className="w-full justify-between"
+                  control={
+                    <Radio
+                      name="size"
+                      value={size.id}
+                      checked={selectedSizeId === size.id}
+                      disabled={!size.isAvailable}
+                      onChange={() => setSelectedSizeId(size.id)}
+                    />
+                  }
                   label={
-                    <div style={{ display: "flex", justifyContent: "space-between", width: "100%", gap: 16 }}>
+                    <div className="flex w-full items-center justify-between gap-4">
                       <span>
                         {size.name}
                         {!size.isAvailable && " (hết hàng)"}
@@ -183,7 +169,6 @@ export default function FoodOptionsModal({
                       <span>{formatPrice(size.price)}</span>
                     </div>
                   }
-                  sx={{ width: "100%", mr: 0, justifyContent: "space-between" }}
                 />
               ))}
             </RadioGroup>
@@ -197,33 +182,34 @@ export default function FoodOptionsModal({
           const isInvalid = invalidGroups.some((g) => g.id === group.id);
 
           return (
-            <div key={group.id} style={{ marginBottom: 24 }}>
-              <Typography variant="subtitle1" fontWeight={600}>
+            <div key={group.id} className="mb-6">
+              <p className="font-semibold text-[var(--brand-text)]">
                 {group.name}
                 {group.minSelect > 0 && (
-                  <Typography component="span" variant="caption" color="error" sx={{ ml: 1 }}>
+                  <span className="ml-2 text-xs text-[var(--brand-error)]">
                     Bắt buộc chọn {group.minSelect}
-                  </Typography>
+                  </span>
                 )}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
+              </p>
+              <p className="text-xs text-[var(--brand-text-soft)]">
                 Chọn tối đa {group.maxSelect} ({selectedCount}/{group.maxSelect})
-              </Typography>
+              </p>
 
               {group.toppings.map((topping) => (
                 <FormControlLabel
                   key={topping.id}
-                  disabled={!topping.isAvailable}
+                  className="w-full justify-between"
                   control={
                     <Checkbox
                       checked={selectedToppingIds.has(topping.id)}
+                      disabled={!topping.isAvailable}
                       onChange={() =>
                         toggleTopping(group.id, topping.id, group.maxSelect)
                       }
                     />
                   }
                   label={
-                    <div style={{ display: "flex", justifyContent: "space-between", width: "100%", gap: 16 }}>
+                    <div className="flex w-full items-center justify-between gap-4">
                       <span>
                         {topping.name}
                         {!topping.isAvailable && " (hết hàng)"}
@@ -233,48 +219,48 @@ export default function FoodOptionsModal({
                       </span>
                     </div>
                   }
-                  sx={{ width: "100%", mr: 0, justifyContent: "space-between" }}
                 />
               ))}
 
               {isInvalid && (
-                <Typography variant="caption" color="error">
+                <p className="text-xs text-[var(--brand-error)]">
                   Vui lòng chọn từ {group.minSelect} đến {group.maxSelect} mục
-                </Typography>
+                </p>
               )}
-              <Divider sx={{ mt: 1.5 }} />
+              <Divider className="mt-3" />
             </div>
           );
         })}
 
-        <TextField
-          label="Ghi chú"
-          placeholder="Ví dụ: ít cay, không hành..."
-          fullWidth
-          multiline
-          minRows={2}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          sx={{ mb: 2 }}
-        />
+        <div className="mb-4">
+          <label className="mb-1.5 block text-[13px] font-semibold leading-[18px] text-[var(--brand-text-soft)]">
+            Ghi chú
+          </label>
+          <textarea
+            placeholder="Ví dụ: ít cay, không hành..."
+            rows={2}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            className="w-full rounded-xl border border-[#d9c9c0] bg-[#fffdfc] px-3.5 py-2.5 text-[15px] text-[var(--brand-text)] outline-none transition-shadow placeholder:text-[var(--brand-text-soft)]/60 focus:border-[var(--brand-primary)] focus:shadow-[var(--brand-focus-ring)]"
+          />
+        </div>
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Typography variant="subtitle1" fontWeight={600}>
-            Số lượng
-          </Typography>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div className="flex items-center justify-between">
+          <p className="font-semibold text-[var(--brand-text)]">Số lượng</p>
+          <div className="flex items-center gap-3">
             <IconButton
-              size="small"
+              className="min-h-9 min-w-9"
               disabled={quantity <= 1}
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
             >
-              <RemoveOutlinedIcon fontSize="small" />
+              <Minus className="h-4 w-4" />
             </IconButton>
-            <Typography variant="body1" sx={{ minWidth: 24, textAlign: "center" }}>
-              {quantity}
-            </Typography>
-            <IconButton size="small" onClick={() => setQuantity((q) => q + 1)}>
-              <AddOutlinedIcon fontSize="small" />
+            <span className="min-w-6 text-center">{quantity}</span>
+            <IconButton
+              className="min-h-9 min-w-9"
+              onClick={() => setQuantity((q) => q + 1)}
+            >
+              <Plus className="h-4 w-4" />
             </IconButton>
           </div>
         </div>
@@ -285,7 +271,7 @@ export default function FoodOptionsModal({
           size="large"
           disabled={!canConfirm}
           onClick={handleConfirm}
-          sx={{ mt: 3 }}
+          className="mt-6"
         >
           Thêm vào giỏ · {formatPrice(unitPrice * quantity)}
         </Button>

@@ -1,19 +1,6 @@
 "use client";
 
-import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
-import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
-import RemoveOutlinedIcon from "@mui/icons-material/RemoveOutlined";
-import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
-import {
-  Alert,
-  Box,
-  Button,
-  Divider,
-  IconButton,
-  Snackbar,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,6 +10,10 @@ import CustomerHeader from "@/components/home/CustomerHeader";
 import type { PublicUser } from "@/types/auth";
 import { useCartStore, type CartLine } from "@/store/cartStore";
 import { createOrder } from "@/app/cart/actions";
+import Button from "@/components/ui/Button";
+import TextField from "@/components/ui/TextField";
+import { Divider, IconButton } from "@/components/ui/Primitives";
+import SnackbarToast from "@/components/ui/Snackbar";
 
 type CartPageProps = {
   user: PublicUser | null;
@@ -64,7 +55,6 @@ export default function CartPage({ user }: CartPageProps) {
   const showMessage = (message: string) =>
     setSnackbar({ open: true, message });
 
-  // Thông tin giao hàng -- chỉ hỏi khi người dùng thật sự bấm đặt đơn.
   const [showCheckoutForm, setShowCheckoutForm] = useState(false);
   const [receiverName, setReceiverName] = useState(user?.fullName ?? "");
   const [receiverPhone, setReceiverPhone] = useState(user?.phone ?? "");
@@ -74,7 +64,6 @@ export default function CartPage({ user }: CartPageProps) {
   const [isSubmitting, startSubmitting] = useTransition();
 
   const handleCheckoutClick = () => {
-    // Chỉ check đăng nhập ở bước xác nhận đặt đơn, không phải khi thêm món.
     if (!user) {
       router.push("/login?next=/cart");
       return;
@@ -140,128 +129,87 @@ export default function CartPage({ user }: CartPageProps) {
         onSectionNavigate={(sectionId) => router.push(`/#${sectionId}`)}
       />
 
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: "32px 16px 96px" }}>
-        <Typography variant="h5" fontWeight={700} gutterBottom>
-          Giỏ hàng của bạn
-        </Typography>
+      <main className="mx-auto max-w-[720px] px-4 pb-24 pt-8">
+        <h1 className="mb-4 text-2xl font-bold">Giỏ hàng của bạn</h1>
 
         {!hydrated ? null : isEmpty ? (
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 2,
-              py: 8,
-              color: "text.secondary",
-            }}
-          >
-            <ShoppingCartOutlinedIcon sx={{ fontSize: 56 }} />
-            <Typography>Giỏ hàng của bạn đang trống.</Typography>
-            <Button component={Link} href="/" variant="contained">
-              Khám phá nhà hàng
-            </Button>
-          </Box>
+          <div className="flex flex-col items-center gap-4 py-16 text-[var(--brand-text-soft)]">
+            <ShoppingCart className="h-14 w-14" />
+            <p>Giỏ hàng của bạn đang trống.</p>
+            <Link href="/">
+              <Button variant="contained">Khám phá nhà hàng</Button>
+            </Link>
+          </div>
         ) : (
           <>
             {restaurantName && (
-              <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
-                Đặt món từ <strong>{restaurantName}</strong>
-              </Typography>
+              <p className="mb-4 text-[var(--brand-text-soft)]">
+                Đặt món từ <strong className="text-[var(--brand-text)]">{restaurantName}</strong>
+              </p>
             )}
 
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <div className="flex flex-col gap-4">
               {lines.map((line) => (
-                <Box
+                <div
                   key={line.lineId}
-                  sx={{
-                    display: "flex",
-                    gap: 2,
-                    p: 2,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    borderRadius: 2,
-                  }}
+                  className="flex gap-4 rounded-2xl border border-[var(--brand-border)] p-4"
                 >
-                  <Box
-                    sx={{
-                      position: "relative",
-                      width: 72,
-                      height: 72,
-                      flexShrink: 0,
-                      borderRadius: 1.5,
-                      overflow: "hidden",
-                    }}
-                  >
+                  <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl">
                     <Image src={line.foodImage} alt={line.foodName} fill sizes="72px" />
-                  </Box>
+                  </div>
 
-                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Typography fontWeight={600} noWrap>
-                      {line.foodName}
-                    </Typography>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold">{line.foodName}</p>
                     {lineDescription(line) && (
-                      <Typography variant="body2" color="text.secondary" noWrap>
+                      <p className="truncate text-sm text-[var(--brand-text-soft)]">
                         {lineDescription(line)}
-                      </Typography>
+                      </p>
                     )}
-                    <Typography variant="body2" fontWeight={600} sx={{ mt: 0.5 }}>
+                    <p className="mt-1 text-sm font-semibold">
                       {formatCurrency(line.unitPrice)}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
 
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "flex-end",
-                      justifyContent: "space-between",
-                    }}
-                  >
+                  <div className="flex flex-col items-end justify-between">
                     <IconButton
-                      size="small"
                       aria-label={`Xoá ${line.foodName}`}
                       onClick={() => removeLine(line.lineId)}
+                      className="min-h-9 min-w-9"
                     >
-                      <DeleteOutlineOutlinedIcon fontSize="small" />
+                      <Trash2 className="h-4 w-4" />
                     </IconButton>
 
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <div className="flex items-center gap-2">
                       <IconButton
-                        size="small"
+                        className="min-h-9 min-w-9"
                         onClick={() => updateQuantity(line.lineId, line.quantity - 1)}
                       >
-                        <RemoveOutlinedIcon fontSize="small" />
+                        <Minus className="h-4 w-4" />
                       </IconButton>
-                      <Typography sx={{ minWidth: 20, textAlign: "center" }}>
-                        {line.quantity}
-                      </Typography>
+                      <span className="min-w-5 text-center">{line.quantity}</span>
                       <IconButton
-                        size="small"
+                        className="min-h-9 min-w-9"
                         onClick={() => updateQuantity(line.lineId, line.quantity + 1)}
                       >
-                        <AddOutlinedIcon fontSize="small" />
+                        <Plus className="h-4 w-4" />
                       </IconButton>
-                    </Box>
-                  </Box>
-                </Box>
+                    </div>
+                  </div>
+                </div>
               ))}
-            </Box>
+            </div>
 
-            <Divider sx={{ my: 3 }} />
+            <Divider className="my-6" />
 
             {showCheckoutForm && (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 3 }}>
-                <Typography variant="subtitle1" fontWeight={600}>
-                  Thông tin giao hàng
-                </Typography>
+              <div className="mb-6 flex flex-col gap-4">
+                <p className="font-semibold">Thông tin giao hàng</p>
                 <TextField
                   label="Tên người nhận"
                   value={receiverName}
                   onChange={(e) => setReceiverName(e.target.value)}
                   error={Boolean(formErrors.receiverName)}
                   helperText={formErrors.receiverName}
-                  fullWidth
                 />
                 <TextField
                   label="Số điện thoại"
@@ -269,7 +217,6 @@ export default function CartPage({ user }: CartPageProps) {
                   onChange={(e) => setReceiverPhone(e.target.value)}
                   error={Boolean(formErrors.receiverPhone)}
                   helperText={formErrors.receiverPhone}
-                  fullWidth
                 />
                 <TextField
                   label="Địa chỉ giao hàng"
@@ -277,29 +224,33 @@ export default function CartPage({ user }: CartPageProps) {
                   onChange={(e) => setDeliveryAddress(e.target.value)}
                   error={Boolean(formErrors.deliveryAddress)}
                   helperText={formErrors.deliveryAddress}
-                  fullWidth
                 />
-                <TextField
-                  label="Ghi chú cho đơn hàng (tuỳ chọn)"
-                  value={orderNote}
-                  onChange={(e) => setOrderNote(e.target.value)}
-                  multiline
-                  minRows={2}
-                  fullWidth
-                />
-              </Box>
+                <div>
+                  <label className="mb-1.5 block text-[13px] font-semibold leading-[18px] text-[var(--brand-text-soft)]">
+                    Ghi chú cho đơn hàng (tuỳ chọn)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={orderNote}
+                    onChange={(e) => setOrderNote(e.target.value)}
+                    className="w-full rounded-xl border border-[#d9c9c0] bg-[#fffdfc] px-3.5 py-2.5 text-[15px] outline-none focus:border-[var(--brand-primary)] focus:shadow-[var(--brand-focus-ring)]"
+                  />
+                </div>
+              </div>
             )}
 
-            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-              <Typography color="text.secondary">Tạm tính</Typography>
-              <Typography>{formatCurrency(totalPrice)}</Typography>
-            </Box>
-            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
-              <Typography variant="h6">Tổng cộng (tạm tính + phí ship)</Typography>
-              <Typography variant="h6" fontWeight={700}>
+            <div className="mb-1 flex justify-between">
+              <span className="text-[var(--brand-text-soft)]">Tạm tính</span>
+              <span>{formatCurrency(totalPrice)}</span>
+            </div>
+            <div className="mb-6 flex justify-between">
+              <span className="text-lg font-semibold">
+                Tổng cộng (tạm tính + phí ship)
+              </span>
+              <span className="text-lg font-bold">
                 {formatCurrency(totalPrice + 15000)}
-              </Typography>
-            </Box>
+              </span>
+            </div>
 
             <Button
               variant="contained"
@@ -318,20 +269,13 @@ export default function CartPage({ user }: CartPageProps) {
         )}
       </main>
 
-      <Snackbar
+      <SnackbarToast
         open={snackbar.open}
+        message={snackbar.message}
+        severity="info"
         autoHideDuration={2600}
         onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          severity="info"
-          variant="filled"
-          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      />
     </div>
   );
 }

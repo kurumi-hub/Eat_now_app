@@ -1,10 +1,6 @@
-import HomeWorkOutlinedIcon from "@mui/icons-material/HomeWorkOutlined";
-import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
-import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
-import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
-import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
-import type { SvgIconProps } from "@mui/material/SvgIcon";
+import { Bell, Building2, Shield, Store, UserCog } from "lucide-react";
 import type { ComponentType } from "react";
+import type { LucideProps } from "lucide-react";
 
 import type { PublicUser, UserRole } from "@/types/auth";
 import { hasAnyRole } from "@/utils/roles";
@@ -12,7 +8,7 @@ import { hasAnyRole } from "@/utils/roles";
 export type AccountNavItem = {
   href: string;
   label: string;
-  icon: ComponentType<SvgIconProps>;
+  icon: ComponentType<LucideProps>;
   allowedRoles?: UserRole[];
 };
 
@@ -20,28 +16,28 @@ export const accountNavItems: AccountNavItem[] = [
   {
     href: "/account/profile",
     label: "Hồ sơ cá nhân",
-    icon: ManageAccountsOutlinedIcon,
+    icon: UserCog,
   },
   {
     href: "/account/security",
     label: "Bảo mật",
-    icon: SecurityOutlinedIcon,
+    icon: Shield,
   },
   {
     href: "/account/preferences",
     label: "Cài đặt",
-    icon: NotificationsOutlinedIcon,
+    icon: Bell,
   },
   {
     href: "/account/addresses",
     label: "Địa chỉ giao hàng",
-    icon: HomeWorkOutlinedIcon,
+    icon: Building2,
     allowedRoles: ["CUSTOMER"],
   },
   {
     href: "/account/seller",
     label: "Bán hàng cùng EatNow",
-    icon: StorefrontOutlinedIcon,
+    icon: Store,
     allowedRoles: ["CUSTOMER", "RESTAURANT_OWNER"],
   },
 ];

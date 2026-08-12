@@ -1,12 +1,10 @@
-import BakeryDiningOutlinedIcon from "@mui/icons-material/BakeryDiningOutlined";
-import RamenDiningOutlinedIcon from "@mui/icons-material/RamenDiningOutlined";
-import RiceBowlOutlinedIcon from "@mui/icons-material/RiceBowlOutlined";
-import SoupKitchenOutlinedIcon from "@mui/icons-material/SoupKitchenOutlined";
-import type { SvgIconComponent } from "@mui/icons-material";
+import { CookingPot, Sandwich, Soup, Utensils } from "lucide-react";
+import type { LucideProps } from "lucide-react";
+import type { ComponentType } from "react";
 
 export type HomeCategory = {
   label: string;
-  icon: SvgIconComponent;
+  icon: ComponentType<LucideProps>;
 };
 
 export type HomeRestaurant = {
@@ -31,10 +29,10 @@ export type HomeRecipe = {
 export const homeHeroImage = "/images/home/hero.png";
 
 export const homeCategories: HomeCategory[] = [
-  { label: "Cơm", icon: RiceBowlOutlinedIcon },
-  { label: "Phở", icon: RamenDiningOutlinedIcon },
-  { label: "Bún", icon: SoupKitchenOutlinedIcon },
-  { label: "Bánh mì", icon: BakeryDiningOutlinedIcon },
+  { label: "Cơm", icon: Utensils },
+  { label: "Phở", icon: Soup },
+  { label: "Bún", icon: CookingPot },
+  { label: "Bánh mì", icon: Sandwich },
 ];
 
 export const featuredRestaurants: HomeRestaurant[] = [

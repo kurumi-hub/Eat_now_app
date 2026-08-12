@@ -1,5 +1,4 @@
-import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
-import { Box, Typography } from "@mui/material";
+import { UtensilsCrossed } from "lucide-react";
 import Image from "next/image";
 
 type AuthBrandPanelProps = {
@@ -17,20 +16,18 @@ export default function AuthBrandPanel({
 }: AuthBrandPanelProps) {
   if (compact) {
     return (
-      <Box className="auth-mobile-brand">
-        <Box className="auth-wordmark" aria-label="EatNow">
-          <RestaurantMenuOutlinedIcon fontSize="small" />
+      <div className="auth-mobile-brand">
+        <div className="auth-wordmark" aria-label="EatNow">
+          <UtensilsCrossed size={18} />
           <span>EatNow</span>
-        </Box>
-        <Typography component="p" color="text.secondary">
-          {tagline}
-        </Typography>
-      </Box>
+        </div>
+        <p className="text-[var(--brand-text-soft)]">{tagline}</p>
+      </div>
     );
   }
 
   return (
-    <Box className="auth-brand-panel">
+    <div className="auth-brand-panel">
       <Image
         className="auth-brand-image"
         src={imageSrc}
@@ -39,21 +36,15 @@ export default function AuthBrandPanel({
         priority
         sizes="(max-width: 720px) 0px, 540px"
       />
-      <Box className="auth-brand-overlay" aria-hidden="true" />
-      <Box className="auth-brand-content">
-        <Box className="auth-wordmark auth-wordmark--light" aria-label="EatNow">
-          <RestaurantMenuOutlinedIcon />
+      <div className="auth-brand-overlay" aria-hidden="true" />
+      <div className="auth-brand-content">
+        <div className="auth-wordmark auth-wordmark--light" aria-label="EatNow">
+          <UtensilsCrossed />
           <span>EatNow</span>
-        </Box>
-        <Typography component="p" className="auth-brand-tagline">
-          {tagline}
-        </Typography>
-        {subtitle ? (
-          <Typography component="p" className="auth-brand-subtitle">
-            {subtitle}
-          </Typography>
-        ) : null}
-      </Box>
-    </Box>
+        </div>
+        <p className="auth-brand-tagline">{tagline}</p>
+        {subtitle ? <p className="auth-brand-subtitle">{subtitle}</p> : null}
+      </div>
+    </div>
   );
 }

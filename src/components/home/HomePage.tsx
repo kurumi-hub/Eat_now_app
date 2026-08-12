@@ -1,18 +1,21 @@
 "use client";
 
-import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
-import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
-import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
-import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
-import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
-import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
-import StarBorderOutlinedIcon from "@mui/icons-material/StarBorderOutlined";
-import { Alert, Button, Snackbar } from "@mui/material";
+import {
+  ArrowRight,
+  BookOpen,
+  Home as HomeIcon,
+  Star,
+  UserCircle,
+  UtensilsCrossed,
+  Bot,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { PublicUser } from "@/types/auth";
+import Button from "@/components/ui/Button";
+import SnackbarToast from "@/components/ui/Snackbar";
 import CustomerHeader from "./CustomerHeader";
 import {
   homeCategories,
@@ -27,11 +30,6 @@ type HomePageProps = {
   featuredRestaurants: HomeRestaurant[];
 };
 
-type SnackbarState = {
-  open: boolean;
-  message: string;
-};
-
 function scrollToSection(sectionId: string) {
   document.getElementById(sectionId)?.scrollIntoView({
     behavior: "smooth",
@@ -41,17 +39,10 @@ function scrollToSection(sectionId: string) {
 
 export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
   const router = useRouter();
-  const [snackbar, setSnackbar] = useState<SnackbarState>({
-    open: false,
-    message: "",
-  });
+  const [snackbar, setSnackbar] = useState({ open: false, message: "" });
 
   const showPlaceholder = (message: string) => {
     setSnackbar({ open: true, message });
-  };
-
-  const handleSnackbarClose = () => {
-    setSnackbar((current) => ({ ...current, open: false }));
   };
 
   return (
@@ -80,12 +71,10 @@ export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
           <div className="home-hero__content">
             <p className="home-hero__eyebrow">Giao nhanh quanh bạn</p>
             <h1>Hôm nay ăn gì?</h1>
-            <p>
-              Khám phá món ngon quanh bạn và đặt giao tận nơi.
-            </p>
+            <p>Khám phá món ngon quanh bạn và đặt giao tận nơi.</p>
             <Button
               variant="contained"
-              endIcon={<ArrowForwardOutlinedIcon />}
+              endIcon={<ArrowRight className="h-4 w-4" />}
               onClick={() =>
                 showPlaceholder(
                   "Chức năng đặt món sẽ được triển khai ở sprint sau."
@@ -156,7 +145,7 @@ export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
                 <div className="home-restaurant-card__body">
                   <h3>{restaurant.name}</h3>
                   <p>
-                    <StarBorderOutlinedIcon fontSize="inherit" />
+                    <Star className="inline h-3.5 w-3.5" />
                     <span>{restaurant.rating}</span>
                     <span aria-hidden="true">.</span>
                     <span>{restaurant.time}</span>
@@ -231,7 +220,7 @@ export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
           )
         }
       >
-        <SmartToyOutlinedIcon />
+        <Bot />
         <span>Trợ lý FoodBot</span>
       </button>
 
@@ -241,25 +230,25 @@ export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
           type="button"
           onClick={() => scrollToSection("home-hero")}
         >
-          <HomeOutlinedIcon />
+          <HomeIcon />
           <span>Khám phá</span>
         </button>
         <button
           type="button"
           onClick={() => scrollToSection("featured-restaurants")}
         >
-          <RestaurantMenuOutlinedIcon />
+          <UtensilsCrossed />
           <span>Nhà hàng</span>
         </button>
         <button type="button" onClick={() => scrollToSection("recipes")}>
-          <MenuBookOutlinedIcon />
+          <BookOpen />
           <span>Công thức</span>
         </button>
         <button
           type="button"
           onClick={() => router.push(user ? "/account/profile" : "/login")}
         >
-          <AccountCircleOutlinedIcon />
+          <UserCircle />
           <span>Tài khoản</span>
         </button>
       </nav>
@@ -305,16 +294,13 @@ export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
         </div>
       </footer>
 
-      <Snackbar
+      <SnackbarToast
         open={snackbar.open}
+        message={snackbar.message}
+        severity="info"
         autoHideDuration={2600}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert severity="info" variant="filled" onClose={handleSnackbarClose}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        onClose={() => setSnackbar((current) => ({ ...current, open: false }))}
+      />
     </div>
   );
 }

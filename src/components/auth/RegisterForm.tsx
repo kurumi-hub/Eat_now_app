@@ -1,43 +1,20 @@
 "use client";
 
-import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
-import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
-import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
-import {
-  Alert,
-  Box,
-  Button,
-  Checkbox,
-  CircularProgress,
-  Divider,
-  FormControl,
-  FormControlLabel,
-  FormHelperText,
-  InputAdornment,
-  Snackbar,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Mail, Phone, User } from "lucide-react";
 import NextLink from "next/link";
-import {
-  useActionState,
-  useMemo,
-  useState,
-  type FormEvent,
-  type SyntheticEvent,
-} from "react";
+import { useActionState, useMemo, useState, type FormEvent } from "react";
 
 import { signup } from "@/app/auth/actions";
 import { validateRegisterValues, type RegisterField } from "@/utils/validation";
+import AlertBox from "@/components/ui/Alert";
+import Button from "@/components/ui/Button";
+import TextField from "@/components/ui/TextField";
+import { Checkbox, FormControlLabel } from "@/components/ui/SelectionControls";
+import { Spinner, Divider as UiDivider } from "@/components/ui/Primitives";
+import SnackbarToast from "@/components/ui/Snackbar";
 
 import OAuthButtons from "./OAuthButtons";
 import PasswordField from "./PasswordField";
-
-type SnackbarState = {
-  open: boolean;
-  message: string;
-};
 
 const initialValues = {
   fullName: "",
@@ -53,10 +30,7 @@ export default function RegisterForm() {
   const [values, setValues] = useState(initialValues);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [didSubmit, setDidSubmit] = useState(false);
-  const [snackbar, setSnackbar] = useState<SnackbarState>({
-    open: false,
-    message: "",
-  });
+  const [snackbar, setSnackbar] = useState({ open: false, message: "" });
 
   const validation = useMemo(() => validateRegisterValues(values), [values]);
 
@@ -100,112 +74,85 @@ export default function RegisterForm() {
     });
   };
 
-  const handleSnackbarClose = (
-    _event?: SyntheticEvent | Event,
-    reason?: string
-  ) => {
-    if (reason === "clickaway") {
-      return;
-    }
-
-    setSnackbar((current) => ({ ...current, open: false }));
-  };
-
   return (
     <>
-      <Box
-        component="form"
+      <form
         action={formAction}
         className="auth-form auth-form--register"
         noValidate
         onSubmit={handleSubmit}
       >
-        <Stack spacing={2}>
-          <Box>
-            <Typography component="h1" className="auth-title">
-              Tạo tài khoản EatNow
-            </Typography>
-            <Typography className="auth-description">
+        <div className="flex flex-col gap-4">
+          <div>
+            <h1 className="auth-title">Tạo tài khoản EatNow</h1>
+            <p className="auth-description">
               Đăng ký để đặt món và theo dõi đơn hàng dễ dàng hơn.
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
           <OAuthButtons
             providers={["Google", "Facebook"]}
             onPlaceholder={handleOAuthPlaceholder}
           />
 
-          <Divider>
-            <Typography variant="caption" color="text.secondary">
+          <div className="flex items-center gap-3">
+            <UiDivider className="flex-1" />
+            <span className="text-xs text-[var(--brand-text-soft)]">
               Hoặc đăng ký bằng email
-            </Typography>
-          </Divider>
+            </span>
+            <UiDivider className="flex-1" />
+          </div>
 
-          {state?.error ? <Alert severity="error">{state.error}</Alert> : null}
+          {state?.error ? <AlertBox severity="error">{state.error}</AlertBox> : null}
 
-          <TextField
-            label="Họ và tên"
-            name="fullName"
-            value={values.fullName}
-            onChange={handleTextChange}
-            onBlur={handleBlur}
-            error={Boolean(getFieldError("fullName"))}
-            helperText={getFieldError("fullName")}
-            autoComplete="name"
-            placeholder="Nhập họ và tên"
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <PersonOutlineOutlinedIcon color="action" fontSize="small" />
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
+          <div className="relative">
+            <User className="pointer-events-none absolute left-3 top-[38px] h-4 w-4 -translate-y-1/2 text-[var(--brand-text-soft)]" />
+            <TextField
+              label="Họ và tên"
+              name="fullName"
+              value={values.fullName}
+              onChange={handleTextChange}
+              onBlur={handleBlur}
+              error={Boolean(getFieldError("fullName"))}
+              helperText={getFieldError("fullName")}
+              autoComplete="name"
+              placeholder="Nhập họ và tên"
+              className="pl-10"
+            />
+          </div>
 
-          <TextField
-            label="Email"
-            name="email"
-            type="email"
-            value={values.email}
-            onChange={handleTextChange}
-            onBlur={handleBlur}
-            error={Boolean(getFieldError("email"))}
-            helperText={getFieldError("email")}
-            autoComplete="email"
-            placeholder="Nhập địa chỉ email"
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <EmailOutlinedIcon color="action" fontSize="small" />
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
+          <div className="relative">
+            <Mail className="pointer-events-none absolute left-3 top-[38px] h-4 w-4 -translate-y-1/2 text-[var(--brand-text-soft)]" />
+            <TextField
+              label="Email"
+              name="email"
+              type="email"
+              value={values.email}
+              onChange={handleTextChange}
+              onBlur={handleBlur}
+              error={Boolean(getFieldError("email"))}
+              helperText={getFieldError("email")}
+              autoComplete="email"
+              placeholder="Nhập địa chỉ email"
+              className="pl-10"
+            />
+          </div>
 
-          <TextField
-            label="Số điện thoại"
-            name="phone"
-            value={values.phone}
-            onChange={handleTextChange}
-            onBlur={handleBlur}
-            error={Boolean(getFieldError("phone"))}
-            helperText={getFieldError("phone")}
-            autoComplete="tel"
-            placeholder="Nhập số điện thoại"
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <PhoneOutlinedIcon color="action" fontSize="small" />
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
+          <div className="relative">
+            <Phone className="pointer-events-none absolute left-3 top-[38px] h-4 w-4 -translate-y-1/2 text-[var(--brand-text-soft)]" />
+            <TextField
+              label="Số điện thoại"
+              name="phone"
+              value={values.phone}
+              onChange={handleTextChange}
+              onBlur={handleBlur}
+              error={Boolean(getFieldError("phone"))}
+              helperText={getFieldError("phone")}
+              autoComplete="tel"
+              placeholder="Nhập số điện thoại"
+              className="pl-10"
+            />
+          </div>
 
           <PasswordField
             label="Mật khẩu"
@@ -230,7 +177,7 @@ export default function RegisterForm() {
             placeholder="Nhập lại mật khẩu"
           />
 
-          <FormControl error={Boolean(getFieldError("termsAccepted"))}>
+          <div>
             <FormControlLabel
               control={
                 <Checkbox
@@ -240,49 +187,48 @@ export default function RegisterForm() {
                 />
               }
               label={
-                <Typography variant="body2">
+                <span className="text-sm">
                   Tôi đồng ý với{" "}
                   <span className="auth-inline-link">Điều khoản Dịch vụ</span>{" "}
                   và{" "}
                   <span className="auth-inline-link">Chính sách Bảo mật</span>{" "}
                   của EatNow.
-                </Typography>
+                </span>
               }
             />
             {getFieldError("termsAccepted") ? (
-              <FormHelperText>{getFieldError("termsAccepted")}</FormHelperText>
+              <p className="mt-1 text-xs text-[var(--brand-error)]">
+                {getFieldError("termsAccepted")}
+              </p>
             ) : null}
-          </FormControl>
+          </div>
 
           <Button
             fullWidth
             type="submit"
             variant="contained"
             disabled={pending}
-            startIcon={pending ? <CircularProgress color="inherit" size={18} /> : null}
+            startIcon={pending ? <Spinner size={18} /> : null}
           >
             {pending ? "Đang tạo tài khoản..." : "Tạo tài khoản"}
           </Button>
 
-          <Typography variant="body2" sx={{ textAlign: "center" }}>
+          <p className="text-center text-sm">
             Đã có tài khoản?{" "}
             <NextLink className="auth-text-link" href="/login">
               Đăng nhập
             </NextLink>
-          </Typography>
-        </Stack>
-      </Box>
+          </p>
+        </div>
+      </form>
 
-      <Snackbar
+      <SnackbarToast
         open={snackbar.open}
+        message={snackbar.message}
+        severity="info"
         autoHideDuration={2600}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert severity="info" variant="filled" onClose={handleSnackbarClose}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        onClose={() => setSnackbar((current) => ({ ...current, open: false }))}
+      />
     </>
   );
 }

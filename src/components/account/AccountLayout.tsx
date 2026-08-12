@@ -1,13 +1,13 @@
 "use client";
 
-import { Alert, Snackbar, Tab, Tabs } from "@mui/material";
 import { usePathname, useRouter } from "next/navigation";
-import type { ReactNode, SyntheticEvent } from "react";
+import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 
 import CustomerHeader from "@/components/home/CustomerHeader";
 import type { PublicUser } from "@/types/auth";
 import { hasRole } from "@/utils/roles";
+import SnackbarToast from "@/components/ui/Snackbar";
 import AccountSidebar from "./AccountSidebar";
 import { getVisibleAccountNavItems } from "./accountNavItems";
 
@@ -23,7 +23,7 @@ export default function AccountLayout({ user, children }: AccountLayoutProps) {
   const visibleItems = useMemo(() => getVisibleAccountNavItems(user), [user]);
   const currentPath = visibleItems.some((item) => item.href === pathname)
     ? pathname
-    : visibleItems[0]?.href ?? false;
+    : visibleItems[0]?.href ?? "";
   const sellerLabel = hasRole(user, "RESTAURANT_OWNER")
     ? "Kênh người bán"
     : "Bán hàng cùng EatNow";
@@ -34,10 +34,6 @@ export default function AccountLayout({ user, children }: AccountLayoutProps) {
 
   const handleSectionNavigate = (sectionId: string) => {
     router.push(`/#${sectionId}`);
-  };
-
-  const handleMobileNavChange = (_event: SyntheticEvent, value: string) => {
-    router.push(value);
   };
 
   return (
@@ -54,23 +50,28 @@ export default function AccountLayout({ user, children }: AccountLayoutProps) {
 
           <div className="account-main-column">
             <div className="account-mobile-nav">
-              <Tabs
-                value={currentPath}
-                onChange={handleMobileNavChange}
-                variant="scrollable"
-                scrollButtons="auto"
+              <div
+                role="tablist"
                 aria-label="Điều hướng tài khoản"
+                className="flex gap-1 overflow-x-auto border-b border-[var(--brand-border)]"
               >
                 {visibleItems.map((item) => (
-                  <Tab
+                  <button
                     key={item.href}
-                    label={
-                      item.href === "/account/seller" ? sellerLabel : item.label
-                    }
-                    value={item.href}
-                  />
+                    role="tab"
+                    aria-selected={item.href === currentPath}
+                    onClick={() => router.push(item.href)}
+                    className={[
+                      "whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors border-b-2",
+                      item.href === currentPath
+                        ? "border-[var(--brand-primary)] text-[var(--brand-primary)]"
+                        : "border-transparent text-[var(--brand-text-soft)] hover:text-[var(--brand-text)]",
+                    ].join(" ")}
+                  >
+                    {item.href === "/account/seller" ? sellerLabel : item.label}
+                  </button>
                 ))}
-              </Tabs>
+              </div>
             </div>
 
             <section className="account-content" aria-label="Nội dung tài khoản">
@@ -80,16 +81,13 @@ export default function AccountLayout({ user, children }: AccountLayoutProps) {
         </div>
       </main>
 
-      <Snackbar
+      <SnackbarToast
         open={Boolean(notice)}
+        message={notice}
+        severity="info"
         autoHideDuration={3200}
         onClose={() => setNotice("")}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert severity="info" variant="filled" onClose={() => setNotice("")}>
-          {notice}
-        </Alert>
-      </Snackbar>
+      />
     </div>
   );
 }

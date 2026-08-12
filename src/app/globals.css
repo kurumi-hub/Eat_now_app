@@ -13,6 +13,21 @@
   --mint: #a8e6c3;
   --ink: #3a1f2b;
   --ink-soft: #8c6b78;
+
+  /* Design tokens migrated from MUI theme (src/theme/theme.ts) */
+  --brand-primary: #d94720;
+  --brand-primary-dark: #b93618;
+  --brand-secondary: #70645d;
+  --brand-accent: #ffb84d;
+  --brand-surface: #ffffff;
+  --brand-text: #251d18;
+  --brand-text-soft: #70645d;
+  --brand-border: #eadfd8;
+  --brand-success: #27865c;
+  --brand-warning: #e59a21;
+  --brand-error: #d63a3a;
+  --brand-info: #005f9d;
+  --brand-focus-ring: 0 0 0 3px rgba(255, 184, 77, 0.33);
 }
 
 @theme inline {
@@ -29,6 +44,25 @@
   --color-ink-soft: var(--ink-soft);
   --font-display: var(--font-baloo);
   --font-sans: var(--font-be-vietnam);
+
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-primary-dark: var(--brand-primary-dark);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-surface: var(--brand-surface);
+  --color-brand-text: var(--brand-text);
+  --color-brand-text-soft: var(--brand-text-soft);
+  --color-brand-border: var(--brand-border);
+  --color-brand-success: var(--brand-success);
+  --color-brand-warning: var(--brand-warning);
+  --color-brand-error: var(--brand-error);
+  --color-brand-info: var(--brand-info);
+}
+
+body {
+  font-family:
+    var(--font-be-vietnam), "Be Vietnam Pro", system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 body {

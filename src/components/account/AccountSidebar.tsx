@@ -1,14 +1,14 @@
 "use client";
 
-import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
-import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
-import { Avatar, Button, Chip, Divider, Stack, Typography } from "@mui/material";
+import { BadgeCheck, LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { logout } from "@/app/auth/actions";
 import type { PublicUser } from "@/types/auth";
 import { formatRole, getUserRoles, hasRole } from "@/utils/roles";
+import { Avatar, Divider } from "@/components/ui/Primitives";
+import Button from "@/components/ui/Button";
 import { getVisibleAccountNavItems } from "./accountNavItems";
 
 function getInitials(fullName = "EatNow") {
@@ -40,38 +40,31 @@ export default function AccountSidebar({ user }: AccountSidebarProps) {
         aria-label="Tóm tắt tài khoản"
       >
         <div className="account-sidebar-avatar-wrap">
-          <Avatar className="account-sidebar-avatar" src={user.avatarUrl}>
-            {getInitials(user.fullName)}
-          </Avatar>
+          <Avatar
+            className="account-sidebar-avatar"
+            src={user.avatarUrl}
+            fallback={getInitials(user.fullName)}
+            size={72}
+          />
           <span
             className="account-sidebar-verified"
             aria-label="Tài khoản đã xác thực"
           >
-            <VerifiedOutlinedIcon fontSize="small" />
+            <BadgeCheck size={18} />
           </span>
         </div>
 
-        <Typography variant="h3" component="h2" className="account-sidebar-name">
-          {user.fullName}
-        </Typography>
-        <Typography color="text.secondary" className="account-sidebar-email">
+        <h2 className="account-sidebar-name">{user.fullName}</h2>
+        <p className="account-sidebar-email text-[var(--brand-text-soft)]">
           {user.email}
-        </Typography>
-        <Stack
-          direction="row"
-          spacing={0.75}
-          useFlexGap
-          sx={{ flexWrap: "wrap", justifyContent: "center" }}
-        >
+        </p>
+        <div className="flex flex-wrap justify-center gap-1.5">
           {roles.map((role) => (
-            <Chip
-              key={role}
-              label={formatRole(role)}
-              size="small"
-              className="account-role-chip"
-            />
+            <span key={role} className="account-role-chip">
+              {formatRole(role)}
+            </span>
           ))}
-        </Stack>
+        </div>
       </section>
 
       <nav className="account-sidebar-nav" aria-label="Menu tài khoản">
@@ -89,7 +82,7 @@ export default function AccountSidebar({ user }: AccountSidebarProps) {
                   isSelected ? " is-selected" : ""
                 }`}
               >
-                <Icon fontSize="small" />
+                <Icon size={18} />
                 <span>
                   {item.href === "/account/seller" ? sellerLabel : item.label}
                 </span>
@@ -103,11 +96,10 @@ export default function AccountSidebar({ user }: AccountSidebarProps) {
         <form action={logout}>
           <Button
             fullWidth
-            color="error"
             variant="text"
             type="submit"
-            startIcon={<LogoutOutlinedIcon />}
-            className="account-sidebar-logout"
+            startIcon={<LogOut size={18} />}
+            className="account-sidebar-logout !text-[var(--brand-error)]"
           >
             Đăng xuất
           </Button>
