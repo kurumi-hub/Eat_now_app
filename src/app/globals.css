@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fff6f8;
-  --foreground: #3a1f2b;
+  --background: #fff8f6;
+  --foreground: #1a0f0c;
 
+<<<<<<< HEAD
   --pink-50: #fff0f4;
   --pink-100: #ffe1ea;
   --pink-300: #ffb8cf;
@@ -28,11 +29,27 @@
   --brand-error: #d63a3a;
   --brand-info: #005f9d;
   --brand-focus-ring: 0 0 0 3px rgba(255, 184, 77, 0.33);
+=======
+  --pink-50: #ffe9e4;
+  --pink-100: #ffcabd;
+  --pink-300: #ff8a75;
+  --pink-500: #e8264a;
+  --pink-600: #c01238;
+  --mango: #ff9d0a;
+  --mint: #12b886;
+  --ink: #1a0f0c;
+  --ink-soft: #7a6a66;
+
+  /* Một đường cong duy nhất cho toàn bộ chuyển động của trang */
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+>>>>>>> parent of cd34bf0 (page update)
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-footer: var(--footer);
   --color-pink-50: var(--pink-50);
   --color-pink-100: var(--pink-100);
   --color-pink-300: var(--pink-300);
@@ -68,10 +85,461 @@ body {
 body {
   background: var(--background);
   color: var(--foreground);
+  transition: background-color 0.35s ease, color 0.35s ease;
 }
 
 html {
   scroll-behavior: smooth;
+}
+
+/* =====================================================================
+   THEME PALETTES — đổi bằng data-theme trên <html>. Vì @theme inline
+   sinh ra utility (bg-pink-500, text-pink-600...) trỏ thẳng vào các
+   biến CSS bên dưới, chỉ cần override biến là toàn bộ UI đổi màu.
+   ===================================================================== */
+:root,
+[data-theme="redwood"] {
+  --background: #fff8f6;
+  --foreground: #1a0f0c;
+  --surface: #ffffff;
+  --footer: var(--ink);
+  --pink-50: #ffe9e4;
+  --pink-100: #ffcabd;
+  --pink-300: #ff8a75;
+  --pink-500: #e8264a;
+  --pink-600: #c01238;
+  --mango: #ff9d0a;
+  --mint: #12b886;
+  --ink: #1a0f0c;
+  --ink-soft: #7a6a66;
+}
+
+[data-theme="coral-pink"] {
+  --background: #fff3f4;
+  --foreground: #3a1620;
+  --pink-50: #ffeef1;
+  --pink-100: #ffd7dd;
+  --pink-300: #ff9fae;
+  --pink-500: #ff6f81;
+  --pink-600: #e0475e;
+  --mango: #ffb648;
+  --mint: #7fc8b9;
+  --ink: #3a1620;
+  --ink-soft: #9a7480;
+}
+
+[data-theme="teal"] {
+  --background: #f0faf8;
+  --foreground: #0e2a27;
+  --pink-50: #e6f7f4;
+  --pink-100: #c3ece4;
+  --pink-300: #6fcabc;
+  --pink-500: #0f9b8e;
+  --pink-600: #0b7d73;
+  --mango: #e0a940;
+  --mint: #63b58f;
+  --ink: #0e2a27;
+  --ink-soft: #5f8580;
+}
+
+[data-theme="ocean"] {
+  --background: #f0f6fd;
+  --foreground: #101f33;
+  --pink-50: #e8f1fc;
+  --pink-100: #cbe0f8;
+  --pink-300: #86b6ec;
+  --pink-500: #2f7fd6;
+  --pink-600: #2465ad;
+  --mango: #e0a23f;
+  --mint: #5aa9a0;
+  --ink: #101f33;
+  --ink-soft: #5b7290;
+}
+
+[data-theme="grape"] {
+  --background: #f7f2fc;
+  --foreground: #271639;
+  --pink-50: #f1e7fa;
+  --pink-100: #ddc3f2;
+  --pink-300: #b287e2;
+  --pink-500: #8b4fd1;
+  --pink-600: #6f3aad;
+  --mango: #e0a23f;
+  --mint: #7fae8f;
+  --ink: #271639;
+  --ink-soft: #806f94;
+}
+
+[data-theme="forest"] {
+  --background: #f1f8f2;
+  --foreground: #12291a;
+  --pink-50: #e7f4e9;
+  --pink-100: #c7e6cc;
+  --pink-300: #82c091;
+  --pink-500: #2e8b57;
+  --pink-600: #216e43;
+  --mango: #d9a441;
+  --mint: #5f9d6f;
+  --ink: #12291a;
+  --ink-soft: #5f7a67;
+}
+
+[data-theme="sunset"] {
+  --background: #fff5ee;
+  --foreground: #3a1f0f;
+  --pink-50: #ffede0;
+  --pink-100: #ffd2b3;
+  --pink-300: #f5a466;
+  --pink-500: #e8792b;
+  --pink-600: #c25f1c;
+  --mango: #f2b632;
+  --mint: #7fae8f;
+  --ink: #3a1f0f;
+  --ink-soft: #98735a;
+}
+
+[data-theme="lavender"] {
+  --background: #f5f4fc;
+  --foreground: #241f3d;
+  --pink-50: #edebfa;
+  --pink-100: #d8d3f3;
+  --pink-300: #b1a6e4;
+  --pink-500: #9086d6;
+  --pink-600: #7365bd;
+  --mango: #e0a23f;
+  --mint: #7fa8ae;
+  --ink: #241f3d;
+  --ink-soft: #79738f;
+}
+
+[data-theme="rose-gold"] {
+  --background: #fbf3f1;
+  --foreground: #341f1a;
+  --pink-50: #f8e9e5;
+  --pink-100: #edcec5;
+  --pink-300: #dba896;
+  --pink-500: #c98a7a;
+  --pink-600: #ab6c5c;
+  --mango: #d9a441;
+  --mint: #8a9b6e;
+  --ink: #341f1a;
+  --ink-soft: #8f746c;
+}
+
+[data-theme="slate"] {
+  --background: #f3f5f7;
+  --foreground: #1b232c;
+  --pink-50: #e9edf1;
+  --pink-100: #ccd5dd;
+  --pink-300: #8fa0ae;
+  --pink-500: #4b5a6b;
+  --pink-600: #384451;
+  --mango: #d69544;
+  --mint: #6f9c8f;
+  --ink: #1b232c;
+  --ink-soft: #66727d;
+}
+
+[data-theme="tomato"] {
+  --background: #fef3f0;
+  --foreground: #351610;
+  --pink-50: #fde9e3;
+  --pink-100: #fbcdc0;
+  --pink-300: #ee9781;
+  --pink-500: #e0432b;
+  --pink-600: #bc3320;
+  --mango: #f0a52e;
+  --mint: #6a9c7e;
+  --ink: #351610;
+  --ink-soft: #96685c;
+}
+
+[data-theme="chili"] {
+  --background: #fdf1f1;
+  --foreground: #350d0d;
+  --pink-50: #fbe6e6;
+  --pink-100: #f4c4c4;
+  --pink-300: #e08181;
+  --pink-500: #c62e2e;
+  --pink-600: #9e2323;
+  --mango: #e8a13a;
+  --mint: #6a9c8a;
+  --ink: #350d0d;
+  --ink-soft: #96605c;
+}
+
+[data-theme="mustard"] {
+  --background: #fdf8ec;
+  --foreground: #332a0d;
+  --pink-50: #faf0d3;
+  --pink-100: #f3dd9c;
+  --pink-300: #e6c25e;
+  --pink-500: #d6a419;
+  --pink-600: #ab8113;
+  --mango: #e8792b;
+  --mint: #7a9c6a;
+  --ink: #332a0d;
+  --ink-soft: #8f8060;
+}
+
+[data-theme="avocado"] {
+  --background: #f5f8ee;
+  --foreground: #22301a;
+  --pink-50: #e9f1da;
+  --pink-100: #cfe1af;
+  --pink-300: #9ec06f;
+  --pink-500: #6a8f3d;
+  --pink-600: #52702f;
+  --mango: #e0a23f;
+  --mint: #6fae7f;
+  --ink: #22301a;
+  --ink-soft: #71805f;
+}
+
+[data-theme="mango"] {
+  --background: #fff6e9;
+  --foreground: #3a260a;
+  --pink-50: #ffedcf;
+  --pink-100: #ffd68e;
+  --pink-300: #f7b955;
+  --pink-500: #f2a01e;
+  --pink-600: #cc8412;
+  --mango: #ff8a3d;
+  --mint: #6a9c7e;
+  --ink: #3a260a;
+  --ink-soft: #987d54;
+}
+
+[data-theme="lime"] {
+  --background: #f7fae8;
+  --foreground: #29331a;
+  --pink-50: #eef4d4;
+  --pink-100: #d9e6a5;
+  --pink-300: #b4cf6a;
+  --pink-500: #8bb62c;
+  --pink-600: #6d9420;
+  --mango: #e0a23f;
+  --mint: #6fae7f;
+  --ink: #29331a;
+  --ink-soft: #7c8560;
+}
+
+[data-theme="cherry"] {
+  --background: #fbf0f2;
+  --foreground: #330d16;
+  --pink-50: #f7e2e6;
+  --pink-100: #eebac3;
+  --pink-300: #d97f8f;
+  --pink-500: #b3223e;
+  --pink-600: #8f1a31;
+  --mango: #e0a13a;
+  --mint: #6a9c8a;
+  --ink: #330d16;
+  --ink-soft: #935e69;
+}
+
+[data-theme="papaya"] {
+  --background: #fff3ee;
+  --foreground: #3a1c0f;
+  --pink-50: #ffe6da;
+  --pink-100: #ffc7a8;
+  --pink-300: #ff9d6b;
+  --pink-500: #ff7a45;
+  --pink-600: #db5c2b;
+  --mango: #ffb648;
+  --mint: #6a9c8a;
+  --ink: #3a1c0f;
+  --ink-soft: #9a7160;
+}
+
+[data-theme="saffron"] {
+  --background: #fff8e6;
+  --foreground: #362a06;
+  --pink-50: #ffefc2;
+  --pink-100: #ffdd82;
+  --pink-300: #f7c247;
+  --pink-500: #f0a500;
+  --pink-600: #c78700;
+  --mango: #ff8a3d;
+  --mint: #6a9c7e;
+  --ink: #362a06;
+  --ink-soft: #927e4c;
+}
+
+[data-theme="basil"] {
+  --background: #f2f8f2;
+  --foreground: #16261a;
+  --pink-50: #e2f0e2;
+  --pink-100: #b9dcb9;
+  --pink-300: #7cb886;
+  --pink-500: #3e7d4f;
+  --pink-600: #2e6139;
+  --mango: #d9a441;
+  --mint: #71b487;
+  --ink: #16261a;
+  --ink-soft: #5c7060;
+}
+
+[data-theme="curry"] {
+  --background: #fdf5e9;
+  --foreground: #352708;
+  --pink-50: #f9e9cc;
+  --pink-100: #f0d193;
+  --pink-300: #dbaa54;
+  --pink-500: #c9821f;
+  --pink-600: #a06718;
+  --mango: #e8a13a;
+  --mint: #7a9c6a;
+  --ink: #352708;
+  --ink-soft: #927a54;
+}
+
+[data-theme="plum"] {
+  --background: #f8f1f7;
+  --foreground: #2c1428;
+  --pink-50: #ede0ec;
+  --pink-100: #d8bad5;
+  --pink-300: #b083ac;
+  --pink-500: #7a3b6d;
+  --pink-600: #602c54;
+  --mango: #d9a441;
+  --mint: #7a9c8a;
+  --ink: #2c1428;
+  --ink-soft: #866980;
+}
+
+[data-theme="cinnamon"] {
+  --background: #fbf2ea;
+  --foreground: #33200f;
+  --pink-50: #f4e2d0;
+  --pink-100: #e7c39d;
+  --pink-300: #cf9c6c;
+  --pink-500: #a9652e;
+  --pink-600: #854e23;
+  --mango: #e0a23f;
+  --mint: #7a9c6a;
+  --ink: #33200f;
+  --ink-soft: #8f7562;
+}
+
+[data-theme="olive"] {
+  --background: #f6f6ee;
+  --foreground: #23260f;
+  --pink-50: #eaebd4;
+  --pink-100: #d3d5a3;
+  --pink-300: #a6ab6e;
+  --pink-500: #6e7233;
+  --pink-600: #545826;
+  --mango: #d9a441;
+  --mint: #7fa88a;
+  --ink: #23260f;
+  --ink-soft: #757a5e;
+}
+
+[data-theme="honey"] {
+  --background: #fff8e9;
+  --foreground: #362b09;
+  --pink-50: #ffefc9;
+  --pink-100: #ffdd8c;
+  --pink-300: #f0c258;
+  --pink-500: #e0a52e;
+  --pink-600: #b98622;
+  --mango: #ff8a3d;
+  --mint: #7a9c6a;
+  --ink: #362b09;
+  --ink-soft: #937f52;
+}
+
+[data-theme="cocoa"] {
+  --background: #f7f0ec;
+  --foreground: #29160e;
+  --pink-50: #ecdfd6;
+  --pink-100: #d6bba8;
+  --pink-300: #b28870;
+  --pink-500: #6b4331;
+  --pink-600: #533226;
+  --mango: #d9a441;
+  --mint: #7a9c8a;
+  --ink: #29160e;
+  --ink-soft: #7d6459;
+}
+
+[data-theme="blueberry"] {
+  --background: #f0f3fa;
+  --foreground: #131c33;
+  --pink-50: #e2e9f7;
+  --pink-100: #bccbec;
+  --pink-300: #7f97d2;
+  --pink-500: #3d5aa8;
+  --pink-600: #2e4586;
+  --mango: #e0a23f;
+  --mint: #6a9c9c;
+  --ink: #131c33;
+  --ink-soft: #5f6c8f;
+}
+
+[data-theme="watermelon"] {
+  --background: #fff0f2;
+  --foreground: #350f16;
+  --pink-50: #ffe1e6;
+  --pink-100: #ffb9c4;
+  --pink-300: #f47f92;
+  --pink-500: #e0475e;
+  --pink-600: #bc3448;
+  --mango: #6ab26a;
+  --mint: #6ab26a;
+  --ink: #350f16;
+  --ink-soft: #966571;
+}
+
+[data-theme="peach"] {
+  --background: #fff4ee;
+  --foreground: #3a2313;
+  --pink-50: #ffe7d9;
+  --pink-100: #ffcbab;
+  --pink-300: #f7a877;
+  --pink-500: #f2905e;
+  --pink-600: #d1713f;
+  --mango: #ffb648;
+  --mint: #7a9c8a;
+  --ink: #3a2313;
+  --ink-soft: #997a68;
+}
+
+[data-theme="matcha"] {
+  --background: #f4f8f0;
+  --foreground: #1e2917;
+  --pink-50: #e6f0dc;
+  --pink-100: #c6ddb0;
+  --pink-300: #9cbf7c;
+  --pink-500: #7a9a5e;
+  --pink-600: #5f7b47;
+  --mango: #d9a441;
+  --mint: #8ab48f;
+  --ink: #1e2917;
+  --ink-soft: #6b7a5f;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ---------- hide scrollbar on horizontal mobile scrollers ----------
+   Đăng ký bằng @utility (Tailwind v4) thay vì class CSS thường, để các
+   tiền tố breakpoint như sm:no-scrollbar hoạt động đúng. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -93,7 +561,7 @@ html {
   height: 14px;
   background-image: radial-gradient(
     circle at 10px 7px,
-    var(--pink-50) 7px,
+    var(--ticket-notch, var(--pink-50)) 7px,
     transparent 7.5px
   );
   background-size: 20px 14px;
@@ -107,22 +575,26 @@ html {
   transform: rotate(180deg);
 }
 
-/* ---------- hero steam ---------- */
+/* ---------- steam: hơi nóng bốc lên, dịu và lệch nhịp ---------- */
 @keyframes rise {
   0% {
-    transform: translateY(0) scaleY(1);
+    transform: translateY(4px) scaleY(0.85);
     opacity: 0;
   }
-  20% {
-    opacity: 0.8;
+  25% {
+    opacity: 0.45;
+  }
+  70% {
+    opacity: 0.22;
   }
   100% {
-    transform: translateY(-38px) scaleY(1.3);
+    transform: translateY(-34px) scaleY(1.35);
     opacity: 0;
   }
 }
 .animate-steam {
-  animation: rise 3.2s ease-in-out infinite;
+  animation: rise 4.6s var(--ease-soft) infinite;
+  will-change: transform, opacity;
 }
 
 /* ---------- floating chips ---------- */
@@ -139,15 +611,295 @@ html {
   animation: bob 4s ease-in-out infinite;
 }
 
-/* ---------- marquee ---------- */
-@keyframes marquee-scroll {
+
+
+/* =====================================================================
+   SIGNATURE — "bảng thực đơn quán ăn": nền giấy kẻ ô mờ + đường gạch
+   chấm kiểu hóa đơn. Dùng cho khối hero và bảng xếp hạng quán.
+   ===================================================================== */
+.paper-grid {
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.035) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.paper-grid-light {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Số thứ tự kiểu bảng menu viết tay — viền rỗng, chỉ hiện nét */
+.menu-numeral {
+  -webkit-text-stroke: 1.5px currentColor;
+  color: transparent;
+}
+
+/* Gạch chấm phân cách kiểu hóa đơn */
+.dotted-rule {
+  background-image: radial-gradient(currentColor 1px, transparent 1px);
+  background-size: 6px 2px;
+  background-repeat: repeat-x;
+  height: 2px;
+}
+
+/* =====================================================================
+   CHUYỂN ĐỘNG — một đường cong (--ease-soft) cho toàn trang, thời lượng
+   đủ dài để không giật. Mọi hiệu ứng đều tự tắt khi người dùng bật
+   "giảm chuyển động" (xem @media prefers-reduced-motion phía trên).
+   ===================================================================== */
+
+/* Hover chung cho card/hàng: chỉ nhấc + đổi nền, KHÔNG đổi viền cùng lúc
+   (đổi viền khi đang dịch chuyển gây rung mép) */
+.lift {
+  transition: transform 0.42s var(--ease-soft),
+    background-color 0.42s var(--ease-soft), box-shadow 0.42s var(--ease-soft),
+    border-color 0.42s var(--ease-soft);
+  will-change: transform;
+}
+.lift:hover {
+  transform: translateY(-4px);
+}
+/* nhả tay nhanh hơn lúc rê vào — cảm giác "bám" chứ không lười */
+.lift:not(:hover) {
+  transition-duration: 0.55s;
+}
+.lift:active {
+  transform: translateY(-1px) scale(0.995);
+  transition-duration: 0.12s;
+}
+
+/* Ảnh/icon trong card phóng chậm hơn thân card một chút để có chiều sâu */
+.zoom-slow {
+  transition: transform 0.75s var(--ease-soft);
+  will-change: transform;
+}
+.group:hover .zoom-slow {
+  transform: scale(1.09) rotate(-2deg);
+}
+
+/* ---------- scroll reveal: mờ + trượt lên, so le theo thứ tự ---------- */
+@keyframes reveal-up {
   from {
-    transform: translateX(0);
+    opacity: 0;
+    transform: translateY(14px);
   }
   to {
-    transform: translateX(-50%);
+    opacity: 1;
+    transform: translateY(0);
   }
 }
-.animate-marquee {
-  animation: marquee-scroll 22s linear infinite;
+
+.reveal {
+  animation: reveal-up 0.7s var(--ease-soft) both;
+  animation-timeline: view();
+  animation-range: entry 0% entry 55%;
+}
+
+/* Trình duyệt chưa hỗ trợ animation-timeline thì hiện thẳng, không ẩn nội dung */
+@supports not (animation-timeline: view()) {
+  .reveal {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* So le cho các item trong cùng một danh sách */
+.stagger > * {
+  animation: reveal-up 0.7s var(--ease-soft) both;
+  animation-timeline: view();
+  animation-range: entry 0% entry 50%;
+}
+@supports not (animation-timeline: view()) {
+  .stagger > * {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- focus bàn phím rõ ràng ---------- */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2.5px solid var(--pink-500);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Ô tìm kiếm: viền focus dùng màu nhấn, không dùng outline mặc định */
+input:focus-visible {
+  outline: none;
+}
+
+/* =====================================================================
+   HERO — không khí trong khối đỏ: các đốm sáng trôi rất chậm, biên độ
+   nhỏ. Đặt sau lớp lưới giấy, opacity thấp để không tranh chỗ với chữ.
+   ===================================================================== */
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(18px, -22px) scale(1.06);
+  }
+  66% {
+    transform: translate(-14px, 12px) scale(0.96);
+  }
+}
+.animate-drift {
+  animation: drift 18s var(--ease-soft) infinite;
+  will-change: transform;
+}
+
+/* Chấm "đang giao" nhấp nháy dịu */
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.82);
+  }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 2.4s var(--ease-soft) infinite;
+}
+
+/* =====================================================================
+   VOUCHER — phiếu giảm giá: bóng sáng quét ngang khi rê chuột (như
+   nghiêng tấm phiếu ra ánh sáng), mã giảm giá nảy nhẹ.
+   ===================================================================== */
+.coupon {
+  transition: transform 0.42s var(--ease-soft), box-shadow 0.42s var(--ease-soft);
+  will-change: transform;
+}
+.coupon:hover {
+  transform: translateY(-5px) rotate(-0.5deg);
+}
+.coupon:active {
+  transform: translateY(-2px) rotate(0deg);
+  transition-duration: 0.12s;
+}
+
+/* dải sáng quét ngang */
+.coupon .coupon-shine {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.coupon .coupon-shine::after {
+  content: "";
+  position: absolute;
+  top: -60%;
+  bottom: -60%;
+  width: 45%;
+  left: -70%;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    rgba(255, 255, 255, 0.55),
+    transparent
+  );
+  transform: skewX(-18deg);
+  transition: left 0.85s var(--ease-soft);
+}
+.coupon:hover .coupon-shine::after {
+  left: 130%;
+}
+
+/* mã giảm giá: giãn chữ nhẹ khi rê vào */
+.coupon-code {
+  transition: letter-spacing 0.42s var(--ease-soft), color 0.42s var(--ease-soft);
+}
+.coupon:hover .coupon-code {
+  letter-spacing: 0.18em;
+}
+
+/* =====================================================================
+   BẢNG XẾP HẠNG — mềm hoá: nền trượt vào từ trái, thanh chỉ báo màu
+   mọc lên ở mép, số thứ hạng đổ đầy màu thay vì chỉ đổi màu nét.
+   ===================================================================== */
+.rank-row {
+  position: relative;
+  border-radius: 14px;
+  transition: background-color 0.42s var(--ease-soft),
+    transform 0.42s var(--ease-soft);
+}
+.rank-row::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12%;
+  bottom: 12%;
+  width: 3px;
+  border-radius: 99px;
+  background: var(--pink-500);
+  transform: scaleY(0);
+  transform-origin: center;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rank-row::before {
+    transition: transform 0.42s var(--ease-soft);
+  }
+  .rank-row:hover {
+    background-color: var(--pink-50);
+    transform: translateX(6px);
+  }
+  .rank-row:hover::before {
+    transform: scaleY(1);
+  }
+}
+
+/* số thứ hạng: mặc định hiện rõ (đặc, mờ nhẹ) để luôn nhìn thấy trên
+   thiết bị cảm ứng — vốn không có trạng thái hover để "đánh thức" số */
+.rank-numeral {
+  color: var(--ink);
+  opacity: 0.4;
+}
+
+/* Chỉ thiết bị có chuột thật mới có hiệu ứng đổi màu khi hover — mặc
+   định (chưa hover) luôn là số đặc màu xám, giống hệt trên cảm ứng. */
+@media (hover: hover) and (pointer: fine) {
+  .rank-numeral {
+    transition: color 0.42s var(--ease-soft), opacity 0.42s var(--ease-soft);
+  }
+  .rank-row:hover .rank-numeral {
+    color: var(--pink-500);
+    opacity: 1;
+  }
+}
+
+/* =====================================================================
+   THANH CUỘN THEO THƯƠNG HIỆU — dùng cho carousel ở màn hình có chuột
+   (PC/tablet), thay vì ẩn hẳn thanh cuộn native. Mảnh, màu hồng nhạt,
+   đậm lên khi hover — khớp tông màu chung thay vì thanh xám mặc định.
+   ===================================================================== */
+.scrollbar-brand {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pink-300) transparent;
+}
+.scrollbar-brand::-webkit-scrollbar {
+  height: 6px;
+}
+.scrollbar-brand::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-brand::-webkit-scrollbar-thumb {
+  background-color: var(--pink-300);
+  border-radius: 99px;
+  border: 1.5px solid var(--background);
+  background-clip: padding-box;
+}
+.scrollbar-brand::-webkit-scrollbar-thumb:hover {
+  background-color: var(--pink-500);
 }

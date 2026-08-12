@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import AuthLayout from "@/components/auth/AuthLayout";
 import VerifyOtpForm from "@/components/auth/VerifyOtpForm";
 
@@ -18,7 +19,29 @@ export default async function VerifyPage({ searchParams }: VerifyPageProps) {
           ? `EatNow đã gửi mã 6 số tới ${email}`
           : "Kiểm tra email để lấy mã 6 số."}
       </p>
+=======
+import AuthShell from "@/app/auth/AuthShell";
+import VerifyOtpForm from "./VerifyOtpForm";
+
+export default async function VerifyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ email?: string }>;
+}) {
+  const { email = "" } = await searchParams;
+
+  return (
+    <AuthShell
+      title="Nhập mã xác nhận"
+      subtitle={
+        email
+          ? `EatNow đã gửi mã 6 số tới ${email}`
+          : "Kiểm tra email để lấy mã 6 số"
+      }
+      footer={null}
+    >
+>>>>>>> parent of cd34bf0 (page update)
       <VerifyOtpForm email={email} />
-    </AuthLayout>
+    </AuthShell>
   );
 }

@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
+<<<<<<< HEAD
 import type { ReactNode } from "react";
 import { Baloo_2, Be_Vietnam_Pro } from "next/font/google";
 
+=======
+import { Baloo_2, Be_Vietnam_Pro } from "next/font/google";
+>>>>>>> parent of cd34bf0 (page update)
 import "./globals.css";
-import "@/styles/variables.css";
-import "@/styles/global.css";
-import "@/styles/routes.css";
-import "@/styles/home.css";
-import "@/styles/auth.css";
-import "@/styles/account.css";
-import "@/styles/restaurant-detail.css";
+import { ThemeProvider } from "./ThemeProvider";
+import ThemeSwitcher from "./ThemeSwitcher";
 
 const baloo = Baloo_2({
   variable: "--font-baloo",
@@ -19,28 +18,43 @@ const baloo = Baloo_2({
 
 const beVietnamPro = Be_Vietnam_Pro({
   variable: "--font-be-vietnam",
-  subsets: ["latin", "vietnamese"],
+  subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "EatNow - Đói bụng? EatNow lo hết.",
+  title: "EatNow — Đói bụng? EatNow lo hết.",
   description:
-    "EatNow - app đặt đồ ăn giao nhanh, hơn 2.000 quán ăn quanh bạn, giao trung bình 15 phút.",
+    "EatNow — app đặt đồ ăn giao nhanh, hơn 2.000 quán ăn quanh bạn, giao trung bình 15 phút.",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover" as const,
+  themeColor: "#0d0d0f",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: ReactNode;
+  children: React.ReactNode;
 }>) {
   return (
     <html
       lang="vi"
-      data-scroll-behavior="smooth"
-      className={`${baloo.variable} ${beVietnamPro.variable}`}
+      className={`${baloo.variable} ${beVietnamPro.variable} h-full antialiased`}
     >
+<<<<<<< HEAD
       <body className="eatnow-body">{children}</body>
+=======
+      <body className="min-h-full flex flex-col font-sans bg-background text-foreground">
+        <ThemeProvider>
+          {children}
+          <ThemeSwitcher />
+        </ThemeProvider>
+      </body>
+>>>>>>> parent of cd34bf0 (page update)
     </html>
   );
 }

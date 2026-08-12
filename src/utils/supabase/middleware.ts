@@ -1,14 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PRIVATE_ROUTE_PREFIXES = ["/account", "/owner", "/admin"];
-
-function isPrivateRoute(pathname: string) {
-  return PRIVATE_ROUTE_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  );
-}
-
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -39,14 +31,10 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user && isPrivateRoute(request.nextUrl.pathname)) {
+  // Bảo vệ các route cần đăng nhập, ví dụ /account
+  if (!user && request.nextUrl.pathname.startsWith("/account")) {
     const url = request.nextUrl.clone();
-    const nextPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
-
     url.pathname = "/login";
-    url.search = "";
-    url.searchParams.set("next", nextPath);
-
     return NextResponse.redirect(url);
   }
 
