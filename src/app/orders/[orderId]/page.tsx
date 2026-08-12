@@ -18,6 +18,21 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "Đã huỷ",
 };
 
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cod: "Thanh toán khi nhận hàng (COD)",
+  momo: "Ví MoMo",
+  vnpay: "VNPay",
+  zalopay: "ZaloPay",
+  card: "Thẻ ngân hàng",
+};
+
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  pending: "Chờ thanh toán",
+  success: "Đã thanh toán",
+  failed: "Thanh toán thất bại",
+  refunded: "Đã hoàn tiền",
+};
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -25,6 +40,76 @@ function formatCurrency(value: number) {
     maximumFractionDigits: 0,
   }).format(value);
 }
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+// Kiểu dữ liệu trả về từ RPC get_order_detail -- khớp với jsonb_build_object
+// trong 03_rpc.sql. Giữ optional ở những field có thể null (shipper chưa nhận,
+// payment/timeline có thể rỗng) để tránh crash khi render.
+type OrderDetail = {
+  id: string;
+  code: string;
+  status: string;
+  created_at: string;
+  delivered_at: string | null;
+  restaurant: {
+    id: string;
+    name: string;
+    address: string;
+    phone: string | null;
+  };
+  shipper: {
+    id: string;
+    name: string;
+    phone: string | null;
+    vehicle: string | null;
+    plate: string | null;
+    lat: number | null;
+    lon: number | null;
+  } | null;
+  delivery: {
+    address: string;
+    receiver: string;
+    phone: string;
+    note: string | null;
+    distance_km: number | null;
+  };
+  items: {
+    name: string;
+    size: string | null;
+    quantity: number;
+    unit_price: number;
+    line_total: number;
+    note: string | null;
+    toppings: { name: string; price: number }[];
+  }[];
+  payment: {
+    method: string;
+    status: string;
+    amount: number;
+    paid_at: string | null;
+  } | null;
+  pricing: {
+    subtotal: number;
+    shipping_fee: number;
+    discount: number;
+    total: number;
+  };
+  timeline: {
+    status: string;
+    at: string;
+    note: string | null;
+  }[];
+  can_review: boolean;
+};
 
 export default async function OrderDetailRoute({
   params,
@@ -34,30 +119,25 @@ export default async function OrderDetailRoute({
   const user = await requireCurrentUser();
   const supabase = await createClient();
 
-  const { data: order, error } = await supabase
-    .from("orders")
-    .select(
-      `id, code, status, user_id, restaurant_id, delivery_address,
-       receiver_name, receiver_phone, note, subtotal, shipping_fee,
-       discount_amount, total_price, created_at,
-       restaurants ( name ),
-       order_items (
-         id, food_name, size_name, unit_price, quantity, line_total, note,
-         order_item_toppings ( topping_name, topping_price )
-       )`
-    )
-    .eq("id", orderId)
-    .maybeSingle();
+  // Dùng RPC get_order_detail thay vì query .from("orders").select() trực tiếp:
+  // RPC đã xử lý sẵn quyền xem (chủ đơn / chủ quán / shipper / admin), trả về
+  // đúng shape object (không bị suy luận nhầm thành mảng như PostgREST join),
+  // và có thêm dữ liệu shipper/payment/timeline mà query cũ không có.
+  const { data, error } = await supabase.rpc("get_order_detail", {
+    p_order_id: orderId,
+  });
 
   if (error) {
-    console.error("OrderDetailRoute error:", {
+    console.error("get_order_detail error:", {
       message: error.message,
       code: error.code,
     });
+    notFound();
   }
 
-  // Không lộ đơn của người khác: chỉ hiện nếu là chủ đơn.
-  if (!order || order.user_id !== user.id) {
+  const order = data as OrderDetail | null;
+
+  if (!order) {
     notFound();
   }
 
@@ -78,15 +158,57 @@ export default async function OrderDetailRoute({
         </h1>
 
         <p>
-          Đặt tại <strong>{order.restaurants?.name ?? "Nhà hàng"}</strong>
+          Đặt tại <strong>{order.restaurant?.name ?? "Nhà hàng"}</strong>
         </p>
+
+        {order.payment && (
+          <section
+            style={{
+              marginTop: 16,
+              padding: 12,
+              borderRadius: 8,
+              background:
+                order.payment.status === "success"
+                  ? "#e8f5e9"
+                  : order.payment.status === "failed"
+                    ? "#fdecea"
+                    : "#fff8e1",
+            }}
+          >
+            <strong>
+              {PAYMENT_METHOD_LABELS[order.payment.method] ?? order.payment.method}
+            </strong>
+            {" · "}
+            {PAYMENT_STATUS_LABELS[order.payment.status] ?? order.payment.status}
+            {order.payment.paid_at && (
+              <div style={{ fontSize: 13, marginTop: 4 }}>
+                Thanh toán lúc {formatDateTime(order.payment.paid_at)}
+              </div>
+            )}
+          </section>
+        )}
+
+        {order.shipper && (
+          <section style={{ marginTop: 24 }}>
+            <h2>Tài xế giao hàng</h2>
+            <p>
+              {order.shipper.name}
+              {order.shipper.phone && ` · ${order.shipper.phone}`}
+            </p>
+            {(order.shipper.vehicle || order.shipper.plate) && (
+              <p>
+                {order.shipper.vehicle} {order.shipper.plate && `- ${order.shipper.plate}`}
+              </p>
+            )}
+          </section>
+        )}
 
         <section style={{ marginTop: 24 }}>
           <h2>Món đã đặt</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {order.order_items.map((item) => (
+            {order.items.map((item, index) => (
               <div
-                key={item.id}
+                key={index}
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
@@ -96,14 +218,12 @@ export default async function OrderDetailRoute({
               >
                 <div>
                   <strong>
-                    {item.quantity} × {item.food_name}
+                    {item.quantity} × {item.name}
                   </strong>
-                  {item.size_name && <div>Size: {item.size_name}</div>}
-                  {item.order_item_toppings.length > 0 && (
+                  {item.size && <div>Size: {item.size}</div>}
+                  {item.toppings.length > 0 && (
                     <div>
-                      {item.order_item_toppings
-                        .map((t) => t.topping_name)
-                        .join(", ")}
+                      {item.toppings.map((t) => t.name).join(", ")}
                     </div>
                   )}
                   {item.note && <div>Ghi chú: {item.note}</div>}
@@ -117,25 +237,25 @@ export default async function OrderDetailRoute({
         <section style={{ marginTop: 24 }}>
           <h2>Giao đến</h2>
           <p>
-            {order.receiver_name} · {order.receiver_phone}
+            {order.delivery.receiver} · {order.delivery.phone}
           </p>
-          <p>{order.delivery_address}</p>
-          {order.note && <p>Ghi chú: {order.note}</p>}
+          <p>{order.delivery.address}</p>
+          {order.delivery.note && <p>Ghi chú: {order.delivery.note}</p>}
         </section>
 
         <section style={{ marginTop: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span>Tạm tính</span>
-            <span>{formatCurrency(order.subtotal)}</span>
+            <span>{formatCurrency(order.pricing.subtotal)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span>Phí giao hàng</span>
-            <span>{formatCurrency(order.shipping_fee)}</span>
+            <span>{formatCurrency(order.pricing.shipping_fee)}</span>
           </div>
-          {order.discount_amount > 0 && (
+          {order.pricing.discount > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span>Giảm giá</span>
-              <span>-{formatCurrency(order.discount_amount)}</span>
+              <span>-{formatCurrency(order.pricing.discount)}</span>
             </div>
           )}
           <div
@@ -147,9 +267,25 @@ export default async function OrderDetailRoute({
             }}
           >
             <span>Tổng cộng</span>
-            <span>{formatCurrency(order.total_price)}</span>
+            <span>{formatCurrency(order.pricing.total)}</span>
           </div>
         </section>
+
+        {order.timeline.length > 0 && (
+          <section style={{ marginTop: 24 }}>
+            <h2>Lịch sử đơn hàng</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {order.timeline.map((step, index) => (
+                <div key={index} style={{ fontSize: 14 }}>
+                  <strong>{STATUS_LABELS[step.status] ?? step.status}</strong>
+                  {" — "}
+                  {formatDateTime(step.at)}
+                  {step.note && <div>{step.note}</div>}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
