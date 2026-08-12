@@ -11,18 +11,16 @@ import {
   Divider,
   IconButton,
   Snackbar,
-  TextField,
   Typography,
 } from "@mui/material";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 
 import CustomerHeader from "@/components/home/CustomerHeader";
 import type { PublicUser } from "@/types/auth";
 import { useCartStore, type CartLine } from "@/store/cartStore";
-import { createOrder } from "@/app/cart/actions";
 
 type CartPageProps = {
   user: PublicUser | null;
@@ -50,11 +48,9 @@ export default function CartPage({ user }: CartPageProps) {
   const router = useRouter();
 
   const lines = useCartStore((state) => state.lines);
-  const restaurantId = useCartStore((state) => state.restaurantId);
   const restaurantName = useCartStore((state) => state.restaurantName);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const removeLine = useCartStore((state) => state.removeLine);
-  const clearCart = useCartStore((state) => state.clearCart);
   const totalPrice = useCartStore((state) => state.totalPrice());
 
   const [hydrated, setHydrated] = useState(false);
@@ -64,70 +60,22 @@ export default function CartPage({ user }: CartPageProps) {
   const showMessage = (message: string) =>
     setSnackbar({ open: true, message });
 
-  // Thông tin giao hàng -- chỉ hỏi khi người dùng thật sự bấm đặt đơn.
-  const [showCheckoutForm, setShowCheckoutForm] = useState(false);
-  const [receiverName, setReceiverName] = useState(user?.fullName ?? "");
-  const [receiverPhone, setReceiverPhone] = useState(user?.phone ?? "");
-  const [deliveryAddress, setDeliveryAddress] = useState("");
-  const [orderNote, setOrderNote] = useState("");
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, startSubmitting] = useTransition();
-
+  // Việc chốt địa chỉ, voucher, phương thức thanh toán và tạo đơn thật sự
+  // đều nằm ở trang /checkout (gọi RPC place_order) -- vì bảng orders chỉ
+  // cho phép ghi qua RPC (RLS chặn insert trực tiếp từ client), không thể
+  // tạo đơn ngay tại trang giỏ hàng này.
   const handleCheckoutClick = () => {
-    // Chỉ check đăng nhập ở bước xác nhận đặt đơn, không phải khi thêm món.
     if (!user) {
-      router.push("/login?next=/cart");
+      router.push("/login?next=/checkout");
       return;
     }
-    setShowCheckoutForm(true);
-  };
 
-  const handleSubmitOrder = () => {
-    const errors: Record<string, string> = {};
-    if (!receiverName.trim()) errors.receiverName = "Vui lòng nhập tên người nhận.";
-    if (!/^0(?:3|5|7|8|9)\d{8}$/.test(receiverPhone.trim())) {
-      errors.receiverPhone = "Số điện thoại không hợp lệ.";
-    }
-    if (!deliveryAddress.trim()) errors.deliveryAddress = "Vui lòng nhập địa chỉ giao hàng.";
-    setFormErrors(errors);
-    if (Object.keys(errors).length > 0) return;
-
-    if (!restaurantId) {
+    if (lines.length === 0) {
       showMessage("Giỏ hàng đang trống.");
       return;
     }
 
-    startSubmitting(async () => {
-      const result = await createOrder({
-        restaurantId,
-        lines: lines.map((line) => ({
-          foodId: line.foodId,
-          foodName: line.foodName,
-          sizeId: line.size?.id,
-          sizeName: line.size?.name,
-          toppings: line.toppings.map((t) => ({
-            id: t.id,
-            name: t.name,
-            price: t.price,
-          })),
-          unitPrice: line.unitPrice,
-          quantity: line.quantity,
-          note: line.note,
-        })),
-        deliveryAddress,
-        receiverName,
-        receiverPhone,
-        note: orderNote,
-      });
-
-      if (!result.ok) {
-        showMessage(result.error);
-        return;
-      }
-
-      clearCart();
-      router.push(`/orders/${result.orderId}`);
-    });
+    router.push("/checkout");
   };
 
   const isEmpty = hydrated && lines.length === 0;
@@ -250,69 +198,21 @@ export default function CartPage({ user }: CartPageProps) {
 
             <Divider sx={{ my: 3 }} />
 
-            {showCheckoutForm && (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 3 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  Thông tin giao hàng
-                </Typography>
-                <TextField
-                  label="Tên người nhận"
-                  value={receiverName}
-                  onChange={(e) => setReceiverName(e.target.value)}
-                  error={Boolean(formErrors.receiverName)}
-                  helperText={formErrors.receiverName}
-                  fullWidth
-                />
-                <TextField
-                  label="Số điện thoại"
-                  value={receiverPhone}
-                  onChange={(e) => setReceiverPhone(e.target.value)}
-                  error={Boolean(formErrors.receiverPhone)}
-                  helperText={formErrors.receiverPhone}
-                  fullWidth
-                />
-                <TextField
-                  label="Địa chỉ giao hàng"
-                  value={deliveryAddress}
-                  onChange={(e) => setDeliveryAddress(e.target.value)}
-                  error={Boolean(formErrors.deliveryAddress)}
-                  helperText={formErrors.deliveryAddress}
-                  fullWidth
-                />
-                <TextField
-                  label="Ghi chú cho đơn hàng (tuỳ chọn)"
-                  value={orderNote}
-                  onChange={(e) => setOrderNote(e.target.value)}
-                  multiline
-                  minRows={2}
-                  fullWidth
-                />
-              </Box>
-            )}
-
             <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
               <Typography color="text.secondary">Tạm tính</Typography>
               <Typography>{formatCurrency(totalPrice)}</Typography>
             </Box>
-            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
-              <Typography variant="h6">Tổng cộng (tạm tính + phí ship)</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                {formatCurrency(totalPrice + 15000)}
-              </Typography>
-            </Box>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 3 }}>
+              Phí giao hàng và mã giảm giá (nếu có) sẽ được tính chính xác ở bước tiếp theo.
+            </Typography>
 
             <Button
               variant="contained"
               size="large"
               fullWidth
-              disabled={isSubmitting}
-              onClick={showCheckoutForm ? handleSubmitOrder : handleCheckoutClick}
+              onClick={handleCheckoutClick}
             >
-              {isSubmitting
-                ? "Đang đặt đơn..."
-                : showCheckoutForm
-                  ? "Xác nhận đặt đơn"
-                  : "Đặt đơn"}
+              Tiến hành đặt hàng
             </Button>
           </>
         )}
