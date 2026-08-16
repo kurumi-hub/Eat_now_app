@@ -2,6 +2,18 @@
 
 The address flow now uses Google Maps instead of Nominatim/OpenStreetMap.
 
+## React dependency
+
+Install the React Google Maps integration used by `GoogleAddressPicker.tsx`:
+
+```bash
+npm install @vis.gl/react-google-maps
+```
+
+The package owns script loading and React lifecycle through `APIProvider`,
+`Map`, `useMap` and `useMapsLibrary`. Do not add a separate Google Maps script
+tag or install another loader alongside it.
+
 ## Google Cloud APIs
 
 Enable billing and these APIs in the Google Cloud project:
@@ -65,15 +77,14 @@ the deployment's server IP only when a stable egress IP is available.
 
 ## When the map shows "didn't load Google Maps correctly"
 
-The production picker intentionally does not use a custom Map ID or Advanced
+The production picker uses `@vis.gl/react-google-maps` instead of a custom
+script loader. It intentionally does not use a custom Map ID or Advanced
 Marker. It renders a fixed pin over the center while the customer drags the map,
 matching common food-delivery apps and removing Map ID/cloud-style dependencies.
-The Maps JavaScript loader uses Google's quarterly channel for production
-stability.
+`APIProvider` loads the Maps JavaScript API once with the quarterly channel and
+origin-only referrer authorization.
 
-The picker now captures both `console.error` and `console.warn`, keeps listening
-for late `gm_authFailure` callbacks, redacts the API key, and displays the exact
-Google error code when Google provides one. Use this table to fix it:
+Use this table when Google reports a configuration error:
 
 | Error code                  | Required fix                                                                                                                     |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
