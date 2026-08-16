@@ -6,7 +6,11 @@ import type { AccountAddress, AddressFormValues } from "@/types/account";
 import { requireAnyRole } from "@/utils/auth/guards";
 import { createClient } from "@/utils/supabase/server";
 import { validateAddressValues, type AddressField } from "@/utils/validation";
-import { geocodeAddress } from "@/lib/geocoding";
+import {
+  distanceKm,
+  geocodeAddress,
+  isValidCoordinate,
+} from "@/lib/geocoding";
 
 export type AddressActionState = {
   status: "idle" | "success" | "error";
@@ -18,6 +22,12 @@ type AddressRow = {
   id: string;
   label: string | null;
   address: string;
+  recipient_name: string | null;
+  recipient_phone: string | null;
+  delivery_note: string | null;
+  ward: string | null;
+  district: string | null;
+  province: string | null;
   lat: number | null;
   lon: number | null;
   is_default: boolean;
@@ -26,16 +36,15 @@ type AddressRow = {
 };
 
 function rowToAddress(row: AddressRow): AccountAddress {
-  // Bảng DB chỉ lưu 1 cột "address" gộp sẵn -- UI vẫn hiển thị theo dòng đầy đủ,
-  // các field line1/ward/district/city chỉ tồn tại ở tầng form nhập liệu.
   return {
     id: row.id,
-    recipientName: "",
-    phone: "",
+    recipientName: row.recipient_name ?? "",
+    phone: row.recipient_phone ?? "",
     line1: row.address,
-    ward: "",
-    district: "",
-    city: "",
+    ward: row.ward ?? "",
+    district: row.district ?? "",
+    city: row.province ?? "",
+    note: row.delivery_note ?? undefined,
     isDefault: row.is_default,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -54,7 +63,10 @@ export async function listAddressesAction(): Promise<AccountAddress[]> {
 
   const { data, error } = await supabase
     .from("user_addresses")
-    .select("id, label, address, lat, lon, is_default, created_at, updated_at")
+    .select(
+      "id, label, address, recipient_name, recipient_phone, delivery_note, " +
+        "ward, district, province, lat, lon, is_default, created_at, updated_at"
+    )
     .eq("user_id", user.id)
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: false });
@@ -84,6 +96,8 @@ export async function createAddressAction(
     isDefault: formData.get("isDefault") === "on",
   };
   const label = String(formData.get("label") || "").trim() || null;
+  const selectedLatText = String(formData.get("lat") || "").trim();
+  const selectedLonText = String(formData.get("lon") || "").trim();
 
   const validation = validateAddressValues(values);
   if (!validation.isValid) {
@@ -117,6 +131,36 @@ export async function createAddressAction(
     };
   }
 
+  let lat = geo.lat;
+  let lon = geo.lon;
+  if (selectedLatText || selectedLonText) {
+    const selectedLat = Number(selectedLatText);
+    const selectedLon = Number(selectedLonText);
+    if (
+      !selectedLatText ||
+      !selectedLonText ||
+      !isValidCoordinate(selectedLat, selectedLon)
+    ) {
+      return {
+        status: "error",
+        message: "Tọa độ được chọn trên bản đồ không hợp lệ.",
+      };
+    }
+
+    // Không tin hoàn toàn lat/lon từ client vì nó quyết định phí giao hàng.
+    // Cho phép kéo ghim quanh địa chỉ, nhưng chặn vị trí giả quá xa kết quả Google.
+    if (distanceKm(geo.lat, geo.lon, selectedLat, selectedLon) > 3) {
+      return {
+        status: "error",
+        message:
+          "Vị trí ghim cách địa chỉ đã nhập quá xa. Hãy kiểm tra địa chỉ hoặc chọn lại ghim.",
+        fieldErrors: { line1: "Ghim bản đồ phải nằm gần địa chỉ đã nhập." },
+      };
+    }
+    lat = selectedLat;
+    lon = selectedLon;
+  }
+
   const supabase = await createClient();
 
   // Nếu đặt làm mặc định, bỏ cờ mặc định của địa chỉ cũ trước
@@ -133,8 +177,14 @@ export async function createAddressAction(
     user_id: user.id,
     label,
     address: fullAddress,
-    lat: geo.lat,
-    lon: geo.lon,
+    recipient_name: validation.normalized.recipientName,
+    recipient_phone: validation.normalized.phone,
+    delivery_note: validation.normalized.note || null,
+    ward: validation.normalized.ward,
+    district: validation.normalized.district,
+    province: validation.normalized.city,
+    lat,
+    lon,
     is_default: values.isDefault ?? false,
   });
 

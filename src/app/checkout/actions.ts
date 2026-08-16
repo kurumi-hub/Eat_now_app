@@ -88,14 +88,16 @@ export type PreviewOrderResult =
 export async function previewOrder(
   cartId: string,
   addressId: string,
+  paymentMethod: "cod" | "vnpay",
   voucherCode?: string
 ): Promise<PreviewOrderResult> {
   await requireCurrentUser();
   const supabase = await createClient();
 
-  const { data, error } = await supabase.rpc("preview_order", {
+  const { data, error } = await supabase.rpc("preview_order_v2", {
     p_cart_id: cartId,
     p_address_id: addressId,
+    p_payment_method: paymentMethod,
     p_voucher_code: voucherCode || null,
   });
 

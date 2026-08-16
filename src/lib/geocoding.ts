@@ -1,81 +1,121 @@
+import "server-only";
+
 export type GeocodeResult = {
   lat: number;
   lon: number;
   formattedAddress: string;
+  placeId?: string;
 };
 
-// Nominatim yêu cầu rate-limit tối đa ~1 request/giây từ 1 nguồn, và bắt
-// buộc phải gửi User-Agent định danh ứng dụng (không được dùng UA mặc định
-// của fetch). Xem: https://operations.osmfoundation.org/policies/nominatim/
-const NOMINATIM_USER_AGENT =
-  process.env.NOMINATIM_USER_AGENT ?? "EatNowApp/1.0 (test@example.com)";
+type GoogleGeocodingResponse = {
+  status: string;
+  error_message?: string;
+  results?: Array<{
+    formatted_address: string;
+    place_id?: string;
+    geometry?: {
+      location?: { lat: number; lng: number };
+    };
+  }>;
+};
 
-/**
- * Chuyển địa chỉ dạng text sang toạ độ (lat/lon) bằng Nominatim (OpenStreetMap).
- * Dùng server-side only -- KHÔNG import file này trong component "use client".
- *
- * Lưu ý:
- * - Instance công khai này miễn phí, không cần đăng ký/API key, nhưng chỉ
- *   phù hợp cho môi trường test/traffic thấp. Nếu lên production với lượng
- *   truy vấn lớn, nên tự host Nominatim hoặc chuyển sang nhà cung cấp trả phí.
- * - Không được gọi dồn dập (rate limit ~1 req/giây) -- vì geocode chỉ chạy
- *   1 lần khi user lưu địa chỉ mới nên không đáng lo trong luồng hiện tại.
- *
- * Docs: https://nominatim.org/release-docs/latest/api/Search/
- */
+function getGoogleMapsServerKey() {
+  const key =
+    process.env.GOOGLE_MAPS_SERVER_API_KEY ??
+    process.env.GOOGLE_MAPS_API_KEY;
+
+  if (!key) {
+    throw new Error(
+      "Thiếu GOOGLE_MAPS_SERVER_API_KEY (hoặc GOOGLE_MAPS_API_KEY)."
+    );
+  }
+  return key;
+}
+
+async function requestGeocodingApi(
+  params: URLSearchParams
+): Promise<GeocodeResult | null> {
+  params.set("key", getGoogleMapsServerKey());
+  params.set("language", "vi");
+  params.set("region", "vn");
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`,
+      { cache: "no-store" }
+    );
+  } catch {
+    throw new Error("Không thể kết nối tới Google Maps.");
+  }
+
+  if (!response.ok) {
+    throw new Error(`Google Maps trả về HTTP ${response.status}.`);
+  }
+
+  const data = (await response.json()) as GoogleGeocodingResponse;
+  if (data.status === "ZERO_RESULTS") return null;
+  if (data.status !== "OK") {
+    throw new Error(
+      data.error_message || `Google Maps Geocoding lỗi: ${data.status}`
+    );
+  }
+
+  const result = data.results?.[0];
+  const location = result?.geometry?.location;
+  if (!result || !location) return null;
+
+  const lat = Number(location.lat);
+  const lon = Number(location.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+  return {
+    lat,
+    lon,
+    formattedAddress: result.formatted_address,
+    placeId: result.place_id,
+  };
+}
+
+/** Geocode địa chỉ bằng Google Maps Geocoding API, chỉ chạy trên server. */
 export async function geocodeAddress(
   address: string
 ): Promise<GeocodeResult | null> {
   const trimmed = address.trim();
   if (!trimmed) return null;
+  return requestGeocodingApi(
+    new URLSearchParams({
+      address: trimmed,
+      components: "country:VN",
+    })
+  );
+}
 
-  const params = new URLSearchParams({
-    q: trimmed,
-    format: "json",
-    countrycodes: "vn",
-    limit: "1",
-    addressdetails: "0",
-  });
+export function isValidCoordinate(lat: number, lon: number) {
+  return (
+    Number.isFinite(lat) &&
+    Number.isFinite(lon) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lon >= -180 &&
+    lon <= 180
+  );
+}
 
-  let res: Response;
-  try {
-    res = await fetch(
-      `https://nominatim.openstreetmap.org/search?${params.toString()}`,
-      {
-        headers: {
-          "User-Agent": NOMINATIM_USER_AGENT,
-          // Nominatim khuyến nghị gửi Accept-Language để ưu tiên kết quả
-          // hiển thị tiếng Việt khi có.
-          "Accept-Language": "vi",
-        },
-        cache: "no-store",
-      }
-    );
-  } catch {
-    throw new Error("Không thể kết nối tới dịch vụ định vị địa chỉ.");
-  }
-
-  if (!res.ok) {
-    throw new Error("Dịch vụ định vị địa chỉ đang gặp sự cố.");
-  }
-
-  const data = await res.json();
-
-  if (!Array.isArray(data) || !data[0]) {
-    return null;
-  }
-
-  const result = data[0];
-  const lat = Number(result.lat);
-  const lon = Number(result.lon);
-
-  if (Number.isNaN(lat) || Number.isNaN(lon)) {
-    return null;
-  }
-
-  return {
-    lat,
-    lon,
-    formattedAddress: result.display_name ?? trimmed,
-  };
+/** Khoảng cách đường chim bay, dùng để kiểm tra ghim không lệch địa chỉ. */
+export function distanceKm(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+) {
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRadians(lat1)) *
+      Math.cos(toRadians(lat2)) *
+      Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }

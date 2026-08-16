@@ -29,6 +29,7 @@ import {
   setDefaultAddressAction,
   type AddressActionState,
 } from "@/app/account/addresses/actions";
+import GoogleAddressPicker from "@/components/account/GoogleAddressPicker";
 import type { AccountAddress } from "@/types/account";
 
 type AddressManagerProps = {
@@ -45,16 +46,37 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
     initialState
   );
   const [isPending, startTransition] = useTransition();
+  const [addressFields, setAddressFields] = useState({
+    line1: "",
+    ward: "",
+    district: "",
+    city: "",
+  });
+
+  const addressQuery = [
+    addressFields.line1,
+    addressFields.ward,
+    addressFields.district,
+    addressFields.city,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   useEffect(() => {
     if (state.status === "success") {
       setDialogOpen(false);
+      setAddressFields({ line1: "", ward: "", district: "", city: "" });
       router.refresh();
     }
   }, [state.status, router]);
 
   const handleClose = () => {
     setDialogOpen(false);
+  };
+
+  const handleOpen = () => {
+    setAddressFields({ line1: "", ward: "", district: "", city: "" });
+    setDialogOpen(true);
   };
 
   const handleDelete = (id: string) => {
@@ -83,7 +105,7 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
         <Button
           variant="contained"
           startIcon={<AddOutlinedIcon />}
-          onClick={() => setDialogOpen(true)}
+          onClick={handleOpen}
         >
           Thêm địa chỉ mới
         </Button>
@@ -111,6 +133,13 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
             >
               <PlaceOutlinedIcon color="action" sx={{ mt: 0.5 }} />
               <Box sx={{ flex: 1 }}>
+                {(address.recipientName || address.phone) && (
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.25 }}>
+                    {[address.recipientName, address.phone]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </Typography>
+                )}
                 <Typography variant="body1" sx={{ fontWeight: 600 }}>
                   {address.line1}
                   {address.isDefault && (
@@ -200,6 +229,13 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
               size="small"
               error={Boolean(state.fieldErrors?.line1)}
               helperText={state.fieldErrors?.line1}
+              value={addressFields.line1}
+              onChange={(event) =>
+                setAddressFields((current) => ({
+                  ...current,
+                  line1: event.target.value,
+                }))
+              }
             />
             <Box sx={{ display: "flex", gap: 1.5 }}>
               <TextField
@@ -210,6 +246,13 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
                 size="small"
                 error={Boolean(state.fieldErrors?.ward)}
                 helperText={state.fieldErrors?.ward}
+                value={addressFields.ward}
+                onChange={(event) =>
+                  setAddressFields((current) => ({
+                    ...current,
+                    ward: event.target.value,
+                  }))
+                }
               />
               <TextField
                 name="district"
@@ -219,6 +262,13 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
                 size="small"
                 error={Boolean(state.fieldErrors?.district)}
                 helperText={state.fieldErrors?.district}
+                value={addressFields.district}
+                onChange={(event) =>
+                  setAddressFields((current) => ({
+                    ...current,
+                    district: event.target.value,
+                  }))
+                }
               />
             </Box>
             <TextField
@@ -229,7 +279,15 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
               size="small"
               error={Boolean(state.fieldErrors?.city)}
               helperText={state.fieldErrors?.city}
+              value={addressFields.city}
+              onChange={(event) =>
+                setAddressFields((current) => ({
+                  ...current,
+                  city: event.target.value,
+                }))
+              }
             />
+            <GoogleAddressPicker addressQuery={addressQuery} />
             <TextField
               name="note"
               label="Ghi chú (không bắt buộc)"

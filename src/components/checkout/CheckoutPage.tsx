@@ -47,6 +47,9 @@ type PreviewState = {
   discount_amount: number;
   total_price: number;
   distance_km: number;
+  tax_amount?: number;
+  tax_added_amount?: number;
+  customer_fee_amount?: number;
   voucher?: { valid: boolean; reason?: string };
 } | null;
 
@@ -104,7 +107,12 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
     let cancelled = false;
     (async () => {
       setPreviewError("");
-      const result = await previewOrder(cartId, addressId, voucherCode);
+      const result = await previewOrder(
+        cartId,
+        addressId,
+        paymentMethod,
+        voucherCode
+      );
       if (cancelled) return;
       if (!result.ok) {
         setPreviewError(result.error);
@@ -117,7 +125,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
     return () => {
       cancelled = true;
     };
-  }, [cartId, addressId, voucherCode]);
+  }, [cartId, addressId, paymentMethod, voucherCode]);
 
   const handlePlaceOrder = () => {
     if (!cartId || !addressId) return;
@@ -335,6 +343,22 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
                 <Row
                   label="Giảm giá"
                   value={`-${formatCurrency(preview.discount_amount)}`}
+                />
+              )}
+              {(preview.customer_fee_amount ?? 0) > 0 && (
+                <Row
+                  label="Phí dịch vụ và phụ phí"
+                  value={formatCurrency(preview.customer_fee_amount ?? 0)}
+                />
+              )}
+              {(preview.tax_amount ?? 0) > 0 && (
+                <Row
+                  label={
+                    (preview.tax_added_amount ?? 0) > 0
+                      ? "Thuế"
+                      : "Thuế đã bao gồm"
+                  }
+                  value={formatCurrency(preview.tax_amount ?? 0)}
                 />
               )}
               <Divider sx={{ my: 1 }} />
