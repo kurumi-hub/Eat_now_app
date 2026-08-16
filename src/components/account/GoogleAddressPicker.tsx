@@ -117,6 +117,9 @@ type MapsWindow = Window & {
   google?: GoogleMapsGlobal;
   __eatNowGoogleMapsPromise?: Promise<GoogleMapsGlobal>;
   __eatNowGoogleMapsReady?: () => void;
+  __eatNowGoogleMapsAuthListeners?: Set<() => void>;
+  __eatNowGoogleMapsAuthDispatcher?: () => void;
+  __eatNowPreviousGoogleMapsAuthFailure?: () => void;
   gm_authFailure?: () => void;
 };
 
@@ -127,6 +130,112 @@ type GoogleAddressPickerProps = {
 const DEFAULT_CENTER: LatLngLiteral = { lat: 10.0452, lng: 105.7469 };
 const AUTH_FAILURE_MESSAGE =
   "Google từ chối khoá API Maps (sai key, chưa bật billing, chưa bật đủ API, hoặc bị chặn theo HTTP referrer/domain). Vui lòng kiểm tra lại cấu hình trong Google Cloud Console.";
+
+const MAP_ERROR_MESSAGES: Record<string, string> = {
+  ApiNotActivatedMapError:
+    "Chưa bật Maps JavaScript API trong đúng Google Cloud project của API key.",
+  ApiTargetBlockedMapError:
+    "API restrictions của browser key đang chặn Maps JavaScript API. Hãy cho phép Maps JavaScript API và Places API (New).",
+  BillingNotEnabledMapError:
+    "Google Cloud project của API key chưa liên kết tài khoản Billing đang hoạt động.",
+  ClientBillingNotEnabledMapError:
+    "Google Cloud project của API key chưa liên kết tài khoản Billing đang hoạt động.",
+  ExpiredKeyMapError:
+    "Browser API key đã hết hạn hoặc chưa được Google nhận diện. Hãy tạo/thay key rồi deploy lại.",
+  InvalidKeyMapError:
+    "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY không phải API key hợp lệ của Google Cloud.",
+  MissingKeyMapError: "Request tải Maps JavaScript API không có API key.",
+  OverQuotaMapError:
+    "Maps JavaScript API đã vượt quota/giới hạn sử dụng hiện tại.",
+  ProjectDeniedMapError:
+    "Google Cloud project đã từ chối request Maps JavaScript API. Kiểm tra trạng thái project, API và Billing.",
+  RefererNotAllowedMapError:
+    "Domain hiện tại chưa nằm trong Website restrictions (HTTP referrers) của browser API key.",
+};
+
+const MAP_ERROR_CODE_PATTERN = new RegExp(
+  `\\b(${Object.keys(MAP_ERROR_MESSAGES).join("|")})\\b`
+);
+
+function normalizePublicApiKey(rawValue: string) {
+  let value = rawValue.trim();
+
+  // Chấp nhận cả trường hợp người dùng lỡ dán nguyên dòng
+  // NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=... vào ô Value trên Vercel.
+  const assignment = value.match(
+    /^NEXT_PUBLIC_GOOGLE_MAPS_API_KEY\s*=\s*(.+)$/
+  );
+  const assignedValue = assignment?.[1];
+  if (assignedValue) value = assignedValue.trim();
+
+  if (
+    value.length >= 2 &&
+    ((value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'")))
+  ) {
+    value = value.slice(1, -1).trim();
+  }
+
+  return value;
+}
+
+function redactGoogleMapsError(text: string) {
+  return text
+    .replace(/([?&]key=)[^&\s]+/gi, "$1[REDACTED]")
+    .replace(/(NEXT_PUBLIC_GOOGLE_MAPS_API_KEY\s*=\s*)\S+/gi, "$1[REDACTED]")
+    .replace(/\bAIza[A-Za-z0-9_-]+\b/g, "[REDACTED_API_KEY]");
+}
+
+function consoleArgsToText(args: unknown[]) {
+  return redactGoogleMapsError(
+    args
+      .map((arg) => {
+        if (arg instanceof Error) return `${arg.name}: ${arg.message}`;
+        if (typeof arg === "string") return arg;
+        try {
+          return JSON.stringify(arg);
+        } catch {
+          return String(arg);
+        }
+      })
+      .join(" ")
+  );
+}
+
+function subscribeToGoogleMapsAuthFailure(listener: () => void) {
+  const mapsWindow = window as MapsWindow;
+  const listeners =
+    mapsWindow.__eatNowGoogleMapsAuthListeners ?? new Set<() => void>();
+  mapsWindow.__eatNowGoogleMapsAuthListeners = listeners;
+  listeners.add(listener);
+
+  if (!mapsWindow.__eatNowGoogleMapsAuthDispatcher) {
+    const previousHandler = mapsWindow.gm_authFailure;
+    const dispatcher = () => {
+      previousHandler?.();
+      mapsWindow.__eatNowGoogleMapsAuthListeners?.forEach((handler) =>
+        handler()
+      );
+    };
+    mapsWindow.__eatNowPreviousGoogleMapsAuthFailure = previousHandler;
+    mapsWindow.__eatNowGoogleMapsAuthDispatcher = dispatcher;
+    mapsWindow.gm_authFailure = dispatcher;
+  }
+
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size > 0) return;
+
+    if (
+      mapsWindow.gm_authFailure === mapsWindow.__eatNowGoogleMapsAuthDispatcher
+    ) {
+      mapsWindow.gm_authFailure =
+        mapsWindow.__eatNowPreviousGoogleMapsAuthFailure;
+    }
+    mapsWindow.__eatNowGoogleMapsAuthDispatcher = undefined;
+    mapsWindow.__eatNowPreviousGoogleMapsAuthFailure = undefined;
+  };
+}
 
 function loadGoogleMaps(apiKey: string): Promise<GoogleMapsGlobal> {
   const mapsWindow = window as MapsWindow;
@@ -139,14 +248,21 @@ function loadGoogleMaps(apiKey: string): Promise<GoogleMapsGlobal> {
 
   const promise = new Promise<GoogleMapsGlobal>((resolve, reject) => {
     const script = document.createElement("script");
+    let settled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let unsubscribeAuthFailure = () => {};
     // Nếu load thất bại (mất mạng tạm thời, lỗi tạm thời, hoặc bị Google từ
     // chối khoá API), phải xoá promise đã cache khỏi window; nếu không, mọi
     // lần mount lại GoogleAddressPicker sau đó sẽ nhận ngay promise reject cũ
     // và không bao giờ thử tải lại được cho đến khi F5 cả trang.
     const clearCacheAndReject = (error: Error) => {
+      if (settled) return;
+      settled = true;
       if (mapsWindow.__eatNowGoogleMapsPromise === promise) {
         mapsWindow.__eatNowGoogleMapsPromise = undefined;
       }
+      if (timeoutId) clearTimeout(timeoutId);
+      unsubscribeAuthFailure();
       script.remove();
       reject(error);
     };
@@ -155,12 +271,16 @@ function loadGoogleMaps(apiKey: string): Promise<GoogleMapsGlobal> {
     // lỗi mạng nên script.onerror không bắt được — phải lắng nghe riêng.
     // Đây chính là nguyên nhân của màn hình đỏ "Trang này đã không tải được
     // Google Maps đúng cách" mà Google tự vẽ đè lên khung bản đồ.
-    mapsWindow.gm_authFailure = () => {
+    unsubscribeAuthFailure = subscribeToGoogleMapsAuthFailure(() => {
       clearCacheAndReject(new Error(AUTH_FAILURE_MESSAGE));
-    };
+    });
     mapsWindow.__eatNowGoogleMapsReady = () => {
-      if (mapsWindow.google) resolve(mapsWindow.google);
-      else clearCacheAndReject(new Error("Google Maps không khởi tạo được."));
+      if (mapsWindow.google) {
+        settled = true;
+        if (timeoutId) clearTimeout(timeoutId);
+        unsubscribeAuthFailure();
+        resolve(mapsWindow.google);
+      } else clearCacheAndReject(new Error("Google Maps không khởi tạo được."));
     };
     script.src =
       "https://maps.googleapis.com/maps/api/js?" +
@@ -176,6 +296,13 @@ function loadGoogleMaps(apiKey: string): Promise<GoogleMapsGlobal> {
     script.onerror = () =>
       clearCacheAndReject(new Error("Không tải được Google Maps."));
     document.head.appendChild(script);
+    timeoutId = setTimeout(
+      () =>
+        clearCacheAndReject(
+          new Error("Google Maps tải quá thời gian cho phép.")
+        ),
+      15000
+    );
   });
   mapsWindow.__eatNowGoogleMapsPromise = promise;
   return promise;
@@ -242,7 +369,8 @@ function parseAddress(
 export default function GoogleAddressPicker({
   onAddressSelect,
 }: GoogleAddressPickerProps) {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
+  const rawApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
+  const apiKey = normalizePublicApiKey(rawApiKey);
   const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID";
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<InstanceType<MapsApi["Map"]> | null>(null);
@@ -262,6 +390,8 @@ export default function GoogleAddressPicker({
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState("");
+  const [isMapBlocked, setIsMapBlocked] = useState(false);
+  const [currentOrigin, setCurrentOrigin] = useState("");
   const [rawConsoleErrors, setRawConsoleErrors] = useState<string[]>([]);
 
   // --- Ô tìm kiếm kiểu app giao đồ ăn: gõ -> danh sách gợi ý xổ xuống ---
@@ -275,6 +405,10 @@ export default function GoogleAddressPicker({
   useEffect(() => {
     onAddressSelectRef.current = onAddressSelect;
   }, [onAddressSelect]);
+
+  useEffect(() => {
+    setCurrentOrigin(window.location.origin);
+  }, []);
 
   const updatePosition = useCallback((next: LatLngLiteral) => {
     setPosition(next);
@@ -333,6 +467,25 @@ export default function GoogleAddressPicker({
 
     let disposed = false;
 
+    const reportMapConfigurationError = (message: string, detail?: string) => {
+      if (disposed) return;
+      setIsMapBlocked(true);
+      setIsLoading(false);
+      setError(message);
+      if (detail) {
+        setRawConsoleErrors((prev) =>
+          prev.includes(detail) ? prev : [...prev, detail]
+        );
+      }
+    };
+
+    // gm_authFailure có thể được Google gọi sau khi callback tải script đã
+    // resolve. Vì vậy listener này phải sống suốt vòng đời component, không
+    // chỉ reject Promise trong loader.
+    const unsubscribeAuthFailure = subscribeToGoogleMapsAuthFailure(() => {
+      reportMapConfigurationError(AUTH_FAILURE_MESSAGE);
+    });
+
     // LỚP 1: Google Maps thường KHÔNG throw lỗi ra ngoài mà chỉ in chi tiết
     // qua console.error (vd InvalidKeyMapError, ApiNotActivatedMapError,
     // RefererNotAllowedMapError, ApiTargetBlockedMapError...), và việc này
@@ -340,23 +493,34 @@ export default function GoogleAddressPicker({
     // khởi tạo — nên phải chặn console.error suốt vòng đời component,
     // không tắt sớm.
     const originalConsoleError = console.error;
-    console.error = (...args: unknown[]) => {
-      try {
-        const text = args
-          .map((arg) =>
-            typeof arg === "string" ? arg : JSON.stringify(arg)
-          )
-          .join(" ");
-        if (/maps|google|api key|referer|billing/i.test(text) && !disposed) {
-          setRawConsoleErrors((prev) =>
-            prev.includes(text) ? prev : [...prev, text]
-          );
-        }
-      } catch {
-        // ignore serialization errors
+    const originalConsoleWarn = console.warn;
+    const captureGoogleMapsConsoleMessage = (args: unknown[]) => {
+      const text = consoleArgsToText(args);
+      if (!/maps|google|api key|referer|billing/i.test(text) || disposed)
+        return;
+
+      const errorCode = text.match(MAP_ERROR_CODE_PATTERN)?.[1];
+      if (errorCode) {
+        reportMapConfigurationError(
+          MAP_ERROR_MESSAGES[errorCode] ?? AUTH_FAILURE_MESSAGE,
+          text
+        );
+      } else {
+        setRawConsoleErrors((prev) =>
+          prev.includes(text) ? prev : [...prev, text]
+        );
       }
+    };
+    const consoleErrorProxy = (...args: unknown[]) => {
+      captureGoogleMapsConsoleMessage(args);
       originalConsoleError.apply(console, args);
     };
+    const consoleWarnProxy = (...args: unknown[]) => {
+      captureGoogleMapsConsoleMessage(args);
+      originalConsoleWarn.apply(console, args);
+    };
+    console.error = consoleErrorProxy;
+    console.warn = consoleWarnProxy;
 
     // LỚP 2: Khi lỗi kiểu ApiNotActivatedMapError/RefererNotAllowed/billing
     // xảy ra, Google tự vẽ đè 1 lớp thông báo NGAY BÊN TRONG div bản đồ
@@ -374,8 +538,9 @@ export default function GoogleAddressPicker({
             text
           )
         ) {
-          setRawConsoleErrors((prev) =>
-            prev.includes(text) ? prev : [...prev, `[DOM overlay] ${text}`]
+          reportMapConfigurationError(
+            AUTH_FAILURE_MESSAGE,
+            `[DOM overlay] ${text}`
           );
         }
       });
@@ -458,7 +623,10 @@ export default function GoogleAddressPicker({
 
     return () => {
       disposed = true;
-      console.error = originalConsoleError;
+      unsubscribeAuthFailure();
+      if (console.error === consoleErrorProxy)
+        console.error = originalConsoleError;
+      if (console.warn === consoleWarnProxy) console.warn = originalConsoleWarn;
       domObserver?.disconnect();
     };
   }, [apiKey, mapId, reverseLookup]);
@@ -565,8 +733,6 @@ export default function GoogleAddressPicker({
     );
   };
 
-  const isAuthFailure = error === AUTH_FAILURE_MESSAGE;
-
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
       <Typography variant="subtitle2">Tìm vị trí giao hàng</Typography>
@@ -585,7 +751,7 @@ export default function GoogleAddressPicker({
             placeholder="Tìm số nhà, đường hoặc địa điểm"
             size="small"
             fullWidth
-            disabled={isLoading || !apiKey || isAuthFailure}
+            disabled={isLoading || !apiKey || isMapBlocked}
             slotProps={{
               input: {
                 startAdornment: (
@@ -667,7 +833,7 @@ export default function GoogleAddressPicker({
           variant="text"
           startIcon={<MyLocationOutlinedIcon />}
           onClick={useCurrentLocation}
-          disabled={isLoading || isSearching || !apiKey || isAuthFailure}
+          disabled={isLoading || isSearching || !apiKey || isMapBlocked}
         >
           Vị trí hiện tại
         </Button>
@@ -676,11 +842,13 @@ export default function GoogleAddressPicker({
       {error && (
         <Alert severity="error">
           {error}
-          {isAuthFailure && (
+          {isMapBlocked && (
             <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>
-              Kiểm tra: khoá API đúng dự án, đã bật Billing, đã bật Maps
-              JavaScript API + Places API (New) + Geocoding API, và domain
-              hiện tại nằm trong danh sách HTTP referrer được phép.
+              Origin hiện tại:{" "}
+              <strong>{currentOrigin || "đang xác định"}</strong>. Trong browser
+              key, hãy cho phép{" "}
+              <strong>{currentOrigin || "domain này"}/*</strong>, bật Billing,
+              Maps JavaScript API và Places API (New), sau đó redeploy ứng dụng.
             </Typography>
           )}
         </Alert>
@@ -689,7 +857,7 @@ export default function GoogleAddressPicker({
       {rawConsoleErrors.length > 0 && (
         <Alert severity="warning">
           <Typography variant="caption" sx={{ display: "block", fontWeight: 600 }}>
-            Lỗi gốc từ Google Maps (bắt trực tiếp từ console.error):
+            Chẩn đoán gốc từ Google Maps:
           </Typography>
           <Box
             component="pre"
