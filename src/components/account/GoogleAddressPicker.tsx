@@ -262,6 +262,7 @@ export default function GoogleAddressPicker({
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState("");
+  const [rawConsoleErrors, setRawConsoleErrors] = useState<string[]>([]);
 
   // --- Ô tìm kiếm kiểu app giao đồ ăn: gõ -> danh sách gợi ý xổ xuống ---
   const [query, setQuery] = useState("");
@@ -332,6 +333,29 @@ export default function GoogleAddressPicker({
 
     let disposed = false;
 
+    // Google Maps thường KHÔNG throw lỗi ra ngoài mà chỉ in chi tiết qua
+    // console.error (vd InvalidKeyMapError, ApiNotActivatedMapError,
+    // RefererNotAllowedMapError, ApiTargetBlockedMapError...). Chặn tạm
+    // console.error trong lúc khởi tạo để bắt trọn nội dung đó và in
+    // thẳng lên UI, khỏi phải mò DevTools qua các extension gây nhiễu.
+    const capturedConsoleErrors: string[] = [];
+    const originalConsoleError = console.error;
+    console.error = (...args: unknown[]) => {
+      try {
+        const text = args
+          .map((arg) =>
+            typeof arg === "string" ? arg : JSON.stringify(arg)
+          )
+          .join(" ");
+        if (/maps|google|api key|referer|billing/i.test(text)) {
+          capturedConsoleErrors.push(text);
+        }
+      } catch {
+        // ignore serialization errors
+      }
+      originalConsoleError.apply(console, args);
+    };
+
     void (async () => {
       try {
         const google = await loadGoogleMaps(apiKey);
@@ -397,11 +421,21 @@ export default function GoogleAddressPicker({
             : "Không thể khởi tạo Google Maps."
         );
         setIsLoading(false);
+      } finally {
+        // Đợi 1 nhịp để bắt các console.error được Google Maps in ra bất
+        // đồng bộ ngay sau khi callback ready/authFailure chạy.
+        setTimeout(() => {
+          console.error = originalConsoleError;
+          if (capturedConsoleErrors.length > 0 && !disposed) {
+            setRawConsoleErrors(capturedConsoleErrors);
+          }
+        }, 500);
       }
     })();
 
     return () => {
       disposed = true;
+      console.error = originalConsoleError;
     };
   }, [apiKey, mapId, reverseLookup]);
 
@@ -625,6 +659,32 @@ export default function GoogleAddressPicker({
               hiện tại nằm trong danh sách HTTP referrer được phép.
             </Typography>
           )}
+        </Alert>
+      )}
+
+      {rawConsoleErrors.length > 0 && (
+        <Alert severity="warning">
+          <Typography variant="caption" sx={{ display: "block", fontWeight: 600 }}>
+            Lỗi gốc từ Google Maps (bắt trực tiếp từ console.error):
+          </Typography>
+          <Box
+            component="pre"
+            sx={{
+              m: 0,
+              mt: 0.5,
+              p: 1,
+              bgcolor: "rgba(0,0,0,0.04)",
+              borderRadius: 1,
+              fontSize: 11,
+              lineHeight: 1.4,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              maxHeight: 160,
+              overflowY: "auto",
+            }}
+          >
+            {rawConsoleErrors.join("\n\n")}
+          </Box>
         </Alert>
       )}
 
