@@ -120,9 +120,20 @@ function loadGoogleMaps(apiKey: string): Promise<GoogleMapsGlobal> {
 
   const promise = new Promise<GoogleMapsGlobal>((resolve, reject) => {
     const script = document.createElement("script");
+    // Nếu load thất bại (mất mạng tạm thời, lỗi tạm thời...), phải xoá promise
+    // đã cache khỏi window; nếu không, mọi lần mount lại GoogleAddressPicker
+    // sau đó (kể cả khi mạng đã có lại) sẽ nhận ngay promise reject cũ và
+    // không bao giờ thử tải lại được nữa cho đến khi F5 cả trang.
+    const clearCacheAndReject = (error: Error) => {
+      if (mapsWindow.__eatNowGoogleMapsPromise === promise) {
+        mapsWindow.__eatNowGoogleMapsPromise = undefined;
+      }
+      script.remove();
+      reject(error);
+    };
     mapsWindow.__eatNowGoogleMapsReady = () => {
       if (mapsWindow.google) resolve(mapsWindow.google);
-      else reject(new Error("Google Maps không khởi tạo được."));
+      else clearCacheAndReject(new Error("Google Maps không khởi tạo được."));
     };
     script.src =
       "https://maps.googleapis.com/maps/api/js?" +
@@ -135,7 +146,8 @@ function loadGoogleMaps(apiKey: string): Promise<GoogleMapsGlobal> {
         callback: "__eatNowGoogleMapsReady",
       }).toString();
     script.async = true;
-    script.onerror = () => reject(new Error("Không tải được Google Maps."));
+    script.onerror = () =>
+      clearCacheAndReject(new Error("Không tải được Google Maps."));
     document.head.appendChild(script);
   });
   mapsWindow.__eatNowGoogleMapsPromise = promise;
