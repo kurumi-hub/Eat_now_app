@@ -69,6 +69,7 @@ type MapsApi = {
         latLng?: { lat: () => number; lng: () => number };
       }) => void
     ) => unknown;
+    getCenter: () => { lat: () => number; lng: () => number } | null;
     panTo: (position: LatLngLiteral) => void;
     setZoom: (zoom: number) => void;
   };
@@ -89,13 +90,6 @@ type GeocodingApi = {
   };
 };
 
-type MarkerApi = {
-  AdvancedMarkerElement: new (options: Record<string, unknown>) => {
-    position: unknown;
-    addListener: (name: string, handler: () => void) => unknown;
-  };
-};
-
 type PlacesApi = {
   AutocompleteSessionToken: AutocompleteSessionToken;
   AutocompleteSuggestion: {
@@ -108,7 +102,7 @@ type PlacesApi = {
 type GoogleMapsGlobal = {
   maps: {
     importLibrary: (
-      name: "maps" | "marker" | "geocoding" | "places"
+      name: "maps" | "geocoding" | "places"
     ) => Promise<unknown>;
   };
 };
@@ -286,7 +280,8 @@ function loadGoogleMaps(apiKey: string): Promise<GoogleMapsGlobal> {
       "https://maps.googleapis.com/maps/api/js?" +
       new URLSearchParams({
         key: apiKey,
-        v: "weekly",
+        // Quarterly ổn định hơn weekly cho luồng checkout/địa chỉ production.
+        v: "quarterly",
         language: "vi",
         region: "VN",
         loading: "async",
@@ -306,19 +301,6 @@ function loadGoogleMaps(apiKey: string): Promise<GoogleMapsGlobal> {
   });
   mapsWindow.__eatNowGoogleMapsPromise = promise;
   return promise;
-}
-
-function readMarkerPosition(position: unknown): LatLngLiteral | null {
-  if (!position || typeof position !== "object") return null;
-  const value = position as {
-    lat?: number | (() => number);
-    lng?: number | (() => number);
-  };
-  const lat = typeof value.lat === "function" ? value.lat() : value.lat;
-  const lng = typeof value.lng === "function" ? value.lng() : value.lng;
-  return typeof lat === "number" && typeof lng === "number"
-    ? { lat, lng }
-    : null;
 }
 
 function componentValue(
@@ -371,12 +353,8 @@ export default function GoogleAddressPicker({
 }: GoogleAddressPickerProps) {
   const rawApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
   const apiKey = normalizePublicApiKey(rawApiKey);
-  const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID";
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<InstanceType<MapsApi["Map"]> | null>(null);
-  const markerRef = useRef<
-    InstanceType<MarkerApi["AdvancedMarkerElement"]> | null
-  >(null);
   const geocoderRef = useRef<
     InstanceType<GeocodingApi["Geocoder"]> | null
   >(null);
@@ -385,7 +363,6 @@ export default function GoogleAddressPicker({
   const searchRequestId = useRef(0);
   const onAddressSelectRef = useRef(onAddressSelect);
 
-  const [position, setPosition] = useState<LatLngLiteral | null>(null);
   const [formattedAddress, setFormattedAddress] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
@@ -411,8 +388,6 @@ export default function GoogleAddressPicker({
   }, []);
 
   const updatePosition = useCallback((next: LatLngLiteral) => {
-    setPosition(next);
-    if (markerRef.current) markerRef.current.position = next;
     mapRef.current?.panTo(next);
     mapRef.current?.setZoom(17);
   }, []);
@@ -554,9 +529,8 @@ export default function GoogleAddressPicker({
     void (async () => {
       try {
         const google = await loadGoogleMaps(apiKey);
-        const [maps, marker, geocoding, places] = await Promise.all([
+        const [maps, geocoding, places] = await Promise.all([
           google.maps.importLibrary("maps") as Promise<MapsApi>,
-          google.maps.importLibrary("marker") as Promise<MarkerApi>,
           google.maps.importLibrary("geocoding") as Promise<GeocodingApi>,
           google.maps.importLibrary("places") as Promise<PlacesApi>,
         ]);
@@ -565,20 +539,12 @@ export default function GoogleAddressPicker({
         const mapInstance = new maps.Map(mapElementRef.current, {
           center: DEFAULT_CENTER,
           zoom: 13,
-          mapId,
           streetViewControl: false,
           mapTypeControl: false,
           fullscreenControl: false,
         });
-        const markerInstance = new marker.AdvancedMarkerElement({
-          map: mapInstance,
-          position: DEFAULT_CENTER,
-          gmpDraggable: true,
-          title: "Vị trí giao hàng",
-        });
 
         mapRef.current = mapInstance;
-        markerRef.current = markerInstance;
         geocoderRef.current = new geocoding.Geocoder();
         placesRef.current = places;
         sessionTokenRef.current = new places.AutocompleteSessionToken();
@@ -592,9 +558,12 @@ export default function GoogleAddressPicker({
             lng: event.latLng.lng(),
           });
         });
-        markerInstance.addListener("dragend", () => {
-          const next = readMarkerPosition(markerInstance.position);
-          if (next) void reverseLookup(next);
+        // Ghim đứng giữa, người dùng kéo bản đồ bên dưới như các app giao đồ ăn.
+        // Cách này không phụ thuộc Map ID hay Advanced Marker của Google Cloud.
+        mapInstance.addListener("dragend", () => {
+          const center = mapInstance.getCenter();
+          if (!center) return;
+          void reverseLookup({ lat: center.lat(), lng: center.lng() });
         });
 
         // Chỉ tắt loading khi bản đồ đã thực sự render xong tile (tilesloaded),
@@ -629,7 +598,7 @@ export default function GoogleAddressPicker({
       if (console.warn === consoleWarnProxy) console.warn = originalConsoleWarn;
       domObserver?.disconnect();
     };
-  }, [apiKey, mapId, reverseLookup]);
+  }, [apiKey, reverseLookup]);
 
   // Debounce gọi Places AutocompleteSuggestion mỗi khi người dùng gõ.
   useEffect(() => {
@@ -890,6 +859,22 @@ export default function GoogleAddressPicker({
             bgcolor: "grey.100",
           }}
         />
+        {!isMapBlocked && (
+          <Box
+            aria-hidden="true"
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              zIndex: 2,
+              pointerEvents: "none",
+              transform: "translate(-50%, -100%)",
+              filter: "drop-shadow(0 2px 2px rgba(0,0,0,.35))",
+            }}
+          >
+            <PlaceOutlinedIcon sx={{ color: "error.main", fontSize: 44 }} />
+          </Box>
+        )}
         {isLoading && (
           <Box
             sx={{
@@ -899,6 +884,7 @@ export default function GoogleAddressPicker({
               placeItems: "center",
               bgcolor: "rgba(255,255,255,.72)",
               borderRadius: 2,
+              zIndex: 3,
             }}
           >
             <CircularProgress size={28} />
@@ -913,8 +899,8 @@ export default function GoogleAddressPicker({
       ) : (
         !error && (
           <Typography variant="caption" color="text.secondary">
-            Hãy chọn một gợi ý, dùng vị trí hiện tại hoặc bấm trên bản đồ. Bạn
-            có thể kéo ghim để chỉnh chính xác cổng giao hàng.
+            Hãy chọn một gợi ý, dùng vị trí hiện tại hoặc bấm trên bản đồ. Kéo
+            bản đồ để đặt ghim giữa đúng cổng giao hàng.
           </Typography>
         )
       )}

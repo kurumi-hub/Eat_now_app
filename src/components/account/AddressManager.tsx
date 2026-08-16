@@ -236,8 +236,8 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
             <DialogTitle>Chọn vị trí giao hàng</DialogTitle>
             <DialogContent sx={{ pt: 1 }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Tìm địa chỉ, dùng vị trí hiện tại hoặc di chuyển ghim đến đúng
-                cổng giao hàng.
+                Tìm địa chỉ, dùng vị trí hiện tại hoặc kéo bản đồ để đặt ghim
+                giữa đúng cổng giao hàng.
               </Typography>
               <GoogleAddressPicker
                 key={pickerVersion}

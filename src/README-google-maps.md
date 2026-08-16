@@ -9,7 +9,6 @@ Enable billing and these APIs in the Google Cloud project:
 - Maps JavaScript API
 - Places API (New)
 - Geocoding API
-- Map Management API only when using a custom Map ID
 
 ## Environment variables
 
@@ -19,9 +18,6 @@ Add these values to `.env.local` and to the deployment environment:
 # Browser key: restrict by HTTP referrer and allow Maps JavaScript API plus
 # Places API (New).
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=browser_key_here
-
-# Optional custom Map ID. DEMO_MAP_ID is used when omitted.
-NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID=map_id_here
 
 # Server key: never prefix with NEXT_PUBLIC. Restrict to Geocoding API and,
 # where supported by the deployment, the server's egress IP addresses.
@@ -69,9 +65,11 @@ the deployment's server IP only when a stable egress IP is available.
 
 ## When the map shows "didn't load Google Maps correctly"
 
-That overlay means Google received the JavaScript request but rejected the
-browser key/project configuration. It is not caused by MUI, the dialog height,
-React rendering or the Map ID. `DEMO_MAP_ID` is valid for testing.
+The production picker intentionally does not use a custom Map ID or Advanced
+Marker. It renders a fixed pin over the center while the customer drags the map,
+matching common food-delivery apps and removing Map ID/cloud-style dependencies.
+The Maps JavaScript loader uses Google's quarterly channel for production
+stability.
 
 The picker now captures both `console.error` and `console.warn`, keeps listening
 for late `gm_authFailure` callbacks, redacts the API key, and displays the exact
@@ -113,14 +111,15 @@ they operate on the Auth service rather than public database tables.
 
 ## Behavior
 
-- Step 1 lets the user search once with Google Place Autocomplete, use the
-  current location, click the map or move the pin.
+- Step 1 lets the user search with Google Place Autocomplete, use the current
+  location, click the map or drag the map beneath the fixed center pin.
 - The user confirms the delivery pin before entering any recipient details.
 - Step 2 asks only for apartment/floor details, recipient, phone, driver note
   and a familiar label such as Home or Company.
 - Administrative fields are extracted and submitted in hidden fields; the
   customer does not have to type ward, district or province.
-- The marker can be moved by clicking the map or dragging it.
+- The pin stays fixed in the center; clicking or dragging the map changes the
+  delivery position.
 - Current browser location can be selected with permission.
 - Google Place ID, formatted address and latitude/longitude are submitted.
 - The server verifies the Place ID again and rejects a client marker
