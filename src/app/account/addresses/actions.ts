@@ -96,6 +96,9 @@ export async function createAddressAction(
   const formattedAddress = String(
     formData.get("formattedAddress") || ""
   ).trim();
+  const addressDetail = String(formData.get("addressDetail") || "")
+    .trim()
+    .replace(/\s+/g, " ");
 
   const validation = validateAddressValues(values);
   if (!validation.isValid) {
@@ -160,10 +163,13 @@ export async function createAddressAction(
   }
 
   const supabase = await createClient();
+  const deliveryAddress = [addressDetail, geo.formattedAddress || fullAddress]
+    .filter(Boolean)
+    .join(", ");
 
   const { error } = await supabase.rpc("api_create_address_v2", {
     p_label: label,
-    p_address: geo.formattedAddress || fullAddress,
+    p_address: deliveryAddress,
     p_google_place_id: geo.placeId || googlePlaceId || null,
     p_recipient_name: validation.normalized.recipientName,
     p_recipient_phone: validation.normalized.phone,

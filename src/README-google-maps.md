@@ -53,8 +53,13 @@ they operate on the Auth service rather than public database tables.
 
 ## Behavior
 
-- The user searches once with Google Place Autocomplete.
-- Selecting a suggestion fills the street and administrative fields.
+- Step 1 lets the user search once with Google Place Autocomplete, use the
+  current location, click the map or move the pin.
+- The user confirms the delivery pin before entering any recipient details.
+- Step 2 asks only for apartment/floor details, recipient, phone, driver note
+  and a familiar label such as Home or Company.
+- Administrative fields are extracted and submitted in hidden fields; the
+  customer does not have to type ward, district or province.
 - The marker can be moved by clicking the map or dragging it.
 - Current browser location can be selected with permission.
 - Google Place ID, formatted address and latitude/longitude are submitted.

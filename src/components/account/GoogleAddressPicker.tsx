@@ -2,7 +2,14 @@
 
 import MyLocationOutlinedIcon from "@mui/icons-material/MyLocationOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
-import { Alert, Box, Button, CircularProgress, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type LatLngLiteral = { lat: number; lng: number };
@@ -97,7 +104,6 @@ type MapsWindow = Window & {
 };
 
 type GoogleAddressPickerProps = {
-  manualAddressQuery: string;
   onAddressSelect: (selection: GoogleAddressSelection) => void;
 };
 
@@ -195,7 +201,6 @@ function parseAddress(
 }
 
 export default function GoogleAddressPicker({
-  manualAddressQuery,
   onAddressSelect,
 }: GoogleAddressPickerProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
@@ -211,11 +216,11 @@ export default function GoogleAddressPicker({
   >(null);
   const onAddressSelectRef = useRef(onAddressSelect);
   const [position, setPosition] = useState<LatLngLiteral | null>(null);
-  const [placeId, setPlaceId] = useState("");
   const [formattedAddress, setFormattedAddress] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [placesAvailable, setPlacesAvailable] = useState(true);
+  const [manualQuery, setManualQuery] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -239,7 +244,6 @@ export default function GoogleAddressPicker({
       const nextPlaceId = result.place_id ?? "";
       updatePosition(next);
       setFormattedAddress(nextAddress);
-      setPlaceId(nextPlaceId);
       onAddressSelectRef.current(
         parseAddress(
           nextAddress,
@@ -363,7 +367,6 @@ export default function GoogleAddressPicker({
                   };
                   updatePosition(next);
                   setFormattedAddress(place.formattedAddress);
-                  setPlaceId(place.id ?? "");
                   onAddressSelectRef.current(
                     parseAddress(
                       place.formattedAddress,
@@ -411,7 +414,7 @@ export default function GoogleAddressPicker({
   }, [apiKey, mapId, reverseLookup, updatePosition]);
 
   const locateManualAddress = async () => {
-    const query = manualAddressQuery.trim();
+    const query = manualQuery.trim();
     if (!query) {
       setError("Hãy nhập địa chỉ chi tiết trước khi định vị.");
       return;
@@ -468,24 +471,45 @@ export default function GoogleAddressPicker({
       />
 
       {!placesAvailable && (
-        <Alert severity="warning">
-          Chưa dùng được gợi ý địa chỉ. Hãy bật Places API (New), hoặc nhập địa
-          chỉ bên dưới rồi bấm “Định vị địa chỉ”.
-        </Alert>
+        <>
+          <Alert severity="warning">
+            Chưa dùng được gợi ý địa chỉ. Hãy bật Places API (New), hoặc tìm
+            địa chỉ thủ công bên dưới.
+          </Alert>
+          <TextField
+            value={manualQuery}
+            onChange={(event) => setManualQuery(event.target.value)}
+            placeholder="Nhập số nhà, tên đường, phường/xã"
+            size="small"
+            fullWidth
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void locateManualAddress();
+              }
+            }}
+          />
+        </>
       )}
       <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-        <Button
-          type="button"
-          size="small"
-          variant="outlined"
-          startIcon={
-            isSearching ? <CircularProgress size={14} /> : <SearchOutlinedIcon />
-          }
-          onClick={locateManualAddress}
-          disabled={isLoading || isSearching || !apiKey}
-        >
-          Định vị địa chỉ đã nhập
-        </Button>
+        {!placesAvailable && (
+          <Button
+            type="button"
+            size="small"
+            variant="outlined"
+            startIcon={
+              isSearching ? (
+                <CircularProgress size={14} />
+              ) : (
+                <SearchOutlinedIcon />
+              )
+            }
+            onClick={locateManualAddress}
+            disabled={isLoading || isSearching || !apiKey}
+          >
+            Tìm địa chỉ
+          </Button>
+        )}
         <Button
           type="button"
           size="small"
@@ -525,10 +549,6 @@ export default function GoogleAddressPicker({
         )}
       </Box>
 
-      <input type="hidden" name="lat" value={position?.lat ?? ""} />
-      <input type="hidden" name="lon" value={position?.lng ?? ""} />
-      <input type="hidden" name="googlePlaceId" value={placeId} />
-      <input type="hidden" name="formattedAddress" value={formattedAddress} />
       {formattedAddress ? (
         <Alert severity="success" icon={<SearchOutlinedIcon />}>
           <strong>Vị trí đã xác nhận:</strong> {formattedAddress}
