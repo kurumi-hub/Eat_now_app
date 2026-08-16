@@ -52,6 +52,23 @@ test("Search Filter component uses URL-backed filters and frontend mock data", a
   );
 });
 
+test("Bare Search route starts as discovery without demo query or default filters", async () => {
+  const component = await readProjectFile(
+    "src",
+    "components",
+    "search",
+    "SearchFilterPage.tsx"
+  );
+
+  assert.doesNotMatch(component, /defaultSearchQuery/);
+  assert.doesNotMatch(component, /hasAnyParam/);
+  assert.doesNotMatch(component, /\["50-100"\]|\["ninh-kieu"\]/);
+  assert.match(
+    component,
+    /const query = searchParams\.get\("q"\)\?\.trim\(\) \|\| ""/
+  );
+});
+
 test("Customer header search submits to the Search route", async () => {
   const header = await readProjectFile(
     "src",
@@ -132,4 +149,27 @@ test("Food result cards expose public restaurant detail links", async () => {
 
   assert.match(searchComponent, /search-result-card__restaurant-link/);
   assert.match(searchComponent, /href=\{`\/restaurants\/\$\{item\.restaurantSlug\}`\}/);
+});
+
+test("Food search results add available items into CartContext", async () => {
+  const component = await readProjectFile(
+    "src",
+    "components",
+    "search",
+    "SearchFilterPage.tsx"
+  );
+
+  assert.match(component, /useCart/);
+  assert.match(component, /addItem/);
+  assert.match(component, /item\.type !== "food"/);
+  assert.match(component, /restaurantId: item\.restaurantSlug/);
+  assert.match(component, /restaurantName: item\.restaurantName/);
+  assert.match(component, /foodId: item\.id/);
+  assert.match(component, /price: item\.price/);
+  assert.match(component, /Đã thêm/);
+  assert.match(component, /RESTAURANT_CONFLICT/);
+  assert.doesNotMatch(
+    component,
+    /Tính năng thêm vào giỏ sẽ được triển khai ở sprint tiếp theo/
+  );
 });

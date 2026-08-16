@@ -25,6 +25,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { logout } from "@/app/auth/actions";
+import { useCart } from "@/contexts/CartContext";
 import type { PublicUser } from "@/types/auth";
 import { hasAnyRole, hasRole } from "@/utils/roles";
 
@@ -38,7 +39,6 @@ type CustomerHeaderProps = {
 const navItems = [
   { label: "Khám phá", sectionId: "home-hero" },
   { label: "Nhà hàng", sectionId: "featured-restaurants" },
-  { label: "Công thức", sectionId: "recipes" },
   { label: "Ưu đãi", sectionId: "featured-categories" },
 ];
 
@@ -59,6 +59,7 @@ export default function CustomerHeader({
   searchValue = "",
 }: CustomerHeaderProps) {
   const router = useRouter();
+  const { itemCount } = useCart();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [searchTerm, setSearchTerm] = useState(searchValue);
   const sellerLabel = hasRole(user, "RESTAURANT_OWNER")
@@ -141,17 +142,15 @@ export default function CustomerHeader({
         </nav>
 
         <div className="home-actions-top">
-          <IconButton
+          <Link
+            href="/cart"
             aria-label="Giỏ hàng"
-            className="home-cart-button"
-            onClick={() =>
-              onPlaceholder("Giỏ hàng sẽ được triển khai ở sprint tiếp theo.")
-            }
+            className="home-cart-link"
           >
-            <Badge badgeContent={2} color="error">
+            <Badge badgeContent={itemCount} color="error">
               <ShoppingCartOutlinedIcon />
             </Badge>
-          </IconButton>
+          </Link>
 
           {user ? (
             <>
@@ -187,18 +186,18 @@ export default function CustomerHeader({
                     <ListItemText>Tài khoản của tôi</ListItemText>
                   </MenuItem>
                 </Link>
-                <MenuItem
-                  onClick={() =>
-                    onPlaceholder(
-                      "Đơn hàng sẽ được triển khai ở sprint tiếp theo."
-                    )
-                  }
+                <Link
+                  href="/orders"
+                  className="home-account-menu__link"
+                  onClick={handleMenuClose}
                 >
-                  <ListItemIcon>
-                    <ReceiptLongOutlinedIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Đơn hàng của tôi</ListItemText>
-                </MenuItem>
+                  <MenuItem component="span">
+                    <ListItemIcon>
+                      <ReceiptLongOutlinedIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Đơn hàng của tôi</ListItemText>
+                  </MenuItem>
+                </Link>
                 {hasRole(user, "CUSTOMER") ? (
                   <Link
                     href="/account/addresses"

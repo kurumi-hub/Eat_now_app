@@ -119,11 +119,11 @@ export const restaurantDetails: RestaurantDetail[] = [
         label: "Đồ Uống",
         items: [
           {
-            id: "tra-dao-cam-sa",
-            name: "Trà đào cam sả",
+            id: "tra-dao",
+            name: "Trà đào",
             description:
-              "Trà đào mát, hương sả nhẹ, phù hợp ăn cùng món nướng.",
-            price: 28000,
+              "Trà đào mát lạnh, hương đào dịu nhẹ, phù hợp ăn cùng món nướng.",
+            price: 10000,
             image: "/images/home/food-tra-dao.png",
             isAvailable: true,
           },

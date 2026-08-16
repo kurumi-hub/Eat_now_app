@@ -5,7 +5,6 @@ import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
-import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
 import StarOutlinedIcon from "@mui/icons-material/StarOutlined";
@@ -17,6 +16,7 @@ import { useMemo, useState } from "react";
 
 import type { PublicUser } from "@/types/auth";
 import CustomerHeader from "@/components/home/CustomerHeader";
+import { useCart } from "@/contexts/CartContext";
 import type {
   RestaurantDetail,
   RestaurantMenuItem,
@@ -45,6 +45,7 @@ export default function RestaurantDetailPage({
   user,
 }: RestaurantDetailPageProps) {
   const router = useRouter();
+  const { addItem } = useCart();
   const [activeCategory, setActiveCategory] = useState(
     restaurant.menuCategories[0]?.id || ""
   );
@@ -90,7 +91,32 @@ export default function RestaurantDetailPage({
       return;
     }
 
-    showPlaceholder(`Tính năng thêm ${item.name} sẽ được triển khai ở sprint tiếp theo.`);
+    const addResult = addItem(
+      {
+        restaurantId: restaurant.slug,
+        restaurantSlug: restaurant.slug,
+        restaurantName: restaurant.name,
+      },
+      {
+        foodId: item.id,
+        name: item.name,
+        price: item.price,
+        image: item.image,
+      }
+    );
+
+    if (addResult === "RESTAURANT_CONFLICT") {
+      showPlaceholder(
+        "Giỏ hàng hiện chỉ hỗ trợ món từ một nhà hàng. Vui lòng xóa giỏ hiện tại trước khi thêm món mới."
+      );
+      return;
+    }
+
+    showPlaceholder(
+      addResult === "UPDATED"
+        ? `Đã cập nhật số lượng ${item.name} trong giỏ hàng.`
+        : `Đã thêm ${item.name} vào giỏ hàng.`
+    );
   };
 
   return (
@@ -291,25 +317,10 @@ export default function RestaurantDetailPage({
         </button>
         <button
           type="button"
-          onClick={() =>
-            showPlaceholder(
-              "Đơn hàng sẽ được triển khai ở sprint tiếp theo."
-            )
-          }
+          onClick={() => router.push("/orders")}
         >
           <ReceiptLongOutlinedIcon />
           <span>Đơn hàng</span>
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            showPlaceholder(
-              "Trang công thức sẽ được triển khai ở sprint tiếp theo."
-            )
-          }
-        >
-          <MenuBookOutlinedIcon />
-          <span>Công thức</span>
         </button>
       </nav>
 

@@ -26,10 +26,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import CustomerHeader from "@/components/home/CustomerHeader";
+import { useCart } from "@/contexts/CartContext";
 import type { PublicUser } from "@/types/auth";
 import {
   areaFilters,
-  defaultSearchQuery,
   filterSearchResults,
   formatSearchCurrency,
   getFilterLabel,
@@ -53,6 +53,7 @@ type SearchFilterPageProps = {
 type SnackbarState = {
   open: boolean;
   message: string;
+  severity: "info" | "success";
 };
 
 const defaultPageSize = 4;
@@ -80,22 +81,21 @@ function readSelectedValues<T extends string>(
 }
 
 function getSearchState(searchParams: URLSearchParams): SearchFilterState {
-  const hasAnyParam = searchParams.toString().length > 0;
-  const query = searchParams.get("q")?.trim() || (hasAnyParam ? "" : defaultSearchQuery);
+  const query = searchParams.get("q")?.trim() || "";
   const rawType = searchParams.get("type");
   const type: SearchResultType = isSearchResultType(rawType) ? rawType : "food";
   const openOnly = searchParams.has("open")
     ? searchParams.get("open") === "1"
-    : !hasAnyParam;
+    : false;
   const priceIds = readSelectedValues(
     searchParams.getAll("price"),
     priceFilters.map((filter) => filter.id),
-    hasAnyParam ? [] : ["50-100"]
+    []
   );
   const areaIds = readSelectedValues(
     searchParams.getAll("area"),
     areaFilters.map((filter) => filter.id),
-    hasAnyParam ? [] : ["ninh-kieu"]
+    []
   );
   const rawSort = searchParams.get("sort");
   const sort: SortOptionId = isSortOption(rawSort) ? rawSort : "rating";
@@ -122,9 +122,11 @@ export default function SearchFilterPage({
 }: SearchFilterPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { addItem } = useCart();
   const [snackbar, setSnackbar] = useState<SnackbarState>({
     open: false,
     message: "",
+    severity: "info",
   });
 
   const filterState = useMemo(() => {
@@ -253,8 +255,56 @@ export default function SearchFilterPage({
     });
   };
 
-  const showPlaceholder = (message: string) => {
-    setSnackbar({ open: true, message });
+  const showPlaceholder = (
+    message: string,
+    severity: SnackbarState["severity"] = "info"
+  ) => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleResultAction = (item: SearchResultItem) => {
+    if (item.type !== "food") {
+      showPlaceholder("Trang nhà hàng chi tiết đang được hoàn thiện cho quán này.");
+      return;
+    }
+
+    if (!item.isOpen) {
+      showPlaceholder("Nhà hàng hiện đang đóng cửa.");
+      return;
+    }
+
+    if (!item.restaurantSlug) {
+      showPlaceholder("Nhà hàng này chưa sẵn sàng nhận đơn.");
+      return;
+    }
+
+    const addResult = addItem(
+      {
+        restaurantId: item.restaurantSlug,
+        restaurantSlug: item.restaurantSlug,
+        restaurantName: item.restaurantName,
+      },
+      {
+        foodId: item.id,
+        name: item.name,
+        price: item.price,
+        image: item.image,
+      }
+    );
+
+    if (addResult === "RESTAURANT_CONFLICT") {
+      showPlaceholder(
+        "Giỏ hàng hiện chỉ hỗ trợ món từ một nhà hàng. Vui lòng xóa giỏ hiện tại trước khi thêm món mới."
+      );
+      return;
+    }
+
+    showPlaceholder(
+      addResult === "UPDATED"
+        ? `Đã cập nhật số lượng ${item.name} trong giỏ hàng.`
+        : `Đã thêm ${item.name} vào giỏ hàng.`,
+      "success"
+    );
   };
 
   const resultLabel =
@@ -375,13 +425,7 @@ export default function SearchFilterPage({
                 <SearchResultCard
                   key={item.id}
                   item={item}
-                  onAction={() =>
-                    showPlaceholder(
-                      item.type === "food"
-                        ? "Tính năng thêm vào giỏ sẽ được triển khai ở sprint tiếp theo."
-                        : "Trang nhà hàng chi tiết đang được hoàn thiện cho quán này."
-                    )
-                  }
+                  onAction={() => handleResultAction(item)}
                 />
               ))}
             </div>
@@ -472,7 +516,11 @@ export default function SearchFilterPage({
         onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert severity="info" variant="filled" onClose={handleSnackbarClose}>
+        <Alert
+          severity={snackbar.severity}
+          variant="filled"
+          onClose={handleSnackbarClose}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

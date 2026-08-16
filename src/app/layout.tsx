@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import { Baloo_2, Be_Vietnam_Pro } from "next/font/google";
 
+import { CartProvider } from "@/contexts/CartContext";
 import AppThemeProvider from "@/theme/AppThemeProvider";
 import "./globals.css";
 import "@/styles/variables.css";
@@ -13,6 +14,8 @@ import "@/styles/auth.css";
 import "@/styles/account.css";
 import "@/styles/restaurant-detail.css";
 import "@/styles/search-filter.css";
+import "@/styles/cart.css";
+import "@/styles/order-process.css";
 
 const baloo = Baloo_2({
   variable: "--font-baloo",
@@ -45,7 +48,9 @@ export default function RootLayout({
     >
       <body className="eatnow-body">
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
-          <AppThemeProvider>{children}</AppThemeProvider>
+          <AppThemeProvider>
+            <CartProvider>{children}</CartProvider>
+          </AppThemeProvider>
         </AppRouterCacheProvider>
       </body>
     </html>

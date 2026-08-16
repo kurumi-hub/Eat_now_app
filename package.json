@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:unit": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test ./tests/phase2/validation-and-roles.test.mjs ./tests/phase3/routes.test.mjs ./tests/phase4/home-migration.test.mjs ./tests/phase5/auth-migration.test.mjs ./tests/phase6/account-profile-migration.test.mjs ./tests/phase7/restaurant-detail-migration.test.mjs ./tests/phase8/search-filter-migration.test.mjs"
+    "test:unit": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test ./tests/phase2/validation-and-roles.test.mjs ./tests/phase3/routes.test.mjs ./tests/phase4/home-migration.test.mjs ./tests/phase5/auth-migration.test.mjs ./tests/phase6/account-profile-migration.test.mjs ./tests/phase7/restaurant-detail-migration.test.mjs ./tests/phase8/search-filter-migration.test.mjs ./tests/phase9/cart-page-migration.test.mjs ./tests/phase10/order-process.test.mjs ./tests/phase11/order-tracking-history.test.mjs ./tests/phase12/order-runtime-data.test.mjs"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",

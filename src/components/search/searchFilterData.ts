@@ -31,8 +31,6 @@ export type SearchFilterState = {
   sort: SortOptionId;
 };
 
-export const defaultSearchQuery = "Bún bò";
-
 export const priceFilters: Array<{
   id: PriceFilterId;
   label: string;

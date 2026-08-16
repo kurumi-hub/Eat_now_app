@@ -3,7 +3,6 @@
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
-import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import StarBorderOutlinedIcon from "@mui/icons-material/StarBorderOutlined";
@@ -18,7 +17,6 @@ import {
   homeCategories,
   homeHeroImage,
   nearbyFoods,
-  recommendedRecipes,
 } from "./homeData";
 import type { HomeRestaurant } from "./homeData";
 
@@ -39,7 +37,10 @@ function scrollToSection(sectionId: string) {
   });
 }
 
-export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
+export default function HomePage({
+  user,
+  featuredRestaurants,
+}: HomePageProps) {
   const router = useRouter();
   const [snackbar, setSnackbar] = useState<SnackbarState>({
     open: false,
@@ -54,43 +55,37 @@ export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
     setSnackbar((current) => ({ ...current, open: false }));
   };
 
+  const handleSectionNavigate = (sectionId: string) => {
+    scrollToSection(sectionId);
+  };
+
   return (
-    <div className="home-experience">
+    <div className="home-page">
       <CustomerHeader
         user={user}
         onPlaceholder={showPlaceholder}
-        onSectionNavigate={scrollToSection}
+        onSectionNavigate={handleSectionNavigate}
       />
 
       <main className="home-main">
-        <section
-          id="home-hero"
-          className="home-hero"
-          aria-label="Mâm món Việt nổi bật"
-        >
-          <div className="home-hero__media" aria-hidden="true">
+        <section id="home-hero" className="home-hero">
+          <div className="home-hero__media">
             <Image
               src={homeHeroImage}
-              alt=""
+              alt="Món ăn đặc trưng EatNow"
               fill
               priority
-              sizes="(max-width: 760px) 100vw, 1200px"
+              sizes="(max-width: 1024px) 100vw, 50vw"
             />
           </div>
           <div className="home-hero__content">
             <p className="home-hero__eyebrow">Giao nhanh quanh bạn</p>
             <h1>Hôm nay ăn gì?</h1>
-            <p>
-              Khám phá món ngon quanh bạn và đặt giao tận nơi.
-            </p>
+            <p>Khám phá món ngon quanh bạn và đặt giao tận nơi.</p>
             <Button
               variant="contained"
               endIcon={<ArrowForwardOutlinedIcon />}
-              onClick={() =>
-                showPlaceholder(
-                  "Chức năng đặt món sẽ được triển khai ở sprint sau."
-                )
-              }
+              onClick={() => router.push("/search")}
             >
               Đặt món ngay
             </Button>
@@ -98,25 +93,29 @@ export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
         </section>
 
         <section id="featured-categories" className="home-section">
-          <h2>Danh Mục Nổi Bật</h2>
+          <div className="home-section__heading">
+            <h2>Danh Mục Nổi Bật</h2>
+            <button type="button" onClick={() => router.push("/search")}>
+              Xem tất cả
+            </button>
+          </div>
           <div className="home-category-grid">
             {homeCategories.map((category) => {
               const Icon = category.icon;
-
               return (
                 <button
-                  key={category.label}
                   className="home-category-card"
+                  key={category.label}
                   type="button"
                   onClick={() =>
-                    showPlaceholder(
-                      `Danh mục ${category.label} sẽ được mở ở sprint sau.`
+                    router.push(
+                      `/search?category=${encodeURIComponent(category.label)}`
                     )
                   }
                 >
-                  <span className="home-category-card__icon">
+                  <div className="home-category-card__icon">
                     <Icon />
-                  </span>
+                  </div>
                   <span>{category.label}</span>
                 </button>
               );
@@ -129,50 +128,59 @@ export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
             <h2>Nhà Hàng Nổi Bật</h2>
             <button
               type="button"
-              onClick={() =>
-                showPlaceholder(
-                  "Danh sách nhà hàng sẽ được triển khai ở sprint tiếp theo."
-                )
-              }
+              onClick={() => router.push("/search?type=restaurants")}
             >
               Xem tất cả
             </button>
           </div>
           <div className="home-restaurant-grid">
             {featuredRestaurants.map((restaurant) => (
-              <Link
-                className="home-restaurant-card"
-                href={`/restaurants/${restaurant.slug}`}
-                key={restaurant.name}
-              >
-                <div className="home-card-media">
-                  <Image
-                    src={restaurant.image}
-                    alt={restaurant.name}
-                    fill
-                    sizes="(max-width: 760px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  />
-                </div>
-                <div className="home-restaurant-card__body">
-                  <h3>{restaurant.name}</h3>
-                  <p>
-                    <StarBorderOutlinedIcon fontSize="inherit" />
-                    <span>{restaurant.rating}</span>
-                    <span aria-hidden="true">.</span>
-                    <span>{restaurant.time}</span>
-                  </p>
-                </div>
-              </Link>
+              <article className="home-restaurant-card" key={restaurant.slug}>
+                <Link
+                  className="home-restaurant-card__link"
+                  href={`/restaurants/${restaurant.slug}`}
+                >
+                  <div className="home-card-media">
+                    <Image
+                      src={restaurant.image}
+                      alt={restaurant.name}
+                      fill
+                      sizes="(max-width: 760px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    />
+                    <div className="home-rating">
+                      <StarBorderOutlinedIcon fontSize="small" />
+                      <span>{restaurant.rating}</span>
+                    </div>
+                  </div>
+                  <div className="home-restaurant-card__body">
+                    <h3>{restaurant.name}</h3>
+                    <div className="home-restaurant-card__meta">
+                      <span>{restaurant.time}</span>
+                    </div>
+                  </div>
+                </Link>
+              </article>
             ))}
           </div>
         </section>
 
         <section className="home-section">
-          <h2>Món Ngon Gần Bạn</h2>
+          <div className="home-section__heading">
+            <h2>Gợi Ý Hôm Nay</h2>
+            <button type="button" onClick={() => router.push("/search")}>
+              Xem tất cả
+            </button>
+          </div>
           <div className="home-food-grid">
             {nearbyFoods.map((food) => (
-              <article className="home-food-card" key={food.name}>
-                <div className="home-food-card__media">
+              <article
+                className="home-food-card"
+                key={food.name}
+                onClick={() =>
+                  router.push(`/search?q=${encodeURIComponent(food.name)}`)
+                }
+              >
+                <div className="home-card-media home-card-media--food">
                   <Image
                     src={food.image}
                     alt={food.name}
@@ -181,40 +189,6 @@ export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
                   />
                 </div>
                 <h3>{food.name}</h3>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section id="recipes" className="home-section">
-          <div className="home-section__heading">
-            <h2>Công Thức Gợi Ý</h2>
-            <button
-              type="button"
-              onClick={() =>
-                showPlaceholder(
-                  "Trang công thức sẽ được triển khai ở sprint tiếp theo."
-                )
-              }
-            >
-              Khám phá
-            </button>
-          </div>
-          <div className="home-recipe-grid">
-            {recommendedRecipes.map((recipe) => (
-              <article className="home-recipe-card" key={recipe.title}>
-                <div className="home-card-media home-card-media--recipe">
-                  <Image
-                    src={recipe.image}
-                    alt={recipe.title}
-                    fill
-                    sizes="(max-width: 760px) 100vw, 33vw"
-                  />
-                </div>
-                <div className="home-recipe-card__body">
-                  <h3>{recipe.title}</h3>
-                  <p>{recipe.description}</p>
-                </div>
               </article>
             ))}
           </div>
@@ -251,10 +225,6 @@ export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
           <RestaurantMenuOutlinedIcon />
           <span>Nhà hàng</span>
         </button>
-        <button type="button" onClick={() => scrollToSection("recipes")}>
-          <MenuBookOutlinedIcon />
-          <span>Công thức</span>
-        </button>
         <button
           type="button"
           onClick={() => router.push(user ? "/account/profile" : "/login")}
@@ -269,11 +239,15 @@ export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
           <Link className="home-footer__brand" href="/">
             EatNow
           </Link>
+          <p>
+            Nền tảng đặt món ăn trực tuyến nhanh chóng, tiện lợi và chuẩn vị tại
+            Cần Thơ.
+          </p>
           <div className="home-footer__links">
             <button
               type="button"
               onClick={() =>
-                showPlaceholder("Trang giới thiệu sẽ được bổ sung sau.")
+                showPlaceholder("Trang giới thiệu sẽ được hoàn thiện sau.")
               }
             >
               Về chúng tôi
@@ -281,27 +255,20 @@ export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
             <button
               type="button"
               onClick={() =>
-                showPlaceholder("Điều khoản sẽ được bổ sung sau.")
+                showPlaceholder("Chính sách bảo mật sẽ được hoàn thiện sau.")
               }
             >
-              Điều khoản
+              Chính sách
             </button>
             <button
               type="button"
               onClick={() =>
-                showPlaceholder("Chính sách bảo mật sẽ được bổ sung sau.")
+                showPlaceholder("Thông tin liên hệ sẽ được hoàn thiện sau.")
               }
-            >
-              Chính sách bảo mật
-            </button>
-            <button
-              type="button"
-              onClick={() => showPlaceholder("Liên hệ sẽ được bổ sung sau.")}
             >
               Liên hệ
             </button>
           </div>
-          <p>© 2026 EatNow Food Delivery. Bản quyền thuộc về EatNow.</p>
         </div>
       </footer>
 
