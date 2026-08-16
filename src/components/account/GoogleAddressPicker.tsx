@@ -1,12 +1,22 @@
 "use client";
 
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import MyLocationOutlinedIcon from "@mui/icons-material/MyLocationOutlined";
+import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import {
   Alert,
   Box,
   Button,
   CircularProgress,
+  ClickAwayListener,
+  IconButton,
+  InputAdornment,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Paper,
   TextField,
   Typography,
 } from "@mui/material";
@@ -39,16 +49,17 @@ type Place = {
   fetchFields: (options: { fields: string[] }) => Promise<void>;
 };
 
-type PlaceSelectEvent = Event & {
-  placePrediction?: { toPlace: () => Place };
+type AutocompleteSuggestion = {
+  placePrediction?: {
+    placeId: string;
+    text?: { text?: string };
+    mainText?: { text?: string };
+    secondaryText?: { text?: string };
+    toPlace: () => Place;
+  };
 };
 
-type PlaceAutocompleteElement = HTMLElement & {
-  includedRegionCodes?: string[];
-  requestedLanguage?: string;
-  requestedRegion?: string;
-  placeholder?: string;
-};
+type AutocompleteSessionToken = new () => unknown;
 
 type MapsApi = {
   Map: new (element: HTMLElement, options: Record<string, unknown>) => {
@@ -86,7 +97,12 @@ type MarkerApi = {
 };
 
 type PlacesApi = {
-  PlaceAutocompleteElement: new () => PlaceAutocompleteElement;
+  AutocompleteSessionToken: AutocompleteSessionToken;
+  AutocompleteSuggestion: {
+    fetchAutocompleteSuggestions: (
+      request: Record<string, unknown>
+    ) => Promise<{ suggestions: AutocompleteSuggestion[] }>;
+  };
 };
 
 type GoogleMapsGlobal = {
@@ -101,6 +117,7 @@ type MapsWindow = Window & {
   google?: GoogleMapsGlobal;
   __eatNowGoogleMapsPromise?: Promise<GoogleMapsGlobal>;
   __eatNowGoogleMapsReady?: () => void;
+  gm_authFailure?: () => void;
 };
 
 type GoogleAddressPickerProps = {
@@ -108,6 +125,8 @@ type GoogleAddressPickerProps = {
 };
 
 const DEFAULT_CENTER: LatLngLiteral = { lat: 10.0452, lng: 105.7469 };
+const AUTH_FAILURE_MESSAGE =
+  "Google từ chối khoá API Maps (sai key, chưa bật billing, chưa bật đủ API, hoặc bị chặn theo HTTP referrer/domain). Vui lòng kiểm tra lại cấu hình trong Google Cloud Console.";
 
 function loadGoogleMaps(apiKey: string): Promise<GoogleMapsGlobal> {
   const mapsWindow = window as MapsWindow;
@@ -120,16 +139,24 @@ function loadGoogleMaps(apiKey: string): Promise<GoogleMapsGlobal> {
 
   const promise = new Promise<GoogleMapsGlobal>((resolve, reject) => {
     const script = document.createElement("script");
-    // Nếu load thất bại (mất mạng tạm thời, lỗi tạm thời...), phải xoá promise
-    // đã cache khỏi window; nếu không, mọi lần mount lại GoogleAddressPicker
-    // sau đó (kể cả khi mạng đã có lại) sẽ nhận ngay promise reject cũ và
-    // không bao giờ thử tải lại được nữa cho đến khi F5 cả trang.
+    // Nếu load thất bại (mất mạng tạm thời, lỗi tạm thời, hoặc bị Google từ
+    // chối khoá API), phải xoá promise đã cache khỏi window; nếu không, mọi
+    // lần mount lại GoogleAddressPicker sau đó sẽ nhận ngay promise reject cũ
+    // và không bao giờ thử tải lại được cho đến khi F5 cả trang.
     const clearCacheAndReject = (error: Error) => {
       if (mapsWindow.__eatNowGoogleMapsPromise === promise) {
         mapsWindow.__eatNowGoogleMapsPromise = undefined;
       }
       script.remove();
       reject(error);
+    };
+    // Google gọi window.gm_authFailure() khi khoá API bị từ chối (sai key,
+    // chưa bật billing, API chưa bật, hoặc referrer bị chặn). Đây KHÔNG phải
+    // lỗi mạng nên script.onerror không bắt được — phải lắng nghe riêng.
+    // Đây chính là nguyên nhân của màn hình đỏ "Trang này đã không tải được
+    // Google Maps đúng cách" mà Google tự vẽ đè lên khung bản đồ.
+    mapsWindow.gm_authFailure = () => {
+      clearCacheAndReject(new Error(AUTH_FAILURE_MESSAGE));
     };
     mapsWindow.__eatNowGoogleMapsReady = () => {
       if (mapsWindow.google) resolve(mapsWindow.google);
@@ -218,7 +245,6 @@ export default function GoogleAddressPicker({
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
   const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID";
   const mapElementRef = useRef<HTMLDivElement | null>(null);
-  const autocompleteHostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<InstanceType<MapsApi["Map"]> | null>(null);
   const markerRef = useRef<
     InstanceType<MarkerApi["AdvancedMarkerElement"]> | null
@@ -226,14 +252,24 @@ export default function GoogleAddressPicker({
   const geocoderRef = useRef<
     InstanceType<GeocodingApi["Geocoder"]> | null
   >(null);
+  const placesRef = useRef<PlacesApi | null>(null);
+  const sessionTokenRef = useRef<unknown>(null);
+  const searchRequestId = useRef(0);
   const onAddressSelectRef = useRef(onAddressSelect);
+
   const [position, setPosition] = useState<LatLngLiteral | null>(null);
   const [formattedAddress, setFormattedAddress] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
-  const [placesAvailable, setPlacesAvailable] = useState(true);
-  const [manualQuery, setManualQuery] = useState("");
   const [error, setError] = useState("");
+
+  // --- Ô tìm kiếm kiểu app giao đồ ăn: gõ -> danh sách gợi ý xổ xuống ---
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>(
+    []
+  );
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
 
   useEffect(() => {
     onAddressSelectRef.current = onAddressSelect;
@@ -256,13 +292,9 @@ export default function GoogleAddressPicker({
       const nextPlaceId = result.place_id ?? "";
       updatePosition(next);
       setFormattedAddress(nextAddress);
+      setQuery(nextAddress);
       onAddressSelectRef.current(
-        parseAddress(
-          nextAddress,
-          nextPlaceId,
-          next,
-          result.address_components
-        )
+        parseAddress(nextAddress, nextPlaceId, next, result.address_components)
       );
     },
     [updatePosition]
@@ -299,16 +331,15 @@ export default function GoogleAddressPicker({
     }
 
     let disposed = false;
-    let autocompleteElement: PlaceAutocompleteElement | null = null;
-    let selectHandler: ((event: Event) => void) | null = null;
 
     void (async () => {
       try {
         const google = await loadGoogleMaps(apiKey);
-        const [maps, marker, geocoding] = await Promise.all([
+        const [maps, marker, geocoding, places] = await Promise.all([
           google.maps.importLibrary("maps") as Promise<MapsApi>,
           google.maps.importLibrary("marker") as Promise<MarkerApi>,
           google.maps.importLibrary("geocoding") as Promise<GeocodingApi>,
+          google.maps.importLibrary("places") as Promise<PlacesApi>,
         ]);
         if (disposed || !mapElementRef.current) return;
 
@@ -330,6 +361,8 @@ export default function GoogleAddressPicker({
         mapRef.current = mapInstance;
         markerRef.current = markerInstance;
         geocoderRef.current = new geocoding.Geocoder();
+        placesRef.current = places;
+        sessionTokenRef.current = new places.AutocompleteSessionToken();
 
         mapInstance.addListener("click", (event) => {
           if (!event.latLng) return;
@@ -342,68 +375,6 @@ export default function GoogleAddressPicker({
           const next = readMarkerPosition(markerInstance.position);
           if (next) void reverseLookup(next);
         });
-
-        try {
-          const places = (await google.maps.importLibrary("places")) as PlacesApi;
-          if (!disposed && autocompleteHostRef.current) {
-            autocompleteElement = new places.PlaceAutocompleteElement();
-            autocompleteElement.includedRegionCodes = ["vn"];
-            autocompleteElement.requestedLanguage = "vi";
-            autocompleteElement.requestedRegion = "VN";
-            autocompleteElement.placeholder = "Tìm số nhà, đường hoặc địa điểm";
-            autocompleteElement.style.display = "block";
-            autocompleteElement.style.width = "100%";
-
-            selectHandler = (rawEvent: Event) => {
-              void (async () => {
-                setIsSearching(true);
-                setError("");
-                try {
-                  const event = rawEvent as PlaceSelectEvent;
-                  const place = event.placePrediction?.toPlace();
-                  if (!place) throw new Error("Không đọc được địa chỉ đã chọn.");
-                  await place.fetchFields({
-                    fields: [
-                      "id",
-                      "formattedAddress",
-                      "location",
-                      "addressComponents",
-                    ],
-                  });
-                  if (!place.location || !place.formattedAddress) {
-                    throw new Error("Địa chỉ này chưa có tọa độ giao hàng.");
-                  }
-                  const next = {
-                    lat: place.location.lat(),
-                    lng: place.location.lng(),
-                  };
-                  updatePosition(next);
-                  setFormattedAddress(place.formattedAddress);
-                  onAddressSelectRef.current(
-                    parseAddress(
-                      place.formattedAddress,
-                      place.id ?? "",
-                      next,
-                      place.addressComponents
-                    )
-                  );
-                } catch (placeError) {
-                  setError(
-                    placeError instanceof Error
-                      ? placeError.message
-                      : "Không thể dùng địa chỉ đã chọn."
-                  );
-                } finally {
-                  setIsSearching(false);
-                }
-              })();
-            };
-            autocompleteElement.addEventListener("gmp-select", selectHandler);
-            autocompleteHostRef.current.replaceChildren(autocompleteElement);
-          }
-        } catch {
-          setPlacesAvailable(false);
-        }
 
         setIsLoading(false);
       } catch (loadError) {
@@ -418,34 +389,86 @@ export default function GoogleAddressPicker({
 
     return () => {
       disposed = true;
-      if (autocompleteElement && selectHandler) {
-        autocompleteElement.removeEventListener("gmp-select", selectHandler);
-      }
-      autocompleteElement?.remove();
     };
-  }, [apiKey, mapId, reverseLookup, updatePosition]);
+  }, [apiKey, mapId, reverseLookup]);
 
-  const locateManualAddress = async () => {
-    const query = manualQuery.trim();
-    if (!query) {
-      setError("Hãy nhập địa chỉ chi tiết trước khi định vị.");
+  // Debounce gọi Places AutocompleteSuggestion mỗi khi người dùng gõ.
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!placesRef.current || trimmed.length < 3) {
+      setSuggestions([]);
+      setIsFetchingSuggestions(false);
       return;
     }
-    setError("");
+
+    const requestId = ++searchRequestId.current;
+    setIsFetchingSuggestions(true);
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const response =
+            await placesRef.current!.AutocompleteSuggestion.fetchAutocompleteSuggestions(
+              {
+                input: trimmed,
+                includedRegionCodes: ["vn"],
+                language: "vi",
+                region: "vn",
+                sessionToken: sessionTokenRef.current,
+              }
+            );
+          if (searchRequestId.current !== requestId) return;
+          setSuggestions(response.suggestions ?? []);
+          setSuggestionsOpen(true);
+        } catch {
+          if (searchRequestId.current !== requestId) return;
+          setSuggestions([]);
+        } finally {
+          if (searchRequestId.current === requestId) {
+            setIsFetchingSuggestions(false);
+          }
+        }
+      })();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const handlePickSuggestion = async (suggestion: AutocompleteSuggestion) => {
+    const prediction = suggestion.placePrediction;
+    if (!prediction) return;
+    setSuggestionsOpen(false);
     setIsSearching(true);
+    setError("");
     try {
-      const response = await geocoderRef.current?.geocode({
-        address: query,
-        componentRestrictions: { country: "VN" },
+      const place = prediction.toPlace();
+      await place.fetchFields({
+        fields: ["id", "formattedAddress", "location", "addressComponents"],
       });
-      const result = response?.results?.[0];
-      if (!result) throw new Error("Google Maps không tìm thấy địa chỉ này.");
-      acceptGeocoderResult(result);
-    } catch (searchError) {
+      if (!place.location || !place.formattedAddress) {
+        throw new Error("Địa chỉ này chưa có tọa độ giao hàng.");
+      }
+      const next = { lat: place.location.lat(), lng: place.location.lng() };
+      updatePosition(next);
+      setFormattedAddress(place.formattedAddress);
+      setQuery(place.formattedAddress);
+      // Mỗi lượt tìm kiếm hoàn tất nên đổi session token mới (đúng khuyến
+      // nghị billing của Google cho Autocomplete + Place Details).
+      if (placesRef.current) {
+        sessionTokenRef.current = new placesRef.current.AutocompleteSessionToken();
+      }
+      onAddressSelectRef.current(
+        parseAddress(
+          place.formattedAddress,
+          place.id ?? prediction.placeId ?? "",
+          next,
+          place.addressComponents
+        )
+      );
+    } catch (placeError) {
       setError(
-        searchError instanceof Error
-          ? searchError.message
-          : "Không thể tìm địa chỉ trên Google Maps."
+        placeError instanceof Error
+          ? placeError.message
+          : "Không thể dùng địa chỉ đã chọn."
       );
     } finally {
       setIsSearching(false);
@@ -471,70 +494,127 @@ export default function GoogleAddressPicker({
     );
   };
 
+  const isAuthFailure = error === AUTH_FAILURE_MESSAGE;
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
       <Typography variant="subtitle2">Tìm vị trí giao hàng</Typography>
-      <Box
-        ref={autocompleteHostRef}
-        sx={{
-          minHeight: 48,
-          "& gmp-place-autocomplete": { width: "100%" },
-        }}
-      />
 
-      {!placesAvailable && (
-        <>
-          <Alert severity="warning">
-            Chưa dùng được gợi ý địa chỉ. Hãy bật Places API (New), hoặc tìm
-            địa chỉ thủ công bên dưới.
-          </Alert>
+      <ClickAwayListener onClickAway={() => setSuggestionsOpen(false)}>
+        <Box sx={{ position: "relative" }}>
           <TextField
-            value={manualQuery}
-            onChange={(event) => setManualQuery(event.target.value)}
-            placeholder="Nhập số nhà, tên đường, phường/xã"
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setSuggestionsOpen(true);
+            }}
+            onFocus={() => {
+              if (suggestions.length > 0) setSuggestionsOpen(true);
+            }}
+            placeholder="Tìm số nhà, đường hoặc địa điểm"
             size="small"
             fullWidth
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                void locateManualAddress();
-              }
+            disabled={isLoading || !apiKey || isAuthFailure}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchOutlinedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    {isFetchingSuggestions ? (
+                      <CircularProgress size={16} />
+                    ) : query ? (
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setQuery("");
+                          setSuggestions([]);
+                        }}
+                      >
+                        <CloseOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    ) : null}
+                  </InputAdornment>
+                ),
+              },
             }}
           />
-        </>
-      )}
+
+          {suggestionsOpen && suggestions.length > 0 && (
+            <Paper
+              elevation={4}
+              sx={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                right: 0,
+                mt: 0.5,
+                zIndex: 1400,
+                maxHeight: 280,
+                overflowY: "auto",
+              }}
+            >
+              <List dense disablePadding>
+                {suggestions.map((suggestion, index) => {
+                  const prediction = suggestion.placePrediction;
+                  if (!prediction) return null;
+                  const key = prediction.placeId || String(index);
+                  return (
+                    <ListItemButton
+                      key={key}
+                      onClick={() => void handlePickSuggestion(suggestion)}
+                    >
+                      <ListItemIcon sx={{ minWidth: 32 }}>
+                        <PlaceOutlinedIcon fontSize="small" color="action" />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={
+                          prediction.mainText?.text ?? prediction.text?.text
+                        }
+                        secondary={prediction.secondaryText?.text}
+                        slotProps={{
+                          primary: { variant: "body2" },
+                          secondary: { variant: "caption" },
+                        }}
+                      />
+                    </ListItemButton>
+                  );
+                })}
+              </List>
+            </Paper>
+          )}
+        </Box>
+      </ClickAwayListener>
+
       <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-        {!placesAvailable && (
-          <Button
-            type="button"
-            size="small"
-            variant="outlined"
-            startIcon={
-              isSearching ? (
-                <CircularProgress size={14} />
-              ) : (
-                <SearchOutlinedIcon />
-              )
-            }
-            onClick={locateManualAddress}
-            disabled={isLoading || isSearching || !apiKey}
-          >
-            Tìm địa chỉ
-          </Button>
-        )}
         <Button
           type="button"
           size="small"
           variant="text"
           startIcon={<MyLocationOutlinedIcon />}
           onClick={useCurrentLocation}
-          disabled={isLoading || isSearching || !apiKey}
+          disabled={isLoading || isSearching || !apiKey || isAuthFailure}
         >
           Vị trí hiện tại
         </Button>
       </Box>
 
-      {error && <Alert severity="error">{error}</Alert>}
+      {error && (
+        <Alert severity="error">
+          {error}
+          {isAuthFailure && (
+            <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+              Kiểm tra: khoá API đúng dự án, đã bật Billing, đã bật Maps
+              JavaScript API + Places API (New) + Geocoding API, và domain
+              hiện tại nằm trong danh sách HTTP referrer được phép.
+            </Typography>
+          )}
+        </Alert>
+      )}
+
       <Box sx={{ position: "relative" }}>
         <Box
           ref={mapElementRef}
@@ -566,10 +646,12 @@ export default function GoogleAddressPicker({
           <strong>Vị trí đã xác nhận:</strong> {formattedAddress}
         </Alert>
       ) : (
-        <Typography variant="caption" color="text.secondary">
-          Hãy chọn một gợi ý Google, dùng vị trí hiện tại hoặc bấm trên bản đồ.
-          Bạn có thể kéo ghim để chỉnh chính xác cổng giao hàng.
-        </Typography>
+        !error && (
+          <Typography variant="caption" color="text.secondary">
+            Hãy chọn một gợi ý, dùng vị trí hiện tại hoặc bấm trên bản đồ. Bạn
+            có thể kéo ghim để chỉnh chính xác cổng giao hàng.
+          </Typography>
+        )
       )}
     </Box>
   );

@@ -130,16 +130,17 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
 
   return (
     <Box>
-      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
-        <Button
-          variant="contained"
-          startIcon={<AddOutlinedIcon />}
-          onClick={handleOpen}
-        >
-          Thêm địa chỉ
-        </Button>
-      </Box>
-
+      {addresses.length > 0 && (
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+          <Button
+            variant="contained"
+            startIcon={<AddOutlinedIcon />}
+            onClick={handleOpen}
+          >
+            Thêm địa chỉ
+          </Button>
+        </Box>
+      )}
       {addresses.length === 0 ? (
         <Paper
           variant="outlined"
