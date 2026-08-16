@@ -241,9 +241,11 @@ export function validateAddressValues(
       : "Vui lòng nhập tên người nhận.",
     phone: validateVietnamesePhone(values.phone),
     line1: normalized.line1 ? "" : "Vui lòng nhập địa chỉ.",
-    ward: normalized.ward ? "" : "Vui lòng nhập phường/xã.",
-    district: normalized.district ? "" : "Vui lòng nhập quận/huyện.",
-    city: normalized.city ? "" : "Vui lòng nhập tỉnh/thành phố.",
+    // Google có thể không trả đủ cấp hành chính cho mọi địa chỉ tại Việt Nam.
+    // Tọa độ + formattedAddress mới là dữ liệu bắt buộc để giao hàng.
+    ward: "",
+    district: "",
+    city: "",
   };
 
   return {

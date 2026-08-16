@@ -91,6 +91,19 @@ export async function geocodeAddress(
   );
 }
 
+/** Xác minh một địa chỉ Google đã chọn bằng place_id ở phía server. */
+export async function geocodePlaceId(
+  placeId: string
+): Promise<GeocodeResult | null> {
+  const trimmed = placeId.trim();
+  if (!trimmed) return null;
+  return requestGeocodingApi(
+    new URLSearchParams({
+      place_id: trimmed,
+    })
+  );
+}
+
 export function isValidCoordinate(lat: number, lon: number) {
   return (
     Number.isFinite(lat) &&

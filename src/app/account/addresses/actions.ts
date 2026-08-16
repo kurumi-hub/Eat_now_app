@@ -9,6 +9,7 @@ import { validateAddressValues, type AddressField } from "@/utils/validation";
 import {
   distanceKm,
   geocodeAddress,
+  geocodePlaceId,
   isValidCoordinate,
 } from "@/lib/geocoding";
 
@@ -91,6 +92,10 @@ export async function createAddressAction(
   const label = String(formData.get("label") || "").trim() || null;
   const selectedLatText = String(formData.get("lat") || "").trim();
   const selectedLonText = String(formData.get("lon") || "").trim();
+  const googlePlaceId = String(formData.get("googlePlaceId") || "").trim();
+  const formattedAddress = String(
+    formData.get("formattedAddress") || ""
+  ).trim();
 
   const validation = validateAddressValues(values);
   if (!validation.isValid) {
@@ -101,11 +106,31 @@ export async function createAddressAction(
     };
   }
 
-  const fullAddress = buildFullAddress(validation.normalized);
+  if (!selectedLatText || !selectedLonText || !formattedAddress) {
+    return {
+      status: "error",
+      message:
+        "Hãy chọn địa chỉ trên Google Maps và xác nhận vị trí ghim trước khi lưu.",
+      fieldErrors: { line1: "Địa chỉ chưa được xác nhận trên bản đồ." },
+    };
+  }
+
+  const selectedLat = Number(selectedLatText);
+  const selectedLon = Number(selectedLonText);
+  if (!isValidCoordinate(selectedLat, selectedLon)) {
+    return {
+      status: "error",
+      message: "Tọa độ được chọn trên bản đồ không hợp lệ.",
+    };
+  }
+
+  const fullAddress = formattedAddress || buildFullAddress(validation.normalized);
 
   let geo;
   try {
-    geo = await geocodeAddress(fullAddress);
+    geo = googlePlaceId
+      ? await geocodePlaceId(googlePlaceId)
+      : await geocodeAddress(fullAddress);
   } catch (err) {
     console.error("createAddressAction geocode error:", err);
     return {
@@ -124,49 +149,30 @@ export async function createAddressAction(
     };
   }
 
-  let lat = geo.lat;
-  let lon = geo.lon;
-  if (selectedLatText || selectedLonText) {
-    const selectedLat = Number(selectedLatText);
-    const selectedLon = Number(selectedLonText);
-    if (
-      !selectedLatText ||
-      !selectedLonText ||
-      !isValidCoordinate(selectedLat, selectedLon)
-    ) {
-      return {
-        status: "error",
-        message: "Tọa độ được chọn trên bản đồ không hợp lệ.",
-      };
-    }
-
-    // Không tin hoàn toàn lat/lon từ client vì nó quyết định phí giao hàng.
-    // Cho phép kéo ghim quanh địa chỉ, nhưng chặn vị trí giả quá xa kết quả Google.
-    if (distanceKm(geo.lat, geo.lon, selectedLat, selectedLon) > 3) {
-      return {
-        status: "error",
-        message:
-          "Vị trí ghim cách địa chỉ đã nhập quá xa. Hãy kiểm tra địa chỉ hoặc chọn lại ghim.",
-        fieldErrors: { line1: "Ghim bản đồ phải nằm gần địa chỉ đã nhập." },
-      };
-    }
-    lat = selectedLat;
-    lon = selectedLon;
+  // Không tin hoàn toàn lat/lon từ client vì nó quyết định phí giao hàng.
+  if (distanceKm(geo.lat, geo.lon, selectedLat, selectedLon) > 1.5) {
+    return {
+      status: "error",
+      message:
+        "Vị trí ghim cách địa chỉ Google quá xa. Hãy chọn lại địa chỉ hoặc ghim.",
+      fieldErrors: { line1: "Ghim bản đồ phải nằm gần địa chỉ đã chọn." },
+    };
   }
 
   const supabase = await createClient();
 
-  const { error } = await supabase.rpc("api_create_address", {
+  const { error } = await supabase.rpc("api_create_address_v2", {
     p_label: label,
-    p_address: fullAddress,
+    p_address: geo.formattedAddress || fullAddress,
+    p_google_place_id: geo.placeId || googlePlaceId || null,
     p_recipient_name: validation.normalized.recipientName,
     p_recipient_phone: validation.normalized.phone,
     p_delivery_note: validation.normalized.note || null,
-    p_ward: validation.normalized.ward,
-    p_district: validation.normalized.district,
-    p_province: validation.normalized.city,
-    p_lat: lat,
-    p_lon: lon,
+    p_ward: validation.normalized.ward || null,
+    p_district: validation.normalized.district || null,
+    p_province: validation.normalized.city || null,
+    p_lat: selectedLat,
+    p_lon: selectedLon,
     p_is_default: values.isDefault ?? false,
   });
 

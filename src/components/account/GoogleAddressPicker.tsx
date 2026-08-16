@@ -7,11 +7,44 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 type LatLngLiteral = { lat: number; lng: number };
 
+export type GoogleAddressSelection = {
+  formattedAddress: string;
+  placeId: string;
+  lat: number;
+  lon: number;
+  line1: string;
+  ward: string;
+  district: string;
+  city: string;
+};
+
+type AddressComponent = {
+  longText?: string;
+  long_name?: string;
+  types: string[];
+};
+
+type Place = {
+  id?: string;
+  formattedAddress?: string;
+  location?: { lat: () => number; lng: () => number };
+  addressComponents?: AddressComponent[];
+  fetchFields: (options: { fields: string[] }) => Promise<void>;
+};
+
+type PlaceSelectEvent = Event & {
+  placePrediction?: { toPlace: () => Place };
+};
+
+type PlaceAutocompleteElement = HTMLElement & {
+  includedRegionCodes?: string[];
+  requestedLanguage?: string;
+  requestedRegion?: string;
+  placeholder?: string;
+};
+
 type MapsApi = {
-  Map: new (
-    element: HTMLElement,
-    options: Record<string, unknown>
-  ) => {
+  Map: new (element: HTMLElement, options: Record<string, unknown>) => {
     addListener: (
       name: string,
       handler: (event: {
@@ -23,15 +56,17 @@ type MapsApi = {
   };
 };
 
+type GeocodingResult = {
+  formatted_address?: string;
+  place_id?: string;
+  address_components?: AddressComponent[];
+  geometry: { location: { lat: () => number; lng: () => number } };
+};
+
 type GeocodingApi = {
   Geocoder: new () => {
-    geocode: (
-      request: Record<string, unknown>
-    ) => Promise<{
-      results: Array<{
-        formatted_address?: string;
-        geometry: { location: { lat: () => number; lng: () => number } };
-      }>;
+    geocode: (request: Record<string, unknown>) => Promise<{
+      results: GeocodingResult[];
     }>;
   };
 };
@@ -43,10 +78,14 @@ type MarkerApi = {
   };
 };
 
+type PlacesApi = {
+  PlaceAutocompleteElement: new () => PlaceAutocompleteElement;
+};
+
 type GoogleMapsGlobal = {
   maps: {
     importLibrary: (
-      name: "maps" | "marker" | "geocoding"
+      name: "maps" | "marker" | "geocoding" | "places"
     ) => Promise<unknown>;
   };
 };
@@ -58,7 +97,8 @@ type MapsWindow = Window & {
 };
 
 type GoogleAddressPickerProps = {
-  addressQuery: string;
+  manualAddressQuery: string;
+  onAddressSelect: (selection: GoogleAddressSelection) => void;
 };
 
 const DEFAULT_CENTER: LatLngLiteral = { lat: 10.0452, lng: 105.7469 };
@@ -83,6 +123,8 @@ function loadGoogleMaps(apiKey: string): Promise<GoogleMapsGlobal> {
       new URLSearchParams({
         key: apiKey,
         v: "weekly",
+        language: "vi",
+        region: "VN",
         loading: "async",
         callback: "__eatNowGoogleMapsReady",
       }).toString();
@@ -107,12 +149,59 @@ function readMarkerPosition(position: unknown): LatLngLiteral | null {
     : null;
 }
 
+function componentValue(
+  components: AddressComponent[] | undefined,
+  ...types: string[]
+) {
+  const component = components?.find((item) =>
+    types.some((type) => item.types.includes(type))
+  );
+  return component?.longText ?? component?.long_name ?? "";
+}
+
+function parseAddress(
+  formattedAddress: string,
+  placeId: string,
+  position: LatLngLiteral,
+  components?: AddressComponent[]
+): GoogleAddressSelection {
+  const streetNumber = componentValue(components, "street_number");
+  const route = componentValue(components, "route");
+  const premise = componentValue(components, "premise", "subpremise");
+  const line1 =
+    [premise, streetNumber, route].filter(Boolean).join(" ") ||
+    formattedAddress.split(",")[0]?.trim() ||
+    formattedAddress;
+
+  return {
+    formattedAddress,
+    placeId,
+    lat: position.lat,
+    lon: position.lng,
+    line1,
+    ward: componentValue(
+      components,
+      "administrative_area_level_3",
+      "sublocality_level_1",
+      "sublocality"
+    ),
+    district: componentValue(components, "administrative_area_level_2"),
+    city: componentValue(
+      components,
+      "administrative_area_level_1",
+      "locality"
+    ),
+  };
+}
+
 export default function GoogleAddressPicker({
-  addressQuery,
+  manualAddressQuery,
+  onAddressSelect,
 }: GoogleAddressPickerProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
   const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID";
   const mapElementRef = useRef<HTMLDivElement | null>(null);
+  const autocompleteHostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<InstanceType<MapsApi["Map"]> | null>(null);
   const markerRef = useRef<
     InstanceType<MarkerApi["AdvancedMarkerElement"]> | null
@@ -120,29 +209,70 @@ export default function GoogleAddressPicker({
   const geocoderRef = useRef<
     InstanceType<GeocodingApi["Geocoder"]> | null
   >(null);
+  const onAddressSelectRef = useRef(onAddressSelect);
   const [position, setPosition] = useState<LatLngLiteral | null>(null);
+  const [placeId, setPlaceId] = useState("");
+  const [formattedAddress, setFormattedAddress] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
+  const [placesAvailable, setPlacesAvailable] = useState(true);
   const [error, setError] = useState("");
-  const [selectedAddress, setSelectedAddress] = useState("");
+
+  useEffect(() => {
+    onAddressSelectRef.current = onAddressSelect;
+  }, [onAddressSelect]);
 
   const updatePosition = useCallback((next: LatLngLiteral) => {
     setPosition(next);
     if (markerRef.current) markerRef.current.position = next;
     mapRef.current?.panTo(next);
+    mapRef.current?.setZoom(17);
   }, []);
+
+  const acceptGeocoderResult = useCallback(
+    (result: GeocodingResult, fallbackPosition?: LatLngLiteral) => {
+      const next = fallbackPosition ?? {
+        lat: result.geometry.location.lat(),
+        lng: result.geometry.location.lng(),
+      };
+      const nextAddress = result.formatted_address ?? "";
+      const nextPlaceId = result.place_id ?? "";
+      updatePosition(next);
+      setFormattedAddress(nextAddress);
+      setPlaceId(nextPlaceId);
+      onAddressSelectRef.current(
+        parseAddress(
+          nextAddress,
+          nextPlaceId,
+          next,
+          result.address_components
+        )
+      );
+    },
+    [updatePosition]
+  );
 
   const reverseLookup = useCallback(
     async (next: LatLngLiteral) => {
       updatePosition(next);
+      setIsSearching(true);
       try {
         const response = await geocoderRef.current?.geocode({ location: next });
-        setSelectedAddress(response?.results?.[0]?.formatted_address ?? "");
-      } catch {
-        setSelectedAddress("");
+        const result = response?.results?.[0];
+        if (!result) throw new Error("Không tìm thấy địa chỉ tại vị trí này.");
+        acceptGeocoderResult(result, next);
+        setError("");
+      } catch (lookupError) {
+        setError(
+          lookupError instanceof Error
+            ? lookupError.message
+            : "Không thể nhận diện địa chỉ tại vị trí này."
+        );
+      } finally {
+        setIsSearching(false);
       }
     },
-    [updatePosition]
+    [acceptGeocoderResult, updatePosition]
   );
 
   useEffect(() => {
@@ -153,14 +283,17 @@ export default function GoogleAddressPicker({
     }
 
     let disposed = false;
+    let autocompleteElement: PlaceAutocompleteElement | null = null;
+    let selectHandler: ((event: Event) => void) | null = null;
+
     void (async () => {
       try {
         const google = await loadGoogleMaps(apiKey);
-        const maps = (await google.maps.importLibrary("maps")) as MapsApi;
-        const marker = (await google.maps.importLibrary("marker")) as MarkerApi;
-        const geocoding = (await google.maps.importLibrary(
-          "geocoding"
-        )) as GeocodingApi;
+        const [maps, marker, geocoding] = await Promise.all([
+          google.maps.importLibrary("maps") as Promise<MapsApi>,
+          google.maps.importLibrary("marker") as Promise<MarkerApi>,
+          google.maps.importLibrary("geocoding") as Promise<GeocodingApi>,
+        ]);
         if (disposed || !mapElementRef.current) return;
 
         const mapInstance = new maps.Map(mapElementRef.current, {
@@ -194,6 +327,69 @@ export default function GoogleAddressPicker({
           if (next) void reverseLookup(next);
         });
 
+        try {
+          const places = (await google.maps.importLibrary("places")) as PlacesApi;
+          if (!disposed && autocompleteHostRef.current) {
+            autocompleteElement = new places.PlaceAutocompleteElement();
+            autocompleteElement.includedRegionCodes = ["vn"];
+            autocompleteElement.requestedLanguage = "vi";
+            autocompleteElement.requestedRegion = "VN";
+            autocompleteElement.placeholder = "Tìm số nhà, đường hoặc địa điểm";
+            autocompleteElement.style.display = "block";
+            autocompleteElement.style.width = "100%";
+
+            selectHandler = (rawEvent: Event) => {
+              void (async () => {
+                setIsSearching(true);
+                setError("");
+                try {
+                  const event = rawEvent as PlaceSelectEvent;
+                  const place = event.placePrediction?.toPlace();
+                  if (!place) throw new Error("Không đọc được địa chỉ đã chọn.");
+                  await place.fetchFields({
+                    fields: [
+                      "id",
+                      "formattedAddress",
+                      "location",
+                      "addressComponents",
+                    ],
+                  });
+                  if (!place.location || !place.formattedAddress) {
+                    throw new Error("Địa chỉ này chưa có tọa độ giao hàng.");
+                  }
+                  const next = {
+                    lat: place.location.lat(),
+                    lng: place.location.lng(),
+                  };
+                  updatePosition(next);
+                  setFormattedAddress(place.formattedAddress);
+                  setPlaceId(place.id ?? "");
+                  onAddressSelectRef.current(
+                    parseAddress(
+                      place.formattedAddress,
+                      place.id ?? "",
+                      next,
+                      place.addressComponents
+                    )
+                  );
+                } catch (placeError) {
+                  setError(
+                    placeError instanceof Error
+                      ? placeError.message
+                      : "Không thể dùng địa chỉ đã chọn."
+                  );
+                } finally {
+                  setIsSearching(false);
+                }
+              })();
+            };
+            autocompleteElement.addEventListener("gmp-select", selectHandler);
+            autocompleteHostRef.current.replaceChildren(autocompleteElement);
+          }
+        } catch {
+          setPlacesAvailable(false);
+        }
+
         setIsLoading(false);
       } catch (loadError) {
         setError(
@@ -207,16 +403,19 @@ export default function GoogleAddressPicker({
 
     return () => {
       disposed = true;
+      if (autocompleteElement && selectHandler) {
+        autocompleteElement.removeEventListener("gmp-select", selectHandler);
+      }
+      autocompleteElement?.remove();
     };
-  }, [apiKey, mapId, reverseLookup]);
+  }, [apiKey, mapId, reverseLookup, updatePosition]);
 
-  const locateAddress = async () => {
-    const query = addressQuery.trim();
+  const locateManualAddress = async () => {
+    const query = manualAddressQuery.trim();
     if (!query) {
-      setError("Hãy nhập đầy đủ địa chỉ trước khi tìm trên bản đồ.");
+      setError("Hãy nhập địa chỉ chi tiết trước khi định vị.");
       return;
     }
-
     setError("");
     setIsSearching(true);
     try {
@@ -225,19 +424,14 @@ export default function GoogleAddressPicker({
         componentRestrictions: { country: "VN" },
       });
       const result = response?.results?.[0];
-      if (!result) {
-        setError("Google Maps không tìm thấy địa chỉ này.");
-        return;
-      }
-      const next = {
-        lat: result.geometry.location.lat(),
-        lng: result.geometry.location.lng(),
-      };
-      updatePosition(next);
-      mapRef.current?.setZoom(17);
-      setSelectedAddress(result.formatted_address ?? query);
-    } catch {
-      setError("Không thể tìm địa chỉ trên Google Maps.");
+      if (!result) throw new Error("Google Maps không tìm thấy địa chỉ này.");
+      acceptGeocoderResult(result);
+    } catch (searchError) {
+      setError(
+        searchError instanceof Error
+          ? searchError.message
+          : "Không thể tìm địa chỉ trên Google Maps."
+      );
     } finally {
       setIsSearching(false);
     }
@@ -253,8 +447,6 @@ export default function GoogleAddressPicker({
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         void reverseLookup({ lat: coords.latitude, lng: coords.longitude });
-        mapRef.current?.setZoom(17);
-        setIsSearching(false);
       },
       () => {
         setError("Không thể lấy vị trí hiện tại. Hãy kiểm tra quyền vị trí.");
@@ -265,7 +457,22 @@ export default function GoogleAddressPicker({
   };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
+      <Typography variant="subtitle2">Tìm vị trí giao hàng</Typography>
+      <Box
+        ref={autocompleteHostRef}
+        sx={{
+          minHeight: 48,
+          "& gmp-place-autocomplete": { width: "100%" },
+        }}
+      />
+
+      {!placesAvailable && (
+        <Alert severity="warning">
+          Chưa dùng được gợi ý địa chỉ. Hãy bật Places API (New), hoặc nhập địa
+          chỉ bên dưới rồi bấm “Định vị địa chỉ”.
+        </Alert>
+      )}
       <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
         <Button
           type="button"
@@ -274,10 +481,10 @@ export default function GoogleAddressPicker({
           startIcon={
             isSearching ? <CircularProgress size={14} /> : <SearchOutlinedIcon />
           }
-          onClick={locateAddress}
+          onClick={locateManualAddress}
           disabled={isLoading || isSearching || !apiKey}
         >
-          Tìm trên Google Maps
+          Định vị địa chỉ đã nhập
         </Button>
         <Button
           type="button"
@@ -296,7 +503,7 @@ export default function GoogleAddressPicker({
         <Box
           ref={mapElementRef}
           sx={{
-            height: 280,
+            height: 300,
             width: "100%",
             borderRadius: 2,
             bgcolor: "grey.100",
@@ -320,10 +527,16 @@ export default function GoogleAddressPicker({
 
       <input type="hidden" name="lat" value={position?.lat ?? ""} />
       <input type="hidden" name="lon" value={position?.lng ?? ""} />
-      {selectedAddress && (
+      <input type="hidden" name="googlePlaceId" value={placeId} />
+      <input type="hidden" name="formattedAddress" value={formattedAddress} />
+      {formattedAddress ? (
+        <Alert severity="success" icon={<SearchOutlinedIcon />}>
+          <strong>Vị trí đã xác nhận:</strong> {formattedAddress}
+        </Alert>
+      ) : (
         <Typography variant="caption" color="text.secondary">
-          Ghim đã chọn: {selectedAddress}. Bạn có thể kéo ghim hoặc bấm vị trí
-          khác.
+          Hãy chọn một gợi ý Google, dùng vị trí hiện tại hoặc bấm trên bản đồ.
+          Bạn có thể kéo ghim để chỉnh chính xác cổng giao hàng.
         </Typography>
       )}
     </Box>

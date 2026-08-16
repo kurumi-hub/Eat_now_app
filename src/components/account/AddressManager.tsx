@@ -21,7 +21,13 @@ import {
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState, useTransition } from "react";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useState,
+  useTransition,
+} from "react";
 
 import {
   createAddressAction,
@@ -29,7 +35,9 @@ import {
   setDefaultAddressAction,
   type AddressActionState,
 } from "@/app/account/addresses/actions";
-import GoogleAddressPicker from "@/components/account/GoogleAddressPicker";
+import GoogleAddressPicker, {
+  type GoogleAddressSelection,
+} from "@/components/account/GoogleAddressPicker";
 import type { AccountAddress } from "@/types/account";
 
 type AddressManagerProps = {
@@ -46,6 +54,7 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
     initialState
   );
   const [isPending, startTransition] = useTransition();
+  const [pickerVersion, setPickerVersion] = useState(0);
   const [addressFields, setAddressFields] = useState({
     line1: "",
     ward: "",
@@ -62,10 +71,23 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
     .filter(Boolean)
     .join(", ");
 
+  const handleGoogleAddress = useCallback(
+    (selection: GoogleAddressSelection) => {
+      setAddressFields({
+        line1: selection.line1,
+        ward: selection.ward,
+        district: selection.district,
+        city: selection.city,
+      });
+    },
+    []
+  );
+
   useEffect(() => {
     if (state.status === "success") {
       setDialogOpen(false);
       setAddressFields({ line1: "", ward: "", district: "", city: "" });
+      setPickerVersion((current) => current + 1);
       router.refresh();
     }
   }, [state.status, router]);
@@ -76,6 +98,7 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
 
   const handleOpen = () => {
     setAddressFields({ line1: "", ward: "", district: "", city: "" });
+    setPickerVersion((current) => current + 1);
     setDialogOpen(true);
   };
 
@@ -221,6 +244,14 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
               error={Boolean(state.fieldErrors?.phone)}
               helperText={state.fieldErrors?.phone}
             />
+            <GoogleAddressPicker
+              key={pickerVersion}
+              manualAddressQuery={addressQuery}
+              onAddressSelect={handleGoogleAddress}
+            />
+            <Typography variant="subtitle2">
+              Chi tiết địa chỉ (được Google tự điền, có thể chỉnh lại)
+            </Typography>
             <TextField
               name="line1"
               label="Số nhà, tên đường"
@@ -242,7 +273,6 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
                 name="ward"
                 label="Phường/Xã"
                 fullWidth
-                required
                 size="small"
                 error={Boolean(state.fieldErrors?.ward)}
                 helperText={state.fieldErrors?.ward}
@@ -256,9 +286,8 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
               />
               <TextField
                 name="district"
-                label="Quận/Huyện"
+                label="Quận/Huyện (nếu có)"
                 fullWidth
-                required
                 size="small"
                 error={Boolean(state.fieldErrors?.district)}
                 helperText={state.fieldErrors?.district}
@@ -275,7 +304,6 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
               name="city"
               label="Tỉnh/Thành phố"
               fullWidth
-              required
               size="small"
               error={Boolean(state.fieldErrors?.city)}
               helperText={state.fieldErrors?.city}
@@ -287,7 +315,6 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
                 }))
               }
             />
-            <GoogleAddressPicker addressQuery={addressQuery} />
             <TextField
               name="note"
               label="Ghi chú (không bắt buộc)"

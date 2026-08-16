@@ -7,6 +7,7 @@ The address flow now uses Google Maps instead of Nominatim/OpenStreetMap.
 Enable billing and these APIs in the Google Cloud project:
 
 - Maps JavaScript API
+- Places API (New)
 - Geocoding API
 - Map Management API only when using a custom Map ID
 
@@ -15,7 +16,8 @@ Enable billing and these APIs in the Google Cloud project:
 Add these values to `.env.local` and to the deployment environment:
 
 ```env
-# Browser key: restrict by HTTP referrer and allow Maps JavaScript API.
+# Browser key: restrict by HTTP referrer and allow Maps JavaScript API plus
+# Places API (New).
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=browser_key_here
 
 # Optional custom Map ID. DEMO_MAP_ID is used when omitted.
@@ -43,22 +45,23 @@ district
 province
 ```
 
-After file 04, run `06_rpc_api_boundary.sql`. The updated source does not query
+After file 04, run `06_rpc_api_boundary.sql`, then
+`08_google_address_v2.sql`. The updated source does not query
 Supabase tables directly; address, cart, restaurant and VNPay data operations
 all go through RPC functions. Supabase Auth calls remain in the SDK because
 they operate on the Auth service rather than public database tables.
 
 ## Behavior
 
-- The user enters the structured address and can locate it on Google Maps.
+- The user searches once with Google Place Autocomplete.
+- Selecting a suggestion fills the street and administrative fields.
 - The marker can be moved by clicking the map or dragging it.
 - Current browser location can be selected with permission.
-- Latitude/longitude is submitted with the form.
-- The server geocodes the written address again and rejects a client marker
-  more than 3 km from Google's result. This protects shipping calculations
+- Google Place ID, formatted address and latitude/longitude are submitted.
+- The server verifies the Place ID again and rejects a client marker
+  more than 1.5 km from Google's result. This protects shipping calculations
   against direct client-side coordinate manipulation.
-- If the user does not select a marker, the server uses Google's geocoded
-  coordinate for the written address.
+- A confirmed Google location is required before the address can be saved.
 
 ## Finance RPC prerequisite
 
