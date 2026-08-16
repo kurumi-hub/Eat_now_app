@@ -333,12 +333,12 @@ export default function GoogleAddressPicker({
 
     let disposed = false;
 
-    // Google Maps thường KHÔNG throw lỗi ra ngoài mà chỉ in chi tiết qua
-    // console.error (vd InvalidKeyMapError, ApiNotActivatedMapError,
-    // RefererNotAllowedMapError, ApiTargetBlockedMapError...). Chặn tạm
-    // console.error trong lúc khởi tạo để bắt trọn nội dung đó và in
-    // thẳng lên UI, khỏi phải mò DevTools qua các extension gây nhiễu.
-    const capturedConsoleErrors: string[] = [];
+    // LỚP 1: Google Maps thường KHÔNG throw lỗi ra ngoài mà chỉ in chi tiết
+    // qua console.error (vd InvalidKeyMapError, ApiNotActivatedMapError,
+    // RefererNotAllowedMapError, ApiTargetBlockedMapError...), và việc này
+    // có thể xảy ra MUỘN — sau khi tile bắt đầu tải, không phải ngay lúc
+    // khởi tạo — nên phải chặn console.error suốt vòng đời component,
+    // không tắt sớm.
     const originalConsoleError = console.error;
     console.error = (...args: unknown[]) => {
       try {
@@ -347,13 +347,43 @@ export default function GoogleAddressPicker({
             typeof arg === "string" ? arg : JSON.stringify(arg)
           )
           .join(" ");
-        if (/maps|google|api key|referer|billing/i.test(text)) {
-          capturedConsoleErrors.push(text);
+        if (/maps|google|api key|referer|billing/i.test(text) && !disposed) {
+          setRawConsoleErrors((prev) =>
+            prev.includes(text) ? prev : [...prev, text]
+          );
         }
       } catch {
         // ignore serialization errors
       }
       originalConsoleError.apply(console, args);
+    };
+
+    // LỚP 2: Khi lỗi kiểu ApiNotActivatedMapError/RefererNotAllowed/billing
+    // xảy ra, Google tự vẽ đè 1 lớp thông báo NGAY BÊN TRONG div bản đồ
+    // (không throw, không chắc lúc nào cũng log console) — quét thẳng nội
+    // dung DOM của khung bản đồ để bắt được chắc chắn, không phụ thuộc gì
+    // vào console hay các extension trình duyệt có thể che log.
+    let domObserver: MutationObserver | null = null;
+    const watchMapOverlayError = () => {
+      if (!mapElementRef.current) return;
+      domObserver = new MutationObserver(() => {
+        const text = mapElementRef.current?.textContent?.trim() ?? "";
+        if (
+          text &&
+          /didn't load google maps correctly|không tải.*google maps|oops|đã xảy ra lỗi/i.test(
+            text
+          )
+        ) {
+          setRawConsoleErrors((prev) =>
+            prev.includes(text) ? prev : [...prev, `[DOM overlay] ${text}`]
+          );
+        }
+      });
+      domObserver.observe(mapElementRef.current, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
     };
 
     void (async () => {
@@ -388,6 +418,8 @@ export default function GoogleAddressPicker({
         placesRef.current = places;
         sessionTokenRef.current = new places.AutocompleteSessionToken();
 
+        watchMapOverlayError();
+
         mapInstance.addListener("click", (event) => {
           if (!event.latLng) return;
           void reverseLookup({
@@ -421,21 +453,13 @@ export default function GoogleAddressPicker({
             : "Không thể khởi tạo Google Maps."
         );
         setIsLoading(false);
-      } finally {
-        // Đợi 1 nhịp để bắt các console.error được Google Maps in ra bất
-        // đồng bộ ngay sau khi callback ready/authFailure chạy.
-        setTimeout(() => {
-          console.error = originalConsoleError;
-          if (capturedConsoleErrors.length > 0 && !disposed) {
-            setRawConsoleErrors(capturedConsoleErrors);
-          }
-        }, 500);
       }
     })();
 
     return () => {
       disposed = true;
       console.error = originalConsoleError;
+      domObserver?.disconnect();
     };
   }, [apiKey, mapId, reverseLookup]);
 
