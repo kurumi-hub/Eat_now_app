@@ -606,7 +606,7 @@ export default function GoogleAddressPicker({
         <Alert severity="error">
           {error}
           {isAuthFailure && (
-            <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+            <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>
               Kiểm tra: khoá API đúng dự án, đã bật Billing, đã bật Maps
               JavaScript API + Places API (New) + Geocoding API, và domain
               hiện tại nằm trong danh sách HTTP referrer được phép.
