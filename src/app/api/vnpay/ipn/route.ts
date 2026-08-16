@@ -38,32 +38,27 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = createAdminClient();
-
-  // Đối chiếu số tiền VNPay báo về với số tiền đã chốt trong đơn, tránh
-  // trường hợp giả mạo IPN với order_id đúng nhưng amount sai.
-  const { data: order } = await supabase
-    .from("orders")
-    .select("id, total_price")
-    .eq("id", orderId)
-    .single();
-
-  if (!order) {
-    return ipnResponse("01", "Order not found");
-  }
-
   const vnpAmount = Number(params.vnp_Amount) / 100;
-  if (Math.round(vnpAmount) !== Math.round(Number(order.total_price))) {
+  if (!Number.isFinite(vnpAmount)) {
     return ipnResponse("04", "Invalid amount");
   }
 
-  const { data, error } = await supabase.rpc("confirm_payment", {
+  // RPC tự khóa đơn, đối chiếu số tiền và xác nhận payment trong một transaction.
+  const { error } = await supabase.rpc("confirm_payment_v2", {
     p_order_id: orderId,
     p_transaction_id: transactionId,
     p_success: success,
+    p_gateway_amount: vnpAmount,
     p_raw: params,
   });
 
   if (error) {
+    if (error.message?.includes("không khớp")) {
+      return ipnResponse("04", "Invalid amount");
+    }
+    if (error.message?.includes("Không tìm thấy đơn hàng")) {
+      return ipnResponse("01", "Order not found");
+    }
     // "Không tìm thấy giao dịch đang chờ" nghĩa là IPN đã được xử lý trước đó
     // (VNPay có thể gọi lại IPN nhiều lần) -- báo thành công để VNPay ngừng retry.
     if (error.message?.includes("Không tìm thấy giao dịch")) {

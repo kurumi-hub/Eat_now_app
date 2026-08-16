@@ -43,6 +43,11 @@ district
 province
 ```
 
+After file 04, run `06_rpc_api_boundary.sql`. The updated source does not query
+Supabase tables directly; address, cart, restaurant and VNPay data operations
+all go through RPC functions. Supabase Auth calls remain in the SDK because
+they operate on the Auth service rather than public database tables.
+
 ## Behavior
 
 - The user enters the structured address and can locate it on Google Maps.

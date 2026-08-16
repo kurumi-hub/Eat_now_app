@@ -119,7 +119,7 @@ export default async function OrderDetailRoute({
   const user = await requireCurrentUser();
   const supabase = await createClient();
 
-  // Dùng RPC get_order_detail thay vì query .from("orders").select() trực tiếp:
+  // Dùng RPC get_order_detail thay vì truy vấn bảng trực tiếp:
   // RPC đã xử lý sẵn quyền xem (chủ đơn / chủ quán / shipper / admin), trả về
   // đúng shape object (không bị suy luận nhầm thành mảng như PostgREST join),
   // và có thêm dữ liệu shipper/payment/timeline mà query cũ không có.

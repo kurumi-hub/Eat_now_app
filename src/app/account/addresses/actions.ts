@@ -58,32 +58,25 @@ function buildFullAddress(values: AddressFormValues) {
 }
 
 export async function listAddressesAction(): Promise<AccountAddress[]> {
-  const user = await requireAnyRole(["CUSTOMER"]);
+  await requireAnyRole(["CUSTOMER"]);
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("user_addresses")
-    .select(
-      "id, label, address, recipient_name, recipient_phone, delivery_note, " +
-        "ward, district, province, lat, lon, is_default, created_at, updated_at"
-    )
-    .eq("user_id", user.id)
-    .order("is_default", { ascending: false })
-    .order("created_at", { ascending: false });
+  const { data, error } = await supabase.rpc("api_list_addresses");
 
   if (error || !data) {
     console.error("listAddressesAction error:", error?.message);
     return [];
   }
 
-  return data.map(rowToAddress);
+  const rows = (data ?? []) as unknown as AddressRow[];
+  return rows.map(rowToAddress);
 }
 
 export async function createAddressAction(
   _prevState: AddressActionState,
   formData: FormData
 ): Promise<AddressActionState> {
-  const user = await requireAnyRole(["CUSTOMER"]);
+  await requireAnyRole(["CUSTOMER"]);
 
   const values: AddressFormValues = {
     recipientName: String(formData.get("recipientName") || ""),
@@ -163,29 +156,18 @@ export async function createAddressAction(
 
   const supabase = await createClient();
 
-  // Nếu đặt làm mặc định, bỏ cờ mặc định của địa chỉ cũ trước
-  // (DB có unique index chỉ cho 1 địa chỉ mặc định/user).
-  if (values.isDefault) {
-    await supabase
-      .from("user_addresses")
-      .update({ is_default: false })
-      .eq("user_id", user.id)
-      .eq("is_default", true);
-  }
-
-  const { error } = await supabase.from("user_addresses").insert({
-    user_id: user.id,
-    label,
-    address: fullAddress,
-    recipient_name: validation.normalized.recipientName,
-    recipient_phone: validation.normalized.phone,
-    delivery_note: validation.normalized.note || null,
-    ward: validation.normalized.ward,
-    district: validation.normalized.district,
-    province: validation.normalized.city,
-    lat,
-    lon,
-    is_default: values.isDefault ?? false,
+  const { error } = await supabase.rpc("api_create_address", {
+    p_label: label,
+    p_address: fullAddress,
+    p_recipient_name: validation.normalized.recipientName,
+    p_recipient_phone: validation.normalized.phone,
+    p_delivery_note: validation.normalized.note || null,
+    p_ward: validation.normalized.ward,
+    p_district: validation.normalized.district,
+    p_province: validation.normalized.city,
+    p_lat: lat,
+    p_lon: lon,
+    p_is_default: values.isDefault ?? false,
   });
 
   if (error) {
@@ -203,14 +185,13 @@ export async function createAddressAction(
 }
 
 export async function deleteAddressAction(addressId: string): Promise<void> {
-  const user = await requireAnyRole(["CUSTOMER"]);
+  await requireAnyRole(["CUSTOMER"]);
   const supabase = await createClient();
 
-  await supabase
-    .from("user_addresses")
-    .delete()
-    .eq("id", addressId)
-    .eq("user_id", user.id);
+  const { error } = await supabase.rpc("api_delete_address", {
+    p_address_id: addressId,
+  });
+  if (error) console.error("deleteAddressAction error:", error.message);
 
   revalidatePath("/account/addresses");
   revalidatePath("/checkout");
@@ -219,20 +200,13 @@ export async function deleteAddressAction(addressId: string): Promise<void> {
 export async function setDefaultAddressAction(
   addressId: string
 ): Promise<void> {
-  const user = await requireAnyRole(["CUSTOMER"]);
+  await requireAnyRole(["CUSTOMER"]);
   const supabase = await createClient();
 
-  await supabase
-    .from("user_addresses")
-    .update({ is_default: false })
-    .eq("user_id", user.id)
-    .eq("is_default", true);
-
-  await supabase
-    .from("user_addresses")
-    .update({ is_default: true })
-    .eq("id", addressId)
-    .eq("user_id", user.id);
+  const { error } = await supabase.rpc("api_set_default_address", {
+    p_address_id: addressId,
+  });
+  if (error) console.error("setDefaultAddressAction error:", error.message);
 
   revalidatePath("/account/addresses");
   revalidatePath("/checkout");

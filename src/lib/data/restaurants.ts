@@ -1,15 +1,41 @@
-import { createClient } from "@/utils/supabase/server";
 import type { HomeRestaurant } from "@/components/home/homeData";
 import type {
   RestaurantDetail,
   RestaurantMenuCategory,
 } from "@/components/restaurant/restaurantDetailData";
+import { createClient } from "@/utils/supabase/server";
 
-/**
- * Lớp truy vấn dữ liệu nhà hàng từ Supabase.
- * Trả về đúng các type UI đang dùng (HomeRestaurant / RestaurantDetail)
- * để các component (HomePage, RestaurantDetailPage) không cần sửa.
- */
+type FeaturedRestaurantRpcRow = {
+  id: string;
+  slug: string;
+  name: string;
+  rating_average: number | string;
+  rating_count: number;
+  image_url: string | null;
+};
+
+type RestaurantDetailRpc = {
+  id: string;
+  slug: string;
+  name: string;
+  address: string;
+  is_active: boolean;
+  open_at: string | null;
+  close_at: string | null;
+  rating_average: number | string;
+  rating_count: number;
+  image_url: string | null;
+  foods: Array<{
+    id: string;
+    name: string;
+    description: string | null;
+    base_price: number | string;
+    is_available: boolean;
+    image_url: string | null;
+    category: { id: string; name: string } | null;
+    tags: string[];
+  }>;
+};
 
 function formatReviewCount(count: number) {
   if (count >= 1000) {
@@ -18,100 +44,49 @@ function formatReviewCount(count: number) {
   return `${count}+ đánh giá`;
 }
 
-// ---------------------------------------------------------------------
-// Trang chủ: danh sách nhà hàng nổi bật
-// ---------------------------------------------------------------------
 export async function getFeaturedRestaurants(): Promise<HomeRestaurant[]> {
   const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("restaurants")
-    .select(
-      `slug, name, rating_average, rating_count,
-       restaurant_images ( img_url, is_primary )`
-    )
-    .eq("is_active", true)
-    .order("created_at", { ascending: true })
-    .limit(8);
+  const { data, error } = await supabase.rpc("api_featured_restaurants", {
+    p_limit: 8,
+  });
 
   if (error || !data) {
-    console.error("getFeaturedRestaurants error:", {
-      message: error?.message,
-      code: error?.code,
-      details: error?.details,
-      hint: error?.hint,
-    });
+    console.error("getFeaturedRestaurants RPC error:", error?.message);
     return [];
   }
 
-  return data.map((r) => {
-    const primaryImage =
-      r.restaurant_images.find((img) => img.is_primary)?.img_url ??
-      r.restaurant_images[0]?.img_url ??
-      "/images/home/restaurant-com-tam.png";
-
-    return {
-      slug: r.slug ?? "",
-      name: r.name,
-      image: primaryImage,
-      rating: `${r.rating_average} (${r.rating_count}+)`,
-      time: "20 - 30 phút",
-    };
-  });
+  const rows = data as unknown as FeaturedRestaurantRpcRow[];
+  return rows.map((restaurant) => ({
+    slug: restaurant.slug,
+    name: restaurant.name,
+    image:
+      restaurant.image_url ?? "/images/home/restaurant-com-tam.png",
+    rating: `${restaurant.rating_average} (${restaurant.rating_count}+)`,
+    time: "20 - 30 phút",
+  }));
 }
 
-// ---------------------------------------------------------------------
-// Trang chi tiết nhà hàng theo slug
-// ---------------------------------------------------------------------
 export async function getRestaurantDetailBySlug(
   slug: string
 ): Promise<RestaurantDetail | undefined> {
   const supabase = await createClient();
-
-  const { data: restaurant, error } = await supabase
-    .from("restaurants")
-    .select(
-      `id, slug, name, address, is_active, close_at,
-       rating_average, rating_count,
-       restaurant_images ( img_url, is_primary ),
-       foods (
-         id, name, description, base_price, is_available,
-         food_images ( img_url, is_primary ),
-         food_categories ( categories ( id, name ) ),
-         food_tags ( tags ( name ) )
-       )`
-    )
-    .eq("slug", slug)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("api_restaurant_detail", {
+    p_slug: slug,
+  });
 
   if (error) {
-    console.error("getRestaurantDetailBySlug error:", {
-      message: error?.message,
-      code: error?.code,
-      details: error?.details,
-      hint: error?.hint,
-    });
+    console.error("getRestaurantDetailBySlug RPC error:", error.message);
     return undefined;
   }
-  if (!restaurant) return undefined;
+  if (!data) return undefined;
 
-  const primaryImage =
-    restaurant.restaurant_images.find((img) => img.is_primary)?.img_url ??
-    restaurant.restaurant_images[0]?.img_url ??
-    "";
-
-  // Gom món ăn theo category, giữ đúng cấu trúc RestaurantMenuCategory[]
+  const restaurant = data as unknown as RestaurantDetailRpc;
   const categoryOrder: string[] = [];
   const categoriesMap = new Map<string, RestaurantMenuCategory>();
 
-  for (const food of restaurant.foods) {
-    // Supabase suy luận quan hệ lồng nhau (many-to-one) thành mảng dù thực
-    // tế mỗi dòng chỉ có 1 category -- xử lý an toàn cho cả 2 khả năng.
-    const categoryRel = food.food_categories[0]?.categories;
-    const category = Array.isArray(categoryRel) ? categoryRel[0] : categoryRel;
-    const categoryName = category?.name ?? "Món Khác";
-    const categoryId = category?.id ?? "khac";
-
+  for (const food of restaurant.foods ?? []) {
+    const categoryId = food.category?.id ?? "khac";
+    const categoryName = food.category?.name ?? "Món Khác";
     if (!categoriesMap.has(categoryId)) {
       categoriesMap.set(categoryId, {
         id: categoryId,
@@ -121,38 +96,27 @@ export async function getRestaurantDetailBySlug(
       categoryOrder.push(categoryId);
     }
 
-    const primaryFoodImage =
-      food.food_images.find((img) => img.is_primary)?.img_url ??
-      food.food_images[0]?.img_url ??
-      "";
-
-    const isPopular = food.food_tags.some((ft) => {
-      const tagRel = ft.tags;
-      const tag = Array.isArray(tagRel) ? tagRel[0] : tagRel;
-      return tag?.name === "popular";
-    });
-
     categoriesMap.get(categoryId)!.items.push({
       id: food.id,
       name: food.name,
       description: food.description ?? "",
       price: Number(food.base_price),
-      image: primaryFoodImage,
+      image: food.image_url ?? "",
       isAvailable: food.is_available,
-      isPopular,
+      isPopular: (food.tags ?? []).includes("popular"),
     });
   }
 
   return {
     id: restaurant.id,
-    slug: restaurant.slug ?? slug,
+    slug: restaurant.slug,
     name: restaurant.name,
-    image: primaryImage,
+    image: restaurant.image_url ?? "",
     rating: String(restaurant.rating_average),
     reviewCount: formatReviewCount(restaurant.rating_count),
     address: restaurant.address,
     deliveryTime: "25-35 phút",
-    deliveryFee: "Miễn phí giao hàng",
+    deliveryFee: "Tính theo khoảng cách",
     isOpen: restaurant.is_active,
     openUntil: restaurant.close_at ?? "",
     menuCategories: categoryOrder.map((id) => categoriesMap.get(id)!),

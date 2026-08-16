@@ -13,14 +13,12 @@ export type SyncCartResult =
  * trong Supabase, để RPC place_order có thể tự chốt giá từ DB (không tin
  * đơn giá do client gửi lên).
  *
- * Chiến lược: xoá sạch cart hiện có của user (mọi nhà hàng), rồi gọi lại
- * add_to_cart cho từng dòng -- add_to_cart tự tạo cart theo nhà hàng và tự
- * validate món/size/topping còn khả dụng hay không.
+ * Toàn bộ thao tác xoá giỏ cũ + thêm các dòng mới chạy trong một RPC/transaction.
  */
 export async function syncCartToServer(
   lines: CartLine[]
 ): Promise<SyncCartResult> {
-  const user = await requireCurrentUser();
+  await requireCurrentUser();
 
   if (lines.length === 0) {
     return { ok: false, error: "Giỏ hàng đang trống." };
@@ -28,51 +26,27 @@ export async function syncCartToServer(
 
   const supabase = await createClient();
 
-  // Dọn cart cũ của user để tránh lẫn dữ liệu cũ / trùng dòng khi đồng bộ lại.
-  const { error: clearError } = await supabase
-    .from("carts")
-    .delete()
-    .eq("user_id", user.id);
+  const items = lines.map((line) => ({
+    food_id: line.foodId,
+    quantity: line.quantity,
+    food_size_id: line.size?.id ?? null,
+    topping_ids: line.toppings
+      .map((topping) => topping.id)
+      .filter((id): id is string => Boolean(id)),
+    note: line.note ?? null,
+  }));
 
-  if (clearError) {
-    console.error("syncCartToServer clear error:", clearError.message);
-    return { ok: false, error: "Không thể chuẩn bị giỏ hàng. Vui lòng thử lại." };
+  const { data, error } = await supabase.rpc("api_sync_cart", {
+    p_items: items,
+  });
+
+  if (error) {
+    console.error("syncCartToServer error:", error.message);
+    return { ok: false, error: error.message };
   }
 
-  let cartId: string | null = null;
-
-  for (const line of lines) {
-    const toppingIds = line.toppings
-      .map((t) => t.id)
-      .filter((id): id is string => Boolean(id));
-
-    const { data, error } = await supabase.rpc("add_to_cart", {
-      p_food_id: line.foodId,
-      p_quantity: line.quantity,
-      p_food_size_id: line.size?.id ?? null,
-      p_topping_ids: toppingIds,
-      p_note: line.note ?? null,
-    });
-
-    if (error) {
-      console.error("syncCartToServer add_to_cart error:", error.message);
-      return {
-        ok: false,
-        error: `Món "${line.foodName}" hiện không khả dụng: ${error.message}`,
-      };
-    }
-
-    if (!cartId && data) {
-      // add_to_cart trả về cart_item id, không phải cart id -- lấy cart_id
-      // qua truy vấn nhỏ để dùng cho preview_order/place_order.
-      const { data: itemRow } = await supabase
-        .from("cart_items")
-        .select("cart_id")
-        .eq("id", data)
-        .single();
-      cartId = itemRow?.cart_id ?? null;
-    }
-  }
+  const result = data as unknown as { cart_id?: string } | null;
+  const cartId = result?.cart_id ?? null;
 
   if (!cartId) {
     return { ok: false, error: "Không thể tạo giỏ hàng. Vui lòng thử lại." };

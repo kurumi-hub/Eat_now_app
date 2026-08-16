@@ -8,7 +8,7 @@ import { createClient } from "@/utils/supabase/server";
 import { sortObject, vnpayConfig } from "@/lib/vnpay";
 
 export async function POST(req: NextRequest) {
-  const user = await requireCurrentUser();
+  await requireCurrentUser();
 
   const body = await req.json().catch(() => null);
   const orderId = body?.orderId as string | undefined;
@@ -19,21 +19,24 @@ export async function POST(req: NextRequest) {
 
   const supabase = await createClient();
 
-  // Lấy đúng đơn của chính user này -- RLS trên bảng orders đã đảm bảo
-  // user chỉ đọc được đơn của mình, nhưng lọc thêm user_id ở đây cho rõ ràng.
-  const { data: order, error } = await supabase
-    .from("orders")
-    .select("id, code, total_price, status, user_id")
-    .eq("id", orderId)
-    .eq("user_id", user.id)
-    .single();
+  const { data, error } = await supabase.rpc("api_get_vnpay_checkout", {
+    p_order_id: orderId,
+  });
 
-  if (error || !order) {
+  if (error || !data) {
     return NextResponse.json(
       { error: "Không tìm thấy đơn hàng." },
       { status: 404 }
     );
   }
+
+  const order = data as unknown as {
+    id: string;
+    code: string;
+    total_price: number;
+    status: string;
+    payment: { id: string; status: string; method: string };
+  };
 
   if (order.status !== "pending") {
     return NextResponse.json(
@@ -42,20 +45,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { data: payment } = await supabase
-    .from("payments")
-    .select("id, status, method")
-    .eq("order_id", order.id)
-    .single();
-
-  if (!payment || payment.method !== "vnpay") {
+  if (!order.payment || order.payment.method !== "vnpay") {
     return NextResponse.json(
       { error: "Đơn hàng này không dùng phương thức VNPay." },
       { status: 400 }
     );
   }
 
-  if (payment.status !== "pending") {
+  if (order.payment.status !== "pending") {
     return NextResponse.json(
       { error: "Giao dịch đã được xử lý trước đó." },
       { status: 400 }
