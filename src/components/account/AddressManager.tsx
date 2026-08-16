@@ -228,7 +228,7 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
         fullWidth
         fullScreen={fullScreen}
         maxWidth="sm"
-        PaperProps={{ sx: { minHeight: fullScreen ? "100%" : 640 } }}
+        slotProps={{ paper: { sx: { minHeight: fullScreen ? "100%" : 640 } } }}
       >
         {editorStep === "location" ? (
           <>
