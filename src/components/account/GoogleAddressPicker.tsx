@@ -376,7 +376,20 @@ export default function GoogleAddressPicker({
           if (next) void reverseLookup(next);
         });
 
-        setIsLoading(false);
+        // Chỉ tắt loading khi bản đồ đã thực sự render xong tile (tilesloaded),
+        // không tắt ngay sau khi khởi tạo object — nếu không spinner biến mất
+        // trong khi khung bản đồ vẫn còn trắng/đang tải tile bên dưới.
+        let settled = false;
+        const finishLoading = () => {
+          if (settled) return;
+          settled = true;
+          if (!disposed) setIsLoading(false);
+        };
+        mapInstance.addListener("tilesloaded", finishLoading);
+        // Fallback: nếu vì lý do gì đó tilesloaded không bắn (mạng chập chờn,
+        // tile server lỗi...), vẫn phải tắt spinner sau một khoảng hợp lý để
+        // không treo UI vĩnh viễn.
+        setTimeout(finishLoading, 4000);
       } catch (loadError) {
         setError(
           loadError instanceof Error
