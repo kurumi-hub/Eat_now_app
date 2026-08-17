@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { PublicUser } from "@/types/auth";
+import CustomerFooter from "./CustomerFooter";
 import CustomerHeader from "./CustomerHeader";
 import {
   homeCategories,
@@ -234,43 +235,7 @@ export default function HomePage({
         </button>
       </nav>
 
-      <footer className="home-footer">
-        <div className="home-footer__inner">
-          <Link className="home-footer__brand" href="/">
-            EatNow
-          </Link>
-          <p>
-            Nền tảng đặt món ăn trực tuyến nhanh chóng, tiện lợi và chuẩn vị tại
-            Cần Thơ.
-          </p>
-          <div className="home-footer__links">
-            <button
-              type="button"
-              onClick={() =>
-                showPlaceholder("Trang giới thiệu sẽ được hoàn thiện sau.")
-              }
-            >
-              Về chúng tôi
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                showPlaceholder("Chính sách bảo mật sẽ được hoàn thiện sau.")
-              }
-            >
-              Chính sách
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                showPlaceholder("Thông tin liên hệ sẽ được hoàn thiện sau.")
-              }
-            >
-              Liên hệ
-            </button>
-          </div>
-        </div>
-      </footer>
+      <CustomerFooter onPlaceholder={showPlaceholder} />
 
       <Snackbar
         open={snackbar.open}

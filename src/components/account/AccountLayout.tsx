@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode, SyntheticEvent } from "react";
 import { useMemo, useState } from "react";
 
+import CustomerFooter from "@/components/home/CustomerFooter";
 import CustomerHeader from "@/components/home/CustomerHeader";
 import type { PublicUser } from "@/types/auth";
 import { hasRole } from "@/utils/roles";
@@ -79,6 +80,8 @@ export default function AccountLayout({ user, children }: AccountLayoutProps) {
           </div>
         </div>
       </main>
+
+      <CustomerFooter onPlaceholder={handlePlaceholder} />
 
       <Snackbar
         open={Boolean(notice)}

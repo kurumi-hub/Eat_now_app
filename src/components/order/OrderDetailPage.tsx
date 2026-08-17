@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import CustomerFooter from "@/components/home/CustomerFooter";
 import CustomerHeader from "@/components/home/CustomerHeader";
 import { useCart } from "@/contexts/CartContext";
 import type { PublicUser } from "@/types/auth";
@@ -304,6 +305,8 @@ export default function OrderDetailPage({
           </aside>
         </div>
       </main>
+
+      <CustomerFooter onPlaceholder={showSnackbar} />
 
       {cancelDialogOpen && (
         <div className="order-cancel-modal">

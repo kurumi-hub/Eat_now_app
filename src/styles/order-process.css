@@ -4,6 +4,8 @@
 .order-detail-page,
 .order-tracking-page {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   overflow-x: hidden;
   background:
     radial-gradient(circle at top left, rgba(208, 228, 255, 0.45), transparent 30%),
@@ -859,6 +861,7 @@
   width: min(100%, 1200px);
   margin: 0 auto;
   padding: 38px 24px 76px;
+  flex: 1 0 auto;
 }
 
 .order-history-title-row,

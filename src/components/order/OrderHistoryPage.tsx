@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import CustomerFooter from "@/components/home/CustomerFooter";
 import CustomerHeader from "@/components/home/CustomerHeader";
 import { useCart } from "@/contexts/CartContext";
 import type { OrderStatus } from "@/contexts/CartContext";
@@ -547,6 +548,8 @@ export default function OrderHistoryPage({ user }: OrderHistoryPageProps) {
           </div>
         )}
       </main>
+
+      <CustomerFooter onPlaceholder={showSnackbar} />
 
       {/* Reorder Modal */}
       {reorderingOrder && (

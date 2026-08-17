@@ -1,5 +1,7 @@
 .home-experience {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   overflow-x: hidden;
   background: #f9f9fc;
   color: #1a1c1e;
@@ -536,30 +538,35 @@
 }
 
 .home-footer {
+  margin-top: auto;
   background: #e8e8ea;
+  border-top: 1px solid rgba(138, 114, 103, 0.12);
 }
 
 .home-footer__inner {
-  display: grid;
+  display: flex;
   width: min(100%, 1200px);
-  min-height: 82px;
-  grid-template-columns: auto 1fr auto;
+  min-height: 76px;
+  justify-content: space-between;
   align-items: center;
-  gap: 24px;
+  flex-wrap: wrap;
+  gap: 16px 24px;
   margin: 0 auto;
-  padding: 20px 24px;
+  padding: 18px 24px;
 }
 
 .home-footer__brand {
   font-size: 24px;
   line-height: 32px;
+  flex-shrink: 0;
 }
 
 .home-footer__links {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  align-items: center;
   gap: 24px;
+  flex-shrink: 0;
 }
 
 .home-footer__links button,
@@ -575,7 +582,8 @@
 
 .home-footer p {
   margin: 0;
-  text-align: right;
+  text-align: center;
+  flex: 1 1 auto;
 }
 
 .home-bottom-nav {
@@ -686,8 +694,10 @@
   }
 
   .home-footer__inner {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    justify-content: center;
     text-align: center;
+    gap: 16px;
   }
 
   .home-footer p {

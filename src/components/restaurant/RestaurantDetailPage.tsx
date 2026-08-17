@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import type { PublicUser } from "@/types/auth";
+import CustomerFooter from "@/components/home/CustomerFooter";
 import CustomerHeader from "@/components/home/CustomerHeader";
 import { useCart } from "@/contexts/CartContext";
 import type {
@@ -265,46 +266,7 @@ export default function RestaurantDetailPage({
         </div>
       </main>
 
-      <footer className="home-footer">
-        <div className="home-footer__inner">
-          <Link className="home-footer__brand" href="/">
-            EatNow
-          </Link>
-          <div className="home-footer__links">
-            <button
-              type="button"
-              onClick={() =>
-                showPlaceholder("Trang giới thiệu sẽ được bổ sung sau.")
-              }
-            >
-              Về chúng tôi
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                showPlaceholder("Điều khoản sẽ được bổ sung sau.")
-              }
-            >
-              Điều khoản
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                showPlaceholder("Chính sách bảo mật sẽ được bổ sung sau.")
-              }
-            >
-              Chính sách bảo mật
-            </button>
-            <button
-              type="button"
-              onClick={() => showPlaceholder("Liên hệ sẽ được bổ sung sau.")}
-            >
-              Liên hệ
-            </button>
-          </div>
-          <p>© 2026 EatNow Food Delivery. Bản quyền thuộc về EatNow.</p>
-        </div>
-      </footer>
+      <CustomerFooter onPlaceholder={showPlaceholder} />
 
       <nav className="restaurant-bottom-nav" aria-label="Điều hướng nhanh">
         <button type="button" onClick={() => router.push("/")}>

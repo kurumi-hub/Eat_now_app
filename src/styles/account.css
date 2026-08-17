@@ -1,5 +1,7 @@
 .account-page {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   overflow-x: hidden;
   background: #f9f9fc;
   color: #1a1c1e;
@@ -10,6 +12,7 @@
   width: min(100%, 1200px);
   margin: 0 auto;
   padding: 40px 24px 56px;
+  flex: 1 0 auto;
 }
 
 .account-layout-grid {
