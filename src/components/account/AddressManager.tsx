@@ -60,6 +60,10 @@ type AddressLabel = "Nhà" | "Công ty" | "Khác";
 
 const initialState: AddressActionState = { status: "idle" };
 
+function createRequestId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 const labelOptions: Array<{
   value: AddressLabel;
   icon: ReactNode;
@@ -80,6 +84,7 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
   );
   const [label, setLabel] = useState<AddressLabel>("Nhà");
   const [pickerVersion, setPickerVersion] = useState(0);
+  const [requestId, setRequestId] = useState("");
   const [state, formAction, isSubmitting] = useActionState(
     createAddressAction,
     initialState
@@ -87,18 +92,23 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (state.status === "success") {
+    if (
+      state.status === "success" &&
+      Boolean(requestId) &&
+      state.requestId === requestId
+    ) {
       setDialogOpen(false);
       setEditorStep("location");
       setSelection(null);
       router.refresh();
     }
-  }, [state.status, router]);
+  }, [requestId, router, state.requestId, state.status]);
 
   const handleOpen = () => {
     setSelection(null);
     setLabel("Nhà");
     setEditorStep("location");
+    setRequestId(createRequestId());
     setPickerVersion((current) => current + 1);
     setDialogOpen(true);
   };
@@ -127,6 +137,9 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
       router.refresh();
     });
   };
+
+  const currentActionState =
+    state.requestId === requestId ? state : initialState;
 
   return (
     <Box>
@@ -271,9 +284,10 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
             <DialogContent
               sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
             >
-              {state.status === "error" && state.message && (
-                <Alert severity="error">{state.message}</Alert>
-              )}
+              {currentActionState.status === "error" &&
+                currentActionState.message && (
+                  <Alert severity="error">{currentActionState.message}</Alert>
+                )}
 
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Box sx={{ display: "flex", gap: 1.25 }}>
@@ -291,6 +305,7 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
               </Paper>
 
               <input type="hidden" name="label" value={label} />
+              <input type="hidden" name="requestId" value={requestId} />
               <input
                 type="hidden"
                 name="formattedAddress"
@@ -328,14 +343,20 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
               <Divider />
 
               <Typography variant="subtitle2">Thông tin người nhận</Typography>
-              <Box sx={{ display: "flex", gap: 1.5, flexDirection: { xs: "column", sm: "row" } }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 1.5,
+                  flexDirection: { xs: "column", sm: "row" },
+                }}
+              >
                 <TextField
                   name="recipientName"
                   label="Tên người nhận"
                   fullWidth
                   required
-                  error={Boolean(state.fieldErrors?.recipientName)}
-                  helperText={state.fieldErrors?.recipientName}
+                  error={Boolean(currentActionState.fieldErrors?.recipientName)}
+                  helperText={currentActionState.fieldErrors?.recipientName}
                 />
                 <TextField
                   name="phone"
@@ -343,8 +364,8 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
                   fullWidth
                   required
                   inputMode="tel"
-                  error={Boolean(state.fieldErrors?.phone)}
-                  helperText={state.fieldErrors?.phone}
+                  error={Boolean(currentActionState.fieldErrors?.phone)}
+                  helperText={currentActionState.fieldErrors?.phone}
                 />
               </Box>
 

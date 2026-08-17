@@ -115,7 +115,9 @@ province
 ```
 
 After file 04, run `06_rpc_api_boundary.sql`, then
-`08_google_address_v2.sql`. The updated source does not query
+`08_google_address_v2.sql`. For an existing deployment where saving is already
+failing, also run the idempotent repair `10_fix_address_save.sql`. The updated
+source does not query
 Supabase tables directly; address, cart, restaurant and VNPay data operations
 all go through RPC functions. Supabase Auth calls remain in the SDK because
 they operate on the Auth service rather than public database tables.
