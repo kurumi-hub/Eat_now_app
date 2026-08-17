@@ -1,10 +1,13 @@
 "use client";
 
+import AddLocationAltOutlinedIcon from "@mui/icons-material/AddLocationAltOutlined";
+import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import {
   Alert,
   Box,
   Button,
+  Chip,
   CircularProgress,
   Divider,
   FormControl,
@@ -16,16 +19,25 @@ import {
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 
+import CheckoutAddressDialog from "@/components/checkout/CheckoutAddressDialog";
 import CustomerHeader from "@/components/home/CustomerHeader";
 import type { AccountAddress } from "@/types/account";
 import type { PublicUser } from "@/types/auth";
 import { useCartStore } from "@/store/cartStore";
 import {
+  listCheckoutVouchers,
   placeOrder,
   previewOrder,
   syncCartToServer,
+  type CheckoutVoucher,
 } from "@/app/checkout/actions";
 
 type CheckoutPageProps = {
@@ -53,6 +65,19 @@ type PreviewState = {
   voucher?: { valid: boolean; reason?: string };
 } | null;
 
+function voucherBenefit(voucher: CheckoutVoucher) {
+  const target =
+    voucher.discountScope === "shipping" ? "phí giao hàng" : "món ăn";
+  if (voucher.discountType === "fixed") {
+    return `Giảm ${formatCurrency(voucher.discountValue)} ${target}`;
+  }
+
+  const maximum = voucher.maxDiscount
+    ? `, tối đa ${formatCurrency(voucher.maxDiscount)}`
+    : "";
+  return `Giảm ${voucher.discountValue}% ${target}${maximum}`;
+}
+
 export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   const router = useRouter();
   const lines = useCartStore((state) => state.lines);
@@ -69,6 +94,10 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
 
   const [addressId, setAddressId] = useState(defaultAddress?.id ?? "");
   const [voucherCode, setVoucherCode] = useState("");
+  const [vouchers, setVouchers] = useState<CheckoutVoucher[]>([]);
+  const [voucherError, setVoucherError] = useState("");
+  const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
+  const [addressDialogOpen, setAddressDialogOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "vnpay">("cod");
   const [note, setNote] = useState("");
 
@@ -78,6 +107,18 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   const [error, setError] = useState("");
   const [isSyncing, startSyncing] = useTransition();
   const [isPlacing, startPlacing] = useTransition();
+
+  useEffect(() => {
+    if (!addressId && defaultAddress) setAddressId(defaultAddress.id);
+  }, [addressId, defaultAddress]);
+
+  const handleAddressCreated = useCallback((newAddressId: string) => {
+    setAddressId(newAddressId);
+  }, []);
+
+  const handleCloseAddressDialog = useCallback(() => {
+    setAddressDialogOpen(false);
+  }, []);
 
   // Đồng bộ giỏ hàng lên server 1 lần khi vào trang checkout, để lấy cart_id
   // dùng cho preview_order/place_order.
@@ -96,6 +137,40 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
     // Chỉ chạy 1 lần khi vào trang, không refetch mỗi lần user gõ voucher.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
+
+  useEffect(() => {
+    if (!cartId) {
+      setVouchers([]);
+      return;
+    }
+
+    let cancelled = false;
+    setVoucherError("");
+    setIsLoadingVouchers(true);
+
+    (async () => {
+      const result = await listCheckoutVouchers(cartId);
+      if (cancelled) return;
+
+      setIsLoadingVouchers(false);
+      if (!result.ok) {
+        setVoucherError(result.error);
+        setVouchers([]);
+        return;
+      }
+
+      setVouchers(result.vouchers);
+      setVoucherCode((current) =>
+        current && !result.vouchers.some((voucher) => voucher.code === current)
+          ? ""
+          : current
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cartId]);
 
   // Tính lại preview mỗi khi đổi địa chỉ/voucher, sau khi đã có cartId.
   useEffect(() => {
@@ -224,19 +299,30 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
         {error && <Alert severity="error">{error}</Alert>}
 
         <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
-            Địa chỉ giao hàng
-          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 1,
+              mb: 1,
+            }}
+          >
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Địa chỉ giao hàng
+            </Typography>
+            <Button
+              size="small"
+              startIcon={<AddLocationAltOutlinedIcon />}
+              onClick={() => setAddressDialogOpen(true)}
+            >
+              Thêm địa chỉ mới
+            </Button>
+          </Box>
 
           {addresses.length === 0 ? (
-            <Alert severity="warning" sx={{ mb: 1 }}>
-              Bạn chưa có địa chỉ giao hàng nào.{" "}
-              <Button
-                size="small"
-                onClick={() => router.push("/account/addresses")}
-              >
-                Thêm địa chỉ
-              </Button>
+            <Alert severity="warning">
+              Bạn chưa có địa chỉ giao hàng. Hãy thêm địa chỉ mới để tiếp tục.
             </Alert>
           ) : (
             <FormControl fullWidth>
@@ -254,10 +340,16 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
                         <PlaceOutlinedIcon fontSize="small" color="action" />
-                        <Typography variant="body2">
-                          {address.line1}
-                          {address.isDefault && " (Mặc định)"}
-                        </Typography>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {address.recipientName || "Người nhận"}
+                            {address.phone ? ` · ${address.phone}` : ""}
+                            {address.isDefault && " (Mặc định)"}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {address.line1}
+                          </Typography>
+                        </Box>
                       </Box>
                     }
                   />
@@ -269,19 +361,83 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
 
         <Paper variant="outlined" sx={{ p: 2.5 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
-            Mã giảm giá
+            Voucher
           </Typography>
-          <TextField
-            fullWidth
-            size="small"
-            placeholder="Nhập mã voucher (không bắt buộc)"
-            value={voucherCode}
-            onChange={(e) => setVoucherCode(e.target.value.trim())}
-          />
+
+          {isLoadingVouchers && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
+              <CircularProgress size={16} />
+              <Typography variant="body2" color="text.secondary">
+                Đang tải voucher...
+              </Typography>
+            </Box>
+          )}
+
+          {voucherError && <Alert severity="error">{voucherError}</Alert>}
+
+          {!isLoadingVouchers && !voucherError && (
+            <RadioGroup
+              value={voucherCode}
+              onChange={(event) => setVoucherCode(event.target.value)}
+            >
+              <FormControlLabel
+                value=""
+                control={<Radio />}
+                label="Không sử dụng voucher"
+              />
+
+              {vouchers.map((voucher) => (
+                <FormControlLabel
+                  key={voucher.id}
+                  value={voucher.code}
+                  control={<Radio />}
+                  label={
+                    <Box sx={{ display: "flex", gap: 1.25, py: 0.75 }}>
+                      <LocalOfferOutlinedIcon color="primary" fontSize="small" />
+                      <Box>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <Chip
+                            label={voucher.code}
+                            color="primary"
+                            variant="outlined"
+                            size="small"
+                          />
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {voucher.name}
+                          </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                          {voucherBenefit(voucher)}
+                          {voucher.minOrderValue > 0 &&
+                            ` · Đơn tối thiểu ${formatCurrency(
+                              voucher.minOrderValue
+                            )}`}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  }
+                />
+              ))}
+
+              {vouchers.length === 0 && (
+                <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
+                  Hiện chưa có voucher phù hợp với nhà hàng này.
+                </Typography>
+              )}
+            </RadioGroup>
+          )}
+
           {preview?.voucher && voucherCode && !preview.voucher.valid && (
-            <Typography variant="caption" color="error">
+            <Alert severity="warning" sx={{ mt: 1 }}>
               {preview.voucher.reason || "Voucher không hợp lệ"}
-            </Typography>
+            </Alert>
           )}
         </Paper>
 
@@ -389,6 +545,12 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
           {paymentMethod === "vnpay" ? "Thanh toán qua VNPay" : "Đặt hàng"}
         </Button>
       </Box>
+
+      <CheckoutAddressDialog
+        open={addressDialogOpen}
+        onClose={handleCloseAddressDialog}
+        onCreated={handleAddressCreated}
+      />
     </>
   );
 }

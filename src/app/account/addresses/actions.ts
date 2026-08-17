@@ -16,6 +16,7 @@ import {
 export type AddressActionState = {
   status: "idle" | "success" | "error";
   requestId?: string;
+  addressId?: string;
   message?: string;
   fieldErrors?: Partial<Record<AddressField, string>>;
 };
@@ -215,10 +216,11 @@ export async function createAddressAction(
     p_lon: selectedLon,
     p_is_default: values.isDefault ?? false,
   };
-  let { error } = await supabase.rpc("api_create_address_v2", {
+  const result = await supabase.rpc("api_create_address_v2", {
     ...addressArgs,
     p_google_place_id: geo.placeId || googlePlaceId || null,
   });
+  let { data, error } = result;
 
   // Cho phép deploy source trước migration 08/10 mà không làm gián đoạn lưu
   // địa chỉ. RPC v1 vẫn an toàn ở đây vì tọa độ đã được server xác minh ở trên.
@@ -226,10 +228,8 @@ export async function createAddressAction(
     console.warn(
       "api_create_address_v2 is unavailable; falling back to api_create_address"
     );
-    const fallbackResult = await supabase.rpc(
-      "api_create_address",
-      addressArgs
-    );
+    const fallbackResult = await supabase.rpc("api_create_address", addressArgs);
+    data = fallbackResult.data;
     error = fallbackResult.error;
   }
 
@@ -247,6 +247,10 @@ export async function createAddressAction(
   return {
     status: "success",
     requestId,
+    addressId:
+      typeof (data as { id?: unknown } | null)?.id === "string"
+        ? ((data as { id: string }).id)
+        : undefined,
     message: "Đã lưu địa chỉ mới.",
   };
 }

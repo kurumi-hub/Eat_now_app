@@ -83,6 +83,70 @@ export async function previewOrder(
   return { ok: true, preview: data };
 }
 
+export type CheckoutVoucher = {
+  id: string;
+  code: string;
+  name: string;
+  discountType: "percent" | "fixed";
+  discountValue: number;
+  maxDiscount: number | null;
+  minOrderValue: number;
+  discountScope: "items" | "shipping";
+  expiredAt: string;
+};
+
+type CheckoutVoucherRow = {
+  id: string;
+  code: string;
+  name: string;
+  discount_type: "percent" | "fixed";
+  discount_value: number;
+  max_discount: number | null;
+  min_order_value: number;
+  discount_scope: "items" | "shipping";
+  expired_at: string;
+};
+
+export type ListCheckoutVouchersResult =
+  | { ok: true; vouchers: CheckoutVoucher[] }
+  | { ok: false; error: string };
+
+export async function listCheckoutVouchers(
+  cartId: string
+): Promise<ListCheckoutVouchersResult> {
+  await requireCurrentUser();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("api_list_checkout_vouchers", {
+    p_cart_id: cartId,
+  });
+
+  if (error) {
+    console.error("listCheckoutVouchers error:", error.message);
+    return {
+      ok: false,
+      error: "Không thể tải voucher. Vui lòng thử lại.",
+    };
+  }
+
+  const rows = (data ?? []) as unknown as CheckoutVoucherRow[];
+  return {
+    ok: true,
+    vouchers: rows.map((row) => ({
+      id: row.id,
+      code: row.code,
+      name: row.name,
+      discountType: row.discount_type,
+      discountValue: Number(row.discount_value),
+      maxDiscount:
+        row.max_discount === null ? null : Number(row.max_discount),
+      minOrderValue: Number(row.min_order_value),
+      discountScope: row.discount_scope,
+      expiredAt: row.expired_at,
+    })),
+  };
+}
+
 export type PlaceOrderResult =
   | { ok: true; orderId: string; orderCode: string; totalPrice: number }
   | { ok: false; error: string };
