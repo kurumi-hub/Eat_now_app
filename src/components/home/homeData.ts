@@ -22,12 +22,6 @@ export type HomeFood = {
   image: string;
 };
 
-export type HomeRecipe = {
-  title: string;
-  description: string;
-  image: string;
-};
-
 export const homeHeroImage = "/images/home/hero.png";
 
 export const homeCategories: HomeCategory[] = [
@@ -77,23 +71,3 @@ export const nearbyFoods: HomeFood[] = [
   { name: "Trà đào", image: "/images/home/food-tra-dao.png" },
 ];
 
-export const recommendedRecipes: HomeRecipe[] = [
-  {
-    title: "Cơm tấm sườn nướng tại nhà",
-    description:
-      "Bí quyết ướp sườn mềm, thơm nức mũi như ngoài hàng.",
-    image: "/images/home/recipe-com-tam.png",
-  },
-  {
-    title: "Bí quyết nấu phở bò",
-    description:
-      "Cách hầm xương trong veo và dậy mùi thảo mộc đặc trưng.",
-    image: "/images/home/recipe-pho.png",
-  },
-  {
-    title: "Gỏi cuốn tôm thịt",
-    description:
-      "Món ăn thanh đạm, dễ làm với nước chấm tương đậu phộng.",
-    image: "/images/home/recipe-goi-cuon.png",
-  },
-];

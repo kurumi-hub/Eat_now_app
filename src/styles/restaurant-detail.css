@@ -402,7 +402,7 @@
     z-index: 44;
     display: grid;
     min-height: 64px;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
     border-radius: 24px;
     background: #ffffff;

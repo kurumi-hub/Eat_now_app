@@ -30,6 +30,7 @@ import { useCartStore } from "@/store/cartStore";
 
 type CustomerHeaderProps = {
   user: PublicUser | null;
+  deliveryAddress?: string | null;
   onPlaceholder: (message: string) => void;
   onSectionNavigate: (sectionId: string) => void;
 };
@@ -37,7 +38,6 @@ type CustomerHeaderProps = {
 const navItems = [
   { label: "Khám phá", sectionId: "home-hero" },
   { label: "Nhà hàng", sectionId: "featured-restaurants" },
-  { label: "Công thức", sectionId: "recipes" },
   { label: "Ưu đãi", sectionId: "featured-categories" },
 ];
 
@@ -53,6 +53,7 @@ function getInitials(fullName = "EatNow") {
 
 export default function CustomerHeader({
   user,
+  deliveryAddress,
   onPlaceholder,
   onSectionNavigate,
 }: CustomerHeaderProps) {
@@ -90,17 +91,21 @@ export default function CustomerHeader({
           <Link className="home-logo" href="/" aria-label="EatNow trang chủ">
             EatNow
           </Link>
-          <button
+          <Link
             className="home-location"
-            type="button"
-            onClick={() =>
-              onPlaceholder("Chọn vị trí giao hàng sẽ được hoàn thiện sau.")
+            href={
+              hasRole(user, "CUSTOMER")
+                ? "/account/addresses"
+                : user
+                  ? "/account/profile"
+                  : "/login?next=/account/addresses"
             }
+            title={deliveryAddress || "Chọn địa chỉ giao hàng"}
           >
             <LocationOnOutlinedIcon fontSize="small" />
-            <span>Ninh Kiều, Cần Thơ</span>
+            <span>{deliveryAddress || "Chọn địa chỉ giao hàng"}</span>
             <ExpandMoreOutlinedIcon fontSize="small" />
-          </button>
+          </Link>
         </div>
 
         <form className="home-search" role="search" onSubmit={handleSearchSubmit}>

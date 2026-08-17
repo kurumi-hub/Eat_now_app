@@ -5,7 +5,6 @@ import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
-import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
 import StarOutlinedIcon from "@mui/icons-material/StarOutlined";
@@ -390,17 +389,6 @@ export default function RestaurantDetailPage({
         >
           <ReceiptLongOutlinedIcon />
           <span>Đơn hàng</span>
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            showPlaceholder(
-              "Trang công thức sẽ được triển khai ở sprint tiếp theo."
-            )
-          }
-        >
-          <MenuBookOutlinedIcon />
-          <span>Công thức</span>
         </button>
       </nav>
 

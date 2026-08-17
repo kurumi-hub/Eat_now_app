@@ -3,7 +3,6 @@
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
-import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import StarBorderOutlinedIcon from "@mui/icons-material/StarBorderOutlined";
@@ -18,12 +17,12 @@ import {
   homeCategories,
   homeHeroImage,
   nearbyFoods,
-  recommendedRecipes,
 } from "./homeData";
 import type { HomeRestaurant } from "./homeData";
 
 type HomePageProps = {
   user: PublicUser | null;
+  defaultDeliveryAddress: string | null;
   featuredRestaurants: HomeRestaurant[];
 };
 
@@ -39,7 +38,11 @@ function scrollToSection(sectionId: string) {
   });
 }
 
-export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
+export default function HomePage({
+  user,
+  defaultDeliveryAddress,
+  featuredRestaurants,
+}: HomePageProps) {
   const router = useRouter();
   const [snackbar, setSnackbar] = useState<SnackbarState>({
     open: false,
@@ -58,6 +61,7 @@ export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
     <div className="home-experience">
       <CustomerHeader
         user={user}
+        deliveryAddress={defaultDeliveryAddress}
         onPlaceholder={showPlaceholder}
         onSectionNavigate={scrollToSection}
       />
@@ -186,39 +190,6 @@ export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
           </div>
         </section>
 
-        <section id="recipes" className="home-section">
-          <div className="home-section__heading">
-            <h2>Công Thức Gợi Ý</h2>
-            <button
-              type="button"
-              onClick={() =>
-                showPlaceholder(
-                  "Trang công thức sẽ được triển khai ở sprint tiếp theo."
-                )
-              }
-            >
-              Khám phá
-            </button>
-          </div>
-          <div className="home-recipe-grid">
-            {recommendedRecipes.map((recipe) => (
-              <article className="home-recipe-card" key={recipe.title}>
-                <div className="home-card-media home-card-media--recipe">
-                  <Image
-                    src={recipe.image}
-                    alt={recipe.title}
-                    fill
-                    sizes="(max-width: 760px) 100vw, 33vw"
-                  />
-                </div>
-                <div className="home-recipe-card__body">
-                  <h3>{recipe.title}</h3>
-                  <p>{recipe.description}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
       </main>
 
       <button
@@ -250,10 +221,6 @@ export default function HomePage({ user, featuredRestaurants }: HomePageProps) {
         >
           <RestaurantMenuOutlinedIcon />
           <span>Nhà hàng</span>
-        </button>
-        <button type="button" onClick={() => scrollToSection("recipes")}>
-          <MenuBookOutlinedIcon />
-          <span>Công thức</span>
         </button>
         <button
           type="button"

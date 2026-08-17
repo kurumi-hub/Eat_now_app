@@ -82,9 +82,13 @@
   font-size: 13px;
   font-weight: 600;
   padding: 8px 12px;
+  text-decoration: none;
 }
 
 .home-location span {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -319,8 +323,7 @@
 
 .home-category-grid,
 .home-restaurant-grid,
-.home-food-grid,
-.home-recipe-grid {
+.home-food-grid {
   display: grid;
   gap: 16px;
 }
@@ -350,8 +353,7 @@
 
 .home-category-card:hover,
 .home-restaurant-card:hover,
-.home-food-card:hover,
-.home-recipe-card:hover {
+.home-food-card:hover {
   box-shadow: 0 14px 26px rgba(119, 87, 77, 0.14);
   transform: translateY(-2px);
 }
@@ -375,8 +377,7 @@
   gap: 20px;
 }
 
-.home-restaurant-card,
-.home-recipe-card {
+.home-restaurant-card {
   overflow: hidden;
   border-radius: 12px;
   background: #ffffff;
@@ -395,10 +396,6 @@
   background: #e2e2e5;
 }
 
-.home-card-media--recipe {
-  height: 154px;
-}
-
 .home-card-media img,
 .home-food-card__media img {
   object-fit: cover;
@@ -406,19 +403,16 @@
 }
 
 .home-restaurant-card:hover img,
-.home-food-card:hover img,
-.home-recipe-card:hover img {
+.home-food-card:hover img {
   transform: scale(1.05);
 }
 
-.home-restaurant-card__body,
-.home-recipe-card__body {
+.home-restaurant-card__body {
   padding: 14px 16px 16px;
 }
 
 .home-restaurant-card h3,
-.home-food-card h3,
-.home-recipe-card h3 {
+.home-food-card h3 {
   margin: 0;
   color: #1a1c1e;
   font-weight: 500;
@@ -468,24 +462,6 @@
   text-align: center;
   font-size: 12px;
   font-weight: 600;
-  line-height: 16px;
-}
-
-.home-recipe-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
-}
-
-.home-recipe-card h3 {
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 24px;
-}
-
-.home-recipe-card p {
-  margin: 6px 0 0;
-  color: #5a4136;
-  font-size: 12px;
   line-height: 16px;
 }
 
@@ -672,8 +648,7 @@
   }
 
   .home-category-grid,
-  .home-restaurant-grid,
-  .home-recipe-grid {
+  .home-restaurant-grid {
     grid-template-columns: 1fr;
   }
 
@@ -707,7 +682,7 @@
     z-index: 36;
     display: grid;
     min-height: 64px;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
     border-radius: 24px;
     background: #ffffff;

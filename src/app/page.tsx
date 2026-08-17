@@ -1,6 +1,8 @@
 import HomePage from "@/components/home/HomePage";
+import { listAddressesAction } from "@/app/account/addresses/actions";
 import { getFeaturedRestaurants } from "@/lib/data/restaurants";
 import { getCurrentPublicUser } from "@/utils/auth/guards";
+import { hasRole } from "@/utils/roles";
 
 export default async function Home() {
   const [user, featuredRestaurants] = await Promise.all([
@@ -8,5 +10,16 @@ export default async function Home() {
     getFeaturedRestaurants(),
   ]);
 
-  return <HomePage user={user} featuredRestaurants={featuredRestaurants} />;
+  const addresses =
+    user && hasRole(user, "CUSTOMER") ? await listAddressesAction() : [];
+  const defaultAddress =
+    addresses.find((address) => address.isDefault) ?? addresses[0] ?? null;
+
+  return (
+    <HomePage
+      user={user}
+      defaultDeliveryAddress={defaultAddress?.line1 ?? null}
+      featuredRestaurants={featuredRestaurants}
+    />
+  );
 }
