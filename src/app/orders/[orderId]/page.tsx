@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import CustomerHeader from "@/components/home/CustomerHeader";
+import OrderPageHeader from "@/components/common/OrderPageHeader";
 import { requireCurrentUser } from "@/utils/auth/guards";
 import { createClient } from "@/utils/supabase/server";
 
@@ -143,11 +143,7 @@ export default async function OrderDetailRoute({
 
   return (
     <div className="restaurant-detail-page">
-      <CustomerHeader
-        user={user}
-        onPlaceholder={() => undefined}
-        onSectionNavigate={() => undefined}
-      />
+      <OrderPageHeader user={user} />
 
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "32px 16px 96px" }}>
         <p style={{ color: "var(--color-text-secondary, #6b7280)", marginBottom: 4 }}>
