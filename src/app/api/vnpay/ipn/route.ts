@@ -1,9 +1,12 @@
-import crypto from "crypto";
-import qs from "qs";
 import { NextRequest, NextResponse } from "next/server";
 
 import { createAdminClient } from "@/utils/supabase/admin";
-import { sortObject, vnpayConfig } from "@/lib/vnpay";
+import {
+  txnRefToOrderId,
+  verifyVnpaySecureHash,
+  vnpayConfig,
+  type VnpayParams,
+} from "@/lib/vnpay";
 
 // VNPay yêu cầu response đúng format { RspCode, Message } -- KHÔNG được
 // redirect hay trả về HTML ở endpoint này.
@@ -15,20 +18,19 @@ export async function GET(req: NextRequest) {
   const params = Object.fromEntries(req.nextUrl.searchParams.entries());
   const secureHash = params.vnp_SecureHash;
 
-  const vnp_Params: Record<string, string> = { ...params };
-  delete vnp_Params.vnp_SecureHash;
-  delete vnp_Params.vnp_SecureHashType;
+  const vnpParams: VnpayParams = { ...params };
+  delete vnpParams.vnp_SecureHash;
+  delete vnpParams.vnp_SecureHashType;
 
-  const sorted = sortObject(vnp_Params);
-  const signData = qs.stringify(sorted, { encode: false });
-  const hmac = crypto.createHmac("sha512", vnpayConfig.vnp_HashSecret);
-  const checkHash = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
-
-  if (secureHash !== checkHash) {
+  if (!verifyVnpaySecureHash(
+    vnpParams,
+    secureHash,
+    vnpayConfig.vnp_HashSecret
+  )) {
     return ipnResponse("97", "Invalid signature");
   }
 
-  const orderId = params.vnp_TxnRef;
+  const orderId = txnRefToOrderId(params.vnp_TxnRef);
   const rspCode = params.vnp_ResponseCode;
   const transactionId = params.vnp_TransactionNo || params.vnp_TxnRef;
   const success = rspCode === "00";

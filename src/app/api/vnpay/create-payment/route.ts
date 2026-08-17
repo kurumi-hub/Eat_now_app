@@ -1,14 +1,28 @@
-import crypto from "crypto";
 import moment from "moment";
-import qs from "qs";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireCurrentUser } from "@/utils/auth/guards";
 import { createClient } from "@/utils/supabase/server";
-import { sortObject, vnpayConfig } from "@/lib/vnpay";
+import {
+  buildVnpayQuery,
+  createVnpaySecureHash,
+  orderIdToTxnRef,
+  validateVnpayConfig,
+  vnpayConfig,
+  type VnpayParams,
+} from "@/lib/vnpay";
 
 export async function POST(req: NextRequest) {
   await requireCurrentUser();
+
+  const configError = validateVnpayConfig();
+  if (configError) {
+    console.error(`VNPay configuration error: ${configError}`);
+    return NextResponse.json(
+      { error: "Cấu hình VNPay trên máy chủ chưa đầy đủ." },
+      { status: 500 }
+    );
+  }
 
   const body = await req.json().catch(() => null);
   const orderId = body?.orderId as string | undefined;
@@ -59,36 +73,37 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const date = new Date();
-  const createDate = moment(date).format("YYYYMMDDHHmmss");
-  const ipAddr = req.headers.get("x-forwarded-for") || "127.0.0.1";
+  const now = moment().utcOffset(7 * 60);
+  const createDate = now.format("YYYYMMDDHHmmss");
+  const expireDate = now.clone().add(15, "minutes").format("YYYYMMDDHHmmss");
+  const ipAddr =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip")?.trim() ||
+    "127.0.0.1";
 
-  let vnp_Params: Record<string, string | number> = {
+  const vnpParams: VnpayParams = {
     vnp_Version: "2.1.0",
     vnp_Command: "pay",
     vnp_TmnCode: vnpayConfig.vnp_TmnCode,
     vnp_Locale: "vn",
     vnp_CurrCode: "VND",
     // Dùng order.id làm mã tham chiếu để đối chiếu 1-1 khi IPN gọi về.
-    vnp_TxnRef: order.id,
+    vnp_TxnRef: orderIdToTxnRef(order.id),
     vnp_OrderInfo: `Thanh toan don hang ${order.code}`,
     vnp_OrderType: "other",
     vnp_Amount: Math.round(order.total_price) * 100,
     vnp_ReturnUrl: vnpayConfig.vnp_ReturnUrl,
     vnp_IpAddr: ipAddr,
     vnp_CreateDate: createDate,
-    vnp_BankCode: "VNPAYQR",
+    vnp_ExpireDate: expireDate,
   };
 
-  vnp_Params = sortObject(vnp_Params);
-
-  const signData = qs.stringify(vnp_Params, { encode: false });
-  const hmac = crypto.createHmac("sha512", vnpayConfig.vnp_HashSecret);
-  const signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
-  vnp_Params.vnp_SecureHash = signed;
-
-  const paymentUrl =
-    vnpayConfig.vnp_Url + "?" + qs.stringify(vnp_Params, { encode: false });
+  const signData = buildVnpayQuery(vnpParams);
+  const secureHash = createVnpaySecureHash(
+    vnpParams,
+    vnpayConfig.vnp_HashSecret
+  );
+  const paymentUrl = `${vnpayConfig.vnp_Url}?${signData}&vnp_SecureHash=${secureHash}`;
 
   return NextResponse.json({ paymentUrl });
 }

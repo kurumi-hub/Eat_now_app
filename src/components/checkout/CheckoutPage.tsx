@@ -145,8 +145,6 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
         return;
       }
 
-      clearCart();
-
       if (paymentMethod === "vnpay") {
         const res = await fetch("/api/vnpay/create-payment", {
           method: "POST",
@@ -162,10 +160,14 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
           return;
         }
 
+        // Chỉ xóa giỏ phía client sau khi đã có URL VNPay hợp lệ, tránh UI
+        // nhảy sang "Giỏ hàng đang trống" trong lúc endpoint còn đang xử lý.
+        clearCart();
         window.location.href = data.paymentUrl;
         return;
       }
 
+      clearCart();
       router.push(`/orders/${result.orderId}`);
     });
   };
