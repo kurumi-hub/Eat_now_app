@@ -501,7 +501,7 @@ export default function ModeratorDashboard({
                 value={note}
                 error={Boolean(noteError)}
                 helperText={noteError || `${note.length}/1000 ký tự`}
-                inputProps={{ maxLength: 1000 }}
+                slotProps={{ htmlInput: { maxLength: 1000 } }}
                 onChange={(event) => {
                   setNote(event.target.value);
                   setNoteError("");
