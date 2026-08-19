@@ -12,6 +12,7 @@
 }
 
 .auth-card {
+  position: relative;
   width: min(100%, 1180px);
   min-height: 704px;
   display: grid;
@@ -21,6 +22,40 @@
   border-radius: var(--eatnow-radius-dialog);
   background: var(--eatnow-surface);
   box-shadow: var(--eatnow-shadow-3);
+}
+
+.auth-close-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 5;
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(215, 205, 198, 0.9);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--eatnow-text-primary);
+  box-shadow: 0 8px 22px rgba(61, 43, 34, 0.12);
+  backdrop-filter: blur(8px);
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.auth-close-button:hover {
+  transform: translateY(-1px);
+  background: #ffffff;
+  color: var(--eatnow-primary-dark);
+  box-shadow: 0 12px 26px rgba(61, 43, 34, 0.16);
+}
+
+.auth-close-button:focus-visible {
+  outline: 3px solid rgba(217, 71, 32, 0.25);
+  outline-offset: 2px;
 }
 
 .auth-card--login {
@@ -126,6 +161,18 @@
   width: 100%;
 }
 
+.auth-form .MuiTextField-root,
+.auth-form .MuiFormControl-root {
+  width: 100%;
+}
+
+.auth-form .MuiFormHelperText-root {
+  min-height: 18px;
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .auth-form--register {
   max-width: 430px;
 }
@@ -141,6 +188,27 @@
 .auth-description {
   margin: 0;
   color: var(--eatnow-text-secondary);
+  font-size: 15px;
+  line-height: 23px;
+  overflow-wrap: anywhere;
+}
+
+.auth-header {
+  display: grid;
+  gap: 8px;
+}
+
+.auth-header--centered {
+  text-align: center;
+}
+
+.auth-form-content > .auth-header + .auth-form {
+  margin-top: 26px;
+}
+
+.auth-email-highlight {
+  color: var(--eatnow-text-primary);
+  font-weight: 750;
 }
 
 .auth-field-row {
@@ -196,6 +264,21 @@
   color: var(--eatnow-primary);
 }
 
+.auth-back-link {
+  width: fit-content;
+  margin-inline: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--eatnow-text-secondary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.auth-back-link:hover {
+  color: var(--eatnow-primary-dark);
+}
+
 .auth-button-link {
   min-height: 44px;
   width: 100%;
@@ -220,6 +303,81 @@
   font-size: 14px;
   line-height: 22px;
   text-align: center;
+}
+
+.auth-otp-field {
+  display: grid;
+  gap: 9px;
+}
+
+.auth-otp-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.auth-otp-digit {
+  width: 100%;
+  min-width: 0;
+  height: 52px;
+  padding: 0;
+  border: 1.5px solid var(--eatnow-border);
+  border-radius: 12px;
+  outline: none;
+  background: #ffffff;
+  color: var(--eatnow-text-primary);
+  font: inherit;
+  font-size: 21px;
+  line-height: 1;
+  font-weight: 800;
+  text-align: center;
+  caret-color: var(--eatnow-primary);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+.auth-otp-digit:hover:not(:disabled) {
+  border-color: rgba(217, 71, 32, 0.6);
+}
+
+.auth-otp-digit:focus {
+  border-color: var(--eatnow-primary);
+  box-shadow: 0 0 0 3px rgba(217, 71, 32, 0.13);
+}
+
+.auth-otp-digit:disabled {
+  background: var(--eatnow-background);
+  color: var(--eatnow-text-secondary);
+  cursor: not-allowed;
+}
+
+.auth-otp-grid--error .auth-otp-digit {
+  border-color: var(--eatnow-error, #d32f2f);
+}
+
+.auth-result-panel {
+  width: 100%;
+}
+
+.auth-status-icon {
+  width: 68px;
+  height: 68px;
+  margin-inline: auto;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+}
+
+.auth-status-icon svg {
+  font-size: 34px;
+}
+
+.auth-status-icon--success {
+  background: rgba(46, 125, 50, 0.1);
+  color: #2e7d32;
 }
 
 .auth-otp-actions {
@@ -280,7 +438,7 @@
 
   .auth-form-panel,
   .auth-card--login .auth-form-panel {
-    padding: 28px 18px 32px;
+    padding: 64px 18px 32px;
   }
 
   .auth-form-content,
@@ -302,6 +460,20 @@
     font-size: 28px;
     line-height: 36px;
   }
+
+  .auth-header--centered-mobile {
+    text-align: center;
+  }
+
+  .auth-otp-grid {
+    gap: 6px;
+  }
+
+  .auth-otp-digit {
+    height: 48px;
+    border-radius: 10px;
+    font-size: 19px;
+  }
 }
 
 @media (max-width: 420px) {
@@ -312,5 +484,22 @@
   .auth-form-panel,
   .auth-card--login .auth-form-panel {
     padding-inline: 16px;
+  }
+
+  .auth-close-button {
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .auth-otp-grid {
+    gap: 5px;
+  }
+
+  .auth-otp-digit {
+    height: 44px;
+    border-radius: 9px;
+    font-size: 18px;
   }
 }

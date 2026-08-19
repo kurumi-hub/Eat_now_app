@@ -19,8 +19,10 @@ Sau khi tạo hoặc sửa `.env.local`, tắt và chạy lại `npm run dev`.
 - `/login`: đăng nhập email + mật khẩu.
 - `/register`: route sản phẩm để đăng ký tài khoản khách hàng.
 - `/signup`: alias tạm thời của `/register`.
-- `/signup/verify?email=...`: nhập mã OTP 6 số sau khi đăng ký.
+- `/signup/verify?email=...`: nhập mã OTP 8 số sau khi đăng ký.
 - `/signup/check-email`: fallback hướng dẫn kiểm tra email.
+- `/forgot-password`: yêu cầu email đặt lại mật khẩu.
+- `/reset-password`: đặt mật khẩu mới sau khi xác nhận liên kết recovery.
 
 ## Cấu trúc chính
 
@@ -30,6 +32,8 @@ src/app/login/page.tsx              # Login route
 src/app/register/page.tsx           # Register route
 src/app/signup/page.tsx             # Legacy alias
 src/app/signup/verify/page.tsx      # OTP route
+src/app/forgot-password/page.tsx    # Request password reset
+src/app/reset-password/page.tsx     # Set a new password
 src/components/auth/AuthLayout.tsx
 src/components/auth/AuthBrandPanel.tsx
 src/components/auth/LoginForm.tsx
@@ -46,4 +50,6 @@ src/styles/auth.css
   `profiles`.
 - Phase 5 tạm ghi `roles: ["CUSTOMER"]` vào metadata khi public signup.
 - OAuth buttons hiện là placeholder, chưa gọi provider thật.
-- Password reset chưa triển khai vì chưa có contract.
+- Nên cấu hình `NEXT_PUBLIC_SITE_URL` bằng origin production để liên kết đặt
+  lại mật khẩu luôn quay về đúng domain. Khi biến này chưa có, server action
+  dùng host của request hiện tại.

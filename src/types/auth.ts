@@ -46,6 +46,15 @@ export type SignupOtpFormValues = {
   token: string;
 };
 
+export type ForgotPasswordFormValues = {
+  email: string;
+};
+
+export type ResetPasswordFormValues = {
+  password: string;
+  confirmPassword: string;
+};
+
 export type AuthActionState<TField extends string = string> = {
   status: AuthRequestStatus;
   error?: string;

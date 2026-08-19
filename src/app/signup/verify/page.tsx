@@ -1,4 +1,4 @@
-import { Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 
 import AuthLayout from "@/components/auth/AuthLayout";
 import VerifyOtpForm from "@/components/auth/VerifyOtpForm";
@@ -14,14 +14,23 @@ export default async function VerifyPage({ searchParams }: VerifyPageProps) {
 
   return (
     <AuthLayout variant="register">
-      <Typography component="h1" className="auth-title">
-        Nhập mã xác nhận
-      </Typography>
-      <Typography className="auth-description" sx={{ mb: 3 }}>
-        {email
-          ? `EatNow đã gửi mã 6 số tới ${email}`
-          : "Kiểm tra email để lấy mã 6 số."}
-      </Typography>
+      <Box className="auth-header auth-header--centered-mobile">
+        <Typography component="h1" className="auth-title">
+          Nhập mã xác nhận
+        </Typography>
+        <Typography className="auth-description">
+          {email ? (
+            <>
+              EatNow đã gửi mã 8 số tới{" "}
+              <Box component="strong" className="auth-email-highlight">
+                {email}
+              </Box>
+            </>
+          ) : (
+            "Kiểm tra email để lấy mã xác nhận gồm 8 số."
+          )}
+        </Typography>
+      </Box>
       <VerifyOtpForm email={email} />
     </AuthLayout>
   );

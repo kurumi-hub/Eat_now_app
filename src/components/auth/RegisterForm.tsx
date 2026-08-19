@@ -121,7 +121,7 @@ export default function RegisterForm() {
         onSubmit={handleSubmit}
       >
         <Stack spacing={2}>
-          <Box>
+          <Box className="auth-header">
             <Typography component="h1" className="auth-title">
               Tạo tài khoản EatNow
             </Typography>

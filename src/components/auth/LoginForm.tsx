@@ -10,7 +10,6 @@ import {
   Divider,
   FormControlLabel,
   InputAdornment,
-  Link as MuiLink,
   Snackbar,
   Stack,
   TextField,
@@ -34,6 +33,8 @@ import PasswordField from "./PasswordField";
 type LoginFormProps = {
   initialEmail?: string;
   nextPath?: string;
+  statusMessage?: string;
+  initialError?: string;
 };
 
 type SnackbarState = {
@@ -44,6 +45,8 @@ type SnackbarState = {
 export default function LoginForm({
   initialEmail = "",
   nextPath = "",
+  statusMessage = "",
+  initialError = "",
 }: LoginFormProps) {
   const [state, formAction, pending] = useActionState(login, null);
   const [values, setValues] = useState({
@@ -92,13 +95,6 @@ export default function LoginForm({
     }
   };
 
-  const handleForgotPassword = () => {
-    setSnackbar({
-      open: true,
-      message: "Tính năng quên mật khẩu đang được hoàn thiện.",
-    });
-  };
-
   const handleOAuthPlaceholder = () => {
     setSnackbar({
       open: true,
@@ -128,7 +124,7 @@ export default function LoginForm({
       >
         <input type="hidden" name="next" value={nextPath} />
         <Stack spacing={2.5}>
-          <Box>
+          <Box className="auth-header">
             <Typography component="h1" className="auth-title">
               Chào mừng bạn trở lại
             </Typography>
@@ -138,6 +134,12 @@ export default function LoginForm({
           </Box>
 
           {state?.error ? <Alert severity="error">{state.error}</Alert> : null}
+          {initialError ? (
+            <Alert severity="warning">{initialError}</Alert>
+          ) : null}
+          {statusMessage ? (
+            <Alert severity="success">{statusMessage}</Alert>
+          ) : null}
 
           <TextField
             label="Email"
@@ -166,13 +168,16 @@ export default function LoginForm({
               <Typography component="span" className="auth-field-label">
                 Mật khẩu
               </Typography>
-              <MuiLink
-                component="button"
-                type="button"
-                onClick={handleForgotPassword}
+              <NextLink
+                className="auth-inline-link"
+                href={`/forgot-password${
+                  values.email.trim()
+                    ? `?email=${encodeURIComponent(values.email.trim())}`
+                    : ""
+                }`}
               >
                 Quên mật khẩu?
-              </MuiLink>
+              </NextLink>
             </Box>
             <PasswordField
               label=""

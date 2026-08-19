@@ -3,7 +3,12 @@ import type {
   ProfileFormValues,
   SecurityPasswordFormValues,
 } from "../types/account";
-import type { LoginFormValues, RegisterFormValues } from "../types/auth";
+import type {
+  ForgotPasswordFormValues,
+  LoginFormValues,
+  RegisterFormValues,
+  ResetPasswordFormValues,
+} from "../types/auth";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const VIETNAMESE_MOBILE_REGEX = /^0(?:3|5|7|8|9)\d{8}$/;
@@ -20,6 +25,8 @@ export type ValidationResult<TField extends string, TNormalized> = {
 };
 
 export type LoginField = "email" | "password";
+export type ForgotPasswordField = "email";
+export type ResetPasswordField = "password" | "confirmPassword";
 export type RegisterField =
   | "fullName"
   | "email"
@@ -146,6 +153,38 @@ export function validateLoginValues(
     normalized: {
       email: normalizeEmail(values.email),
     },
+  };
+}
+
+export function validateForgotPasswordValues(
+  values: ForgotPasswordFormValues
+): ValidationResult<ForgotPasswordField, { email: string }> {
+  const errors: ValidationErrors<ForgotPasswordField> = {
+    email: validateEmail(values.email),
+  };
+
+  return {
+    isValid: !hasValidationErrors(errors),
+    errors,
+    normalized: { email: normalizeEmail(values.email) },
+  };
+}
+
+export function validateResetPasswordValues(
+  values: ResetPasswordFormValues
+): ValidationResult<ResetPasswordField, Record<string, never>> {
+  const errors: ValidationErrors<ResetPasswordField> = {
+    password: validatePasswordMinLength(values.password),
+    confirmPassword: validateConfirmPassword(
+      values.confirmPassword,
+      values.password
+    ),
+  };
+
+  return {
+    isValid: !hasValidationErrors(errors),
+    errors,
+    normalized: {},
   };
 }
 

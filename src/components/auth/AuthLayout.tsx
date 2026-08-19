@@ -1,4 +1,6 @@
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import { Box, Paper } from "@mui/material";
+import NextLink from "next/link";
 import type { ReactNode } from "react";
 
 import AuthBrandPanel from "./AuthBrandPanel";
@@ -38,6 +40,14 @@ export default function AuthLayout({
   return (
     <main className="auth-page">
       <Paper component="section" className={`auth-card auth-card--${variant}`}>
+        <NextLink
+          href="/"
+          className="auth-close-button"
+          aria-label="Đóng và về trang chủ"
+          title="Đóng và về trang chủ"
+        >
+          <CloseOutlinedIcon />
+        </NextLink>
         <AuthBrandPanel {...brand} />
         <Box className="auth-form-panel">
           <AuthBrandPanel {...brand} compact />

@@ -1,19 +1,17 @@
 "use client";
 
-import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined";
 import {
   Alert,
   Box,
   Button,
   CircularProgress,
-  InputAdornment,
   Snackbar,
   Stack,
-  TextField,
 } from "@mui/material";
 import NextLink from "next/link";
 import {
   useActionState,
+  useEffect,
   useState,
   type FormEvent,
   type SyntheticEvent,
@@ -21,16 +19,22 @@ import {
 
 import { resendSignupOtp, verifySignupOtp } from "@/app/auth/actions";
 
+import OtpCodeInput, { OTP_LENGTH } from "./OtpCodeInput";
+
 type VerifyOtpFormProps = {
   email: string;
 };
 
-const OTP_REGEX = /^\d{6}$/;
+const OTP_REGEX = /^\d{8}$/;
 
 export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
   const [state, formAction, pending] = useActionState(verifySignupOtp, null);
-  const [token, setToken] = useState("");
+  const [digits, setDigits] = useState<string[]>(
+    Array.from({ length: OTP_LENGTH }, () => "")
+  );
   const [didSubmit, setDidSubmit] = useState(false);
+  const [lastSubmittedToken, setLastSubmittedToken] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [resendStatus, setResendStatus] = useState<"idle" | "sending">(
     "idle"
   );
@@ -40,14 +44,31 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
     severity: "info" as "info" | "success" | "error",
   });
 
+  const token = digits.join("");
+
+  useEffect(() => {
+    if (resendCooldown <= 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setResendCooldown((current) => Math.max(current - 1, 0));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [resendCooldown]);
+
   const localTokenError =
     didSubmit && !OTP_REGEX.test(token.trim())
-      ? "Vui lòng nhập mã xác nhận gồm 6 chữ số."
+      ? "Vui lòng nhập đủ mã xác nhận gồm 8 chữ số."
       : "";
-  const tokenError = state?.fieldErrors?.token || localTokenError;
+  const serverTokenError =
+    token === lastSubmittedToken ? state?.fieldErrors?.token : "";
+  const tokenError = localTokenError || serverTokenError || "";
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     setDidSubmit(true);
+    setLastSubmittedToken(token);
 
     if (pending || !email || !OTP_REGEX.test(token.trim())) {
       event.preventDefault();
@@ -55,9 +76,16 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
   };
 
   const handleResend = async () => {
+    if (!email || resendCooldown > 0 || resendStatus === "sending") {
+      return;
+    }
+
     setResendStatus("sending");
     const result = await resendSignupOtp(email);
     setResendStatus("idle");
+    if (!result?.error) {
+      setResendCooldown(60);
+    }
     setSnackbar({
       open: true,
       message:
@@ -87,32 +115,15 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
         onSubmit={handleSubmit}
       >
         <input type="hidden" name="email" value={email} />
+        <input type="hidden" name="token" value={token} />
         <Stack spacing={2.5}>
           {state?.error ? <Alert severity="error">{state.error}</Alert> : null}
 
-          <TextField
-            label="Mã xác nhận"
-            name="token"
-            value={token}
-            onChange={(event) => setToken(event.target.value)}
-            error={Boolean(tokenError)}
-            helperText={tokenError || "Nhập mã 6 chữ số trong email của bạn."}
-            autoComplete="one-time-code"
-            inputMode="numeric"
-            placeholder="000000"
-            slotProps={{
-              htmlInput: {
-                maxLength: 6,
-                pattern: "[0-9]*",
-              },
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <MarkEmailReadOutlinedIcon color="action" fontSize="small" />
-                  </InputAdornment>
-                ),
-              },
-            }}
+          <OtpCodeInput
+            digits={digits}
+            disabled={pending}
+            error={tokenError}
+            onChange={setDigits}
           />
 
           <Button
@@ -129,12 +140,16 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
             <Button
               type="button"
               variant="text"
-              disabled={!email || resendStatus === "sending"}
+              disabled={
+                !email || resendStatus === "sending" || resendCooldown > 0
+              }
               onClick={handleResend}
             >
               {resendStatus === "sending"
                 ? "Đang gửi lại..."
-                : "Chưa nhận được mã? Gửi lại"}
+                : resendCooldown > 0
+                  ? `Gửi lại sau ${resendCooldown}s`
+                  : "Chưa nhận được mã? Gửi lại"}
             </Button>
             <NextLink className="auth-text-link" href="/register">
               Dùng email khác
