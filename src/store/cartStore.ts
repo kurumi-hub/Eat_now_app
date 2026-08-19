@@ -43,10 +43,13 @@ export type AddToCartInput = {
 };
 
 type CartState = {
+  ownerId: string | null;
   restaurantId: string | null;
   restaurantName: string | null;
   lines: CartLine[];
 
+  bindOwner: (ownerId: string | null) => void;
+  resetCartSession: () => void;
   addItem: (input: AddToCartInput) => void;
   updateQuantity: (lineId: string, quantity: number) => void;
   removeLine: (lineId: string) => void;
@@ -113,9 +116,34 @@ function generateLineId() {
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
+      ownerId: null,
       restaurantId: null,
       restaurantName: null,
       lines: [],
+
+      bindOwner: (ownerId) => {
+        if (get().ownerId === ownerId) {
+          return;
+        }
+
+        // Không để giỏ của tài khoản trước xuất hiện ở tài khoản sau hoặc
+        // ngoài phiên đăng nhập. Cart phía server vẫn do RPC quản lý riêng.
+        set({
+          ownerId,
+          restaurantId: null,
+          restaurantName: null,
+          lines: [],
+        });
+      },
+
+      resetCartSession: () => {
+        set({
+          ownerId: null,
+          restaurantId: null,
+          restaurantName: null,
+          lines: [],
+        });
+      },
 
       addItem: (input) => {
         const {
@@ -239,7 +267,23 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "eatnow-cart", // localStorage key
+      version: 1,
+      migrate: (persistedState, version) => {
+        if (version < 1) {
+          // Bản cũ không có ownerId nên không thể xác định dữ liệu thuộc ai.
+          // Xóa một lần để tránh lộ giỏ hàng giữa các tài khoản.
+          return {
+            ownerId: null,
+            restaurantId: null,
+            restaurantName: null,
+            lines: [],
+          };
+        }
+
+        return persistedState as CartState;
+      },
       partialize: (state) => ({
+        ownerId: state.ownerId,
         restaurantId: state.restaurantId,
         restaurantName: state.restaurantName,
         lines: state.lines,

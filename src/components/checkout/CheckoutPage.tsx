@@ -32,6 +32,7 @@ import CustomerHeader from "@/components/home/CustomerHeader";
 import type { AccountAddress } from "@/types/account";
 import type { PublicUser } from "@/types/auth";
 import { useCartStore } from "@/store/cartStore";
+import { useCartSession } from "@/store/useCartSession";
 import {
   listCheckoutVouchers,
   placeOrder,
@@ -84,8 +85,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   const restaurantName = useCartStore((state) => state.restaurantName);
   const clearCart = useCartStore((state) => state.clearCart);
 
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
+  const cartReady = useCartSession(user.id);
 
   const defaultAddress = useMemo(
     () => addresses.find((a) => a.isDefault) ?? addresses[0],
@@ -123,7 +123,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   // Đồng bộ giỏ hàng lên server 1 lần khi vào trang checkout, để lấy cart_id
   // dùng cho preview_order/place_order.
   useEffect(() => {
-    if (!hydrated) return;
+    if (!cartReady) return;
     if (lines.length === 0) return;
 
     startSyncing(async () => {
@@ -136,7 +136,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
     });
     // Chỉ chạy 1 lần khi vào trang, không refetch mỗi lần user gõ voucher.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated]);
+  }, [cartReady]);
 
   useEffect(() => {
     if (!cartId) {
@@ -249,7 +249,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
 
   const [snackbarMessage, setSnackbarMessage] = useState("");
 
-  if (hydrated && lines.length === 0) {
+  if (cartReady && lines.length === 0) {
     return (
       <>
         <CustomerHeader

@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 
 import { logout } from "@/app/auth/actions";
 import type { PublicUser } from "@/types/auth";
+import { useCartStore } from "@/store/cartStore";
 import { formatRole, getUserRoles, hasAnyRole } from "@/utils/roles";
 import { getVisibleAccountNavItems } from "./accountNavItems";
 
@@ -29,6 +30,7 @@ export default function AccountSidebar({ user }: AccountSidebarProps) {
   const pathname = usePathname();
   const visibleItems = getVisibleAccountNavItems(user);
   const roles = getUserRoles(user);
+  const resetCartSession = useCartStore((state) => state.resetCartSession);
   const sellerLabel = hasAnyRole(user, ["RESTAURANT_OWNER", "RESTAURANT_STAFF"])
     ? "Kênh người bán"
     : "Bán hàng cùng EatNow";
@@ -100,7 +102,7 @@ export default function AccountSidebar({ user }: AccountSidebarProps) {
 
         <Divider className="account-sidebar-divider" />
 
-        <form action={logout}>
+        <form action={logout} onSubmit={resetCartSession}>
           <Button
             fullWidth
             color="error"

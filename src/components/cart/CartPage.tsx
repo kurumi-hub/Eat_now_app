@@ -16,11 +16,12 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import CustomerHeader from "@/components/home/CustomerHeader";
 import type { PublicUser } from "@/types/auth";
 import { useCartStore, type CartLine } from "@/store/cartStore";
+import { useCartSession } from "@/store/useCartSession";
 
 type CartPageProps = {
   user: PublicUser | null;
@@ -53,8 +54,7 @@ export default function CartPage({ user }: CartPageProps) {
   const removeLine = useCartStore((state) => state.removeLine);
   const totalPrice = useCartStore((state) => state.totalPrice());
 
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
+  const cartReady = useCartSession(user?.id ?? null);
 
   const [snackbar, setSnackbar] = useState({ open: false, message: "" });
   const showMessage = (message: string) =>
@@ -78,7 +78,7 @@ export default function CartPage({ user }: CartPageProps) {
     router.push("/checkout");
   };
 
-  const isEmpty = hydrated && lines.length === 0;
+  const isEmpty = cartReady && lines.length === 0;
 
   return (
     <div className="restaurant-detail-page">
@@ -93,7 +93,7 @@ export default function CartPage({ user }: CartPageProps) {
           Giỏ hàng của bạn
         </Typography>
 
-        {!hydrated ? null : isEmpty ? (
+        {!cartReady ? null : isEmpty ? (
           <Box
             sx={{
               display: "flex",

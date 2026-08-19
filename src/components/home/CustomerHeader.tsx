@@ -24,11 +24,12 @@ import {
   MenuItem,
 } from "@mui/material";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { logout } from "@/app/auth/actions";
 import type { PublicUser } from "@/types/auth";
 import { hasAnyRole, hasRole } from "@/utils/roles";
 import { useCartStore } from "@/store/cartStore";
+import { useCartSession } from "@/store/useCartSession";
 
 type CustomerHeaderProps = {
   user: PublicUser | null;
@@ -70,9 +71,9 @@ export default function CustomerHeader({
   // Đợi hydrate xong (persist middleware) mới đọc số lượng từ store để
   // tránh lệch nội dung giữa server render và client render.
   const totalItems = useCartStore((state) => state.totalItems());
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
-  const cartBadgeCount = hydrated ? totalItems : 0;
+  const resetCartSession = useCartStore((state) => state.resetCartSession);
+  const cartReady = useCartSession(user?.id ?? null);
+  const cartBadgeCount = cartReady ? totalItems : 0;
 
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -147,16 +148,18 @@ export default function CustomerHeader({
         </nav>
 
         <div className="home-actions-top">
-          <IconButton
-            aria-label="Giỏ hàng"
-            className="home-cart-button"
-            component={Link}
-            href="/cart"
-          >
-            <Badge badgeContent={cartBadgeCount} color="error">
-              <ShoppingCartOutlinedIcon />
-            </Badge>
-          </IconButton>
+          {user ? (
+            <IconButton
+              aria-label="Giỏ hàng"
+              className="home-cart-button"
+              component={Link}
+              href="/cart"
+            >
+              <Badge badgeContent={cartBadgeCount} color="error">
+                <ShoppingCartOutlinedIcon />
+              </Badge>
+            </IconButton>
+          ) : null}
 
           {user ? (
             <>
@@ -277,7 +280,7 @@ export default function CustomerHeader({
                   </Link>
                 ) : null}
                 <Divider />
-                <form action={logout}>
+                <form action={logout} onSubmit={resetCartSession}>
                   <button type="submit" className="home-account-menu__logout">
                     <LogoutOutlinedIcon fontSize="small" />
                     <span>Đăng xuất</span>
