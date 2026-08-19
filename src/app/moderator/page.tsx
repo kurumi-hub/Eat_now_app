@@ -1,3 +1,4 @@
+import { listAddressesAction } from "@/app/account/addresses/actions";
 import ModeratorDashboard from "@/components/moderator/ModeratorDashboard";
 import type {
   ModerationQueue,
@@ -8,6 +9,7 @@ import type {
 import { MODERATION_STATUSES } from "@/types/moderator";
 import { requirePermission } from "@/utils/auth/guards";
 import { createClient } from "@/utils/supabase/server";
+import { hasRole } from "@/utils/roles";
 
 type ModeratorPageProps = {
   searchParams: Promise<{ status?: string | string[] }>;
@@ -91,14 +93,18 @@ export default async function ModeratorPage({ searchParams }: ModeratorPageProps
   const activeStatus = normalizeStatus(params.status);
   const supabase = await createClient();
 
-  const [dashboardResult, queueResult] = await Promise.all([
+  const [dashboardResult, queueResult, addresses] = await Promise.all([
     supabase.rpc("api_get_admin_dashboard"),
     supabase.rpc("api_list_moderation_queue", {
       p_status: activeStatus === "all" ? null : activeStatus,
       p_limit: 50,
       p_offset: 0,
     }),
+    hasRole(user, "CUSTOMER") ? listAddressesAction() : Promise.resolve([]),
   ]);
+
+  const defaultAddress =
+    addresses.find((address) => address.isDefault) ?? addresses[0] ?? null;
 
   const errors = [dashboardResult.error, queueResult.error].filter(Boolean);
   if (errors.length > 0) {
@@ -111,6 +117,7 @@ export default async function ModeratorPage({ searchParams }: ModeratorPageProps
       stats={parseStats(dashboardResult.data)}
       queue={parseQueue(queueResult.data)}
       activeStatus={activeStatus}
+      defaultDeliveryAddress={defaultAddress?.line1 ?? null}
       loadError={
         errors.length > 0
           ? "Chưa thể tải đầy đủ dữ liệu kiểm duyệt. Hãy kiểm tra SQL 14 và thử tải lại."

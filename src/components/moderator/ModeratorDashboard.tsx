@@ -3,11 +3,8 @@
 import AssignmentIndRoundedIcon from "@mui/icons-material/AssignmentIndRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import FastfoodRoundedIcon from "@mui/icons-material/FastfoodRounded";
 import GavelRoundedIcon from "@mui/icons-material/GavelRounded";
-import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
-import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import PriorityHighRoundedIcon from "@mui/icons-material/PriorityHighRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
@@ -17,7 +14,6 @@ import ShieldRoundedIcon from "@mui/icons-material/ShieldRounded";
 import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import {
   Alert,
-  Avatar,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -27,18 +23,17 @@ import {
   Snackbar,
   TextField,
 } from "@mui/material";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { logout } from "@/app/auth/actions";
 import {
   claimReportAction,
   dismissReportAction,
   escalateReportAction,
   moderateReviewAction,
 } from "@/app/moderator/actions";
-import { useCartStore } from "@/store/cartStore";
+import SiteFooter from "@/components/common/SiteFooter";
+import CustomerHeader from "@/components/home/CustomerHeader";
 import type { PublicUser } from "@/types/auth";
 import type {
   ModerationQueue,
@@ -56,6 +51,7 @@ type ModeratorDashboardProps = {
   stats: ModeratorDashboardStats;
   queue: ModerationQueue;
   activeStatus: StatusFilter;
+  defaultDeliveryAddress?: string | null;
   loadError?: string;
 };
 
@@ -117,16 +113,6 @@ const DIALOG_COPY: Record<
   },
 };
 
-function getInitials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(-2)
-    .map((word) => word.charAt(0))
-    .join("")
-    .toUpperCase();
-}
-
 function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Không rõ thời gian";
@@ -174,10 +160,10 @@ export default function ModeratorDashboard({
   stats,
   queue,
   activeStatus,
+  defaultDeliveryAddress,
   loadError,
 }: ModeratorDashboardProps) {
   const router = useRouter();
-  const resetCartSession = useCartStore((state) => state.resetCartSession);
   const canReview = user.permissions.includes("moderation.review");
   const canResolve = user.permissions.includes("moderation.resolve");
   const [isPending, startTransition] = useTransition();
@@ -190,7 +176,7 @@ export default function ModeratorDashboard({
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
-    severity: "success" | "error";
+    severity: "success" | "error" | "info";
   }>({ open: false, message: "", severity: "success" });
 
   const notify = (result: ModeratorActionResult) => {
@@ -255,60 +241,25 @@ export default function ModeratorDashboard({
     router.push(status === "all" ? "/moderator" : `/moderator?status=${status}`);
   };
 
+  const showPlaceholder = (message: string) => {
+    setSnackbar({ open: true, message, severity: "info" });
+  };
+
+  const handleSectionNavigate = (sectionId: string) => {
+    router.push(`/#${sectionId}`);
+  };
+
   return (
-    <main className="moderator-shell">
-      <aside className="moderator-sidebar">
-        <Link href="/moderator" className="moderator-brand" aria-label="EatNow Moderator">
-          <span className="moderator-brand__mark">E</span>
-          <span>
-            <strong>EatNow</strong>
-            <small>Trung tâm điều hành</small>
-          </span>
-        </Link>
+    <div className="moderator-page">
+      <CustomerHeader
+        user={user}
+        deliveryAddress={defaultDeliveryAddress}
+        activeSectionId={null}
+        onPlaceholder={showPlaceholder}
+        onSectionNavigate={handleSectionNavigate}
+      />
 
-        <nav className="moderator-nav" aria-label="Điều hướng Moderator">
-          <a href="#overview" className="moderator-nav__item is-active">
-            <DashboardRoundedIcon />
-            <span>Tổng quan</span>
-          </a>
-          <a href="#queue" className="moderator-nav__item">
-            <ReportProblemRoundedIcon />
-            <span>Hàng đợi báo cáo</span>
-            {stats.open > 0 ? <b>{stats.open}</b> : null}
-          </a>
-          <Link href="/moderator?status=resolved" className="moderator-nav__item">
-            <CheckCircleRoundedIcon />
-            <span>Lịch sử xử lý</span>
-          </Link>
-          <Link href="/" className="moderator-nav__item">
-            <HomeRoundedIcon />
-            <span>Về trang khách hàng</span>
-          </Link>
-        </nav>
-
-        <div className="moderator-sidebar__account">
-          <Avatar src={user.avatarUrl}>{getInitials(user.fullName)}</Avatar>
-          <span>
-            <strong>{user.fullName}</strong>
-            <small>Moderator</small>
-          </span>
-          <form action={logout} onSubmit={resetCartSession}>
-            <IconButton type="submit" aria-label="Đăng xuất" size="small">
-              <LogoutRoundedIcon fontSize="small" />
-            </IconButton>
-          </form>
-        </div>
-      </aside>
-
-      <section className="moderator-workspace">
-        <header className="moderator-mobile-header">
-          <Link href="/moderator" className="moderator-mobile-brand">
-            <span className="moderator-brand__mark">E</span>
-            <strong>EatNow Control</strong>
-          </Link>
-          <Avatar src={user.avatarUrl}>{getInitials(user.fullName)}</Avatar>
-        </header>
-
+      <main className="moderator-main">
         <div className="moderator-content">
           <section id="overview" className="moderator-heading">
             <div>
@@ -471,7 +422,9 @@ export default function ModeratorDashboard({
             </div>
           </section>
         </div>
-      </section>
+      </main>
+
+      <SiteFooter onPlaceholder={showPlaceholder} />
 
       <Dialog
         open={Boolean(dialog)}
@@ -534,6 +487,6 @@ export default function ModeratorDashboard({
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </main>
+    </div>
   );
 }

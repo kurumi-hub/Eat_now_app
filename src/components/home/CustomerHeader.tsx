@@ -34,6 +34,7 @@ import { useCartSession } from "@/store/useCartSession";
 type CustomerHeaderProps = {
   user: PublicUser | null;
   deliveryAddress?: string | null;
+  activeSectionId?: string | null;
   onPlaceholder: (message: string) => void;
   onSectionNavigate: (sectionId: string) => void;
 };
@@ -57,6 +58,7 @@ function getInitials(fullName = "EatNow") {
 export default function CustomerHeader({
   user,
   deliveryAddress,
+  activeSectionId = "home-hero",
   onPlaceholder,
   onSectionNavigate,
 }: CustomerHeaderProps) {
@@ -137,7 +139,7 @@ export default function CustomerHeader({
             <button
               key={item.label}
               className={`home-nav__item ${
-                item.sectionId === "home-hero" ? "is-active" : ""
+                item.sectionId === activeSectionId ? "is-active" : ""
               }`}
               type="button"
               onClick={() => onSectionNavigate(item.sectionId)}

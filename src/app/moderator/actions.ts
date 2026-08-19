@@ -13,20 +13,28 @@ function validId(value: string) {
   return UUID_REGEX.test(value);
 }
 
-type CleanNoteResult = { error: string } | { value: string | null };
+type CleanNoteResult =
+  | { ok: true; value: string }
+  | { ok: false; error: string };
 
-function cleanNote(value: string, required = false): CleanNoteResult {
+function cleanNote(value: string): CleanNoteResult {
   const note = value.trim();
 
-  if (required && note.length < 5) {
-    return { error: "Vui lòng ghi lý do rõ ràng (ít nhất 5 ký tự)." };
+  if (note.length < 5) {
+    return {
+      ok: false,
+      error: "Vui lòng ghi lý do rõ ràng (ít nhất 5 ký tự).",
+    };
   }
 
   if (note.length > 1000) {
-    return { error: "Ghi chú không được vượt quá 1.000 ký tự." };
+    return {
+      ok: false,
+      error: "Ghi chú không được vượt quá 1.000 ký tự.",
+    };
   }
 
-  return { value: note || null };
+  return { ok: true, value: note };
 }
 
 function rpcError(message: string, error?: { code?: string; message?: string }) {
@@ -77,8 +85,8 @@ export async function escalateReportAction(
     return { ok: false, message: "Mã báo cáo không hợp lệ." };
   }
 
-  const parsedNote = cleanNote(note, true);
-  if ("error" in parsedNote) {
+  const parsedNote = cleanNote(note);
+  if (!parsedNote.ok) {
     return { ok: false, message: parsedNote.error };
   }
 
@@ -109,8 +117,8 @@ export async function dismissReportAction(
     return { ok: false, message: "Mã báo cáo không hợp lệ." };
   }
 
-  const parsedNote = cleanNote(note, true);
-  if ("error" in parsedNote) {
+  const parsedNote = cleanNote(note);
+  if (!parsedNote.ok) {
     return { ok: false, message: parsedNote.error };
   }
 
@@ -150,8 +158,8 @@ export async function moderateReviewAction(
     return { ok: false, message: "Dữ liệu xử lý đánh giá không hợp lệ." };
   }
 
-  const parsedNote = cleanNote(note, true);
-  if ("error" in parsedNote) {
+  const parsedNote = cleanNote(note);
+  if (!parsedNote.ok) {
     return { ok: false, message: parsedNote.error };
   }
 
