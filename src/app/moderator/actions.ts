@@ -13,18 +13,20 @@ function validId(value: string) {
   return UUID_REGEX.test(value);
 }
 
-function cleanNote(value: string, required = false) {
+type CleanNoteResult = { error: string } | { value: string | null };
+
+function cleanNote(value: string, required = false): CleanNoteResult {
   const note = value.trim();
 
   if (required && note.length < 5) {
-    return { error: "Vui lòng ghi lý do rõ ràng (ít nhất 5 ký tự)." } as const;
+    return { error: "Vui lòng ghi lý do rõ ràng (ít nhất 5 ký tự)." };
   }
 
   if (note.length > 1000) {
-    return { error: "Ghi chú không được vượt quá 1.000 ký tự." } as const;
+    return { error: "Ghi chú không được vượt quá 1.000 ký tự." };
   }
 
-  return { value: note || null } as const;
+  return { value: note || null };
 }
 
 function rpcError(message: string, error?: { code?: string; message?: string }) {
