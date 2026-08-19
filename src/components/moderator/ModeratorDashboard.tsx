@@ -478,7 +478,7 @@ export default function ModeratorDashboard({
         onClose={isPending ? undefined : () => setDialog(null)}
         fullWidth
         maxWidth="sm"
-        PaperProps={{ className: "moderator-dialog" }}
+        slotProps={{ paper: { className: "moderator-dialog" } }}
       >
         {dialog ? (
           <>
