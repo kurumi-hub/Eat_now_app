@@ -21,6 +21,14 @@ function normalizeStatus(value: unknown, isActive: boolean): UserStatus {
   return isActive ? "ACTIVE" : "SUSPENDED";
 }
 
+function normalizePermissions(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return [...new Set(value.filter((item): item is string => typeof item === "string"))];
+}
+
 /**
  * Nguồn quyền duy nhất của frontend. SQL 13 đọc dữ liệu từ public.user_roles
  * và profile, vì vậy tuyệt đối không dùng user_metadata để cấp quyền.
@@ -48,6 +56,7 @@ export async function getMyAccess(
   return {
     userId: data.user_id,
     roles: normalizeRoles(data.roles),
+    permissions: normalizePermissions(data.permissions),
     isActive,
     status: normalizeStatus(data.status, isActive),
   };

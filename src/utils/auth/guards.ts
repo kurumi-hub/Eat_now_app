@@ -47,3 +47,13 @@ export async function requireAnyRole(
 
   return user;
 }
+
+export async function requirePermission(permission: string): Promise<PublicUser> {
+  const user = await requireCurrentUser();
+
+  if (!user.permissions.includes(permission)) {
+    redirect("/unauthorized");
+  }
+
+  return user;
+}

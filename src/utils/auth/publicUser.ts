@@ -126,6 +126,7 @@ export function toPublicUser(
     email,
     phone: phone ? normalizeVietnamesePhone(phone) : undefined,
     roles: access?.roles ?? [],
+    permissions: access?.permissions ?? [],
     status: readStatus(access, Boolean(user.email_confirmed_at)),
     createdAt: user.created_at ?? "",
     avatarUrl,

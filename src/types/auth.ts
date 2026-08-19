@@ -26,6 +26,7 @@ export type PublicUser = {
   email: string;
   phone?: string;
   roles: UserRole[];
+  permissions: string[];
   status: UserStatus;
   createdAt: string;
   avatarUrl?: string;
@@ -35,6 +36,7 @@ export type PublicUser = {
 export type CurrentUserAccess = {
   userId: string;
   roles: UserRole[];
+  permissions: string[];
   isActive: boolean;
   status: UserStatus;
 };
