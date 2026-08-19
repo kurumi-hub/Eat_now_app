@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PRIVATE_ROUTE_PREFIXES = ["/account", "/owner", "/admin"];
+const PRIVATE_ROUTE_PREFIXES = ["/account", "/owner", "/admin", "/moderator"];
 
 function isPrivateRoute(pathname: string) {
   return PRIVATE_ROUTE_PREFIXES.some(
@@ -49,6 +49,9 @@ export async function updateSession(request: NextRequest) {
 
     return NextResponse.redirect(url);
   }
+
+  // Proxy chỉ xác thực phiên. Phân quyền route được thực hiện trong server
+  // guard bằng api_get_my_access; dữ liệu đặc quyền tiếp tục do RLS/RPC bảo vệ.
 
   return supabaseResponse;
 }

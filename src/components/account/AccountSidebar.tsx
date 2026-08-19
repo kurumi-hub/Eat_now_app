@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 
 import { logout } from "@/app/auth/actions";
 import type { PublicUser } from "@/types/auth";
-import { formatRole, getUserRoles, hasRole } from "@/utils/roles";
+import { formatRole, getUserRoles, hasAnyRole } from "@/utils/roles";
 import { getVisibleAccountNavItems } from "./accountNavItems";
 
 function getInitials(fullName = "EatNow") {
@@ -29,7 +29,7 @@ export default function AccountSidebar({ user }: AccountSidebarProps) {
   const pathname = usePathname();
   const visibleItems = getVisibleAccountNavItems(user);
   const roles = getUserRoles(user);
-  const sellerLabel = hasRole(user, "RESTAURANT_OWNER")
+  const sellerLabel = hasAnyRole(user, ["RESTAURANT_OWNER", "RESTAURANT_STAFF"])
     ? "Kênh người bán"
     : "Bán hàng cùng EatNow";
 

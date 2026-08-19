@@ -2,7 +2,7 @@ import RouteNotice from "@/components/common/RouteNotice";
 import { requireAnyRole } from "@/utils/auth/guards";
 
 export default async function OwnerPage() {
-  await requireAnyRole(["RESTAURANT_OWNER"]);
+  await requireAnyRole(["RESTAURANT_OWNER", "RESTAURANT_STAFF"]);
 
   return (
     <RouteNotice

@@ -1,7 +1,11 @@
 import { requireAnyRole } from "@/utils/auth/guards";
 
 export default async function AccountSellerPage() {
-  const user = await requireAnyRole(["CUSTOMER", "RESTAURANT_OWNER"]);
+  const user = await requireAnyRole([
+    "CUSTOMER",
+    "RESTAURANT_OWNER",
+    "RESTAURANT_STAFF",
+  ]);
 
   return (
     <>
@@ -23,8 +27,8 @@ export default async function AccountSellerPage() {
           </div>
         </dl>
         <p className="account-placeholder-note">
-          Frontend không tự cấp quyền RESTAURANT_OWNER. Luồng đăng ký người bán
-          sẽ được migrate ở Phase 6 sau khi backend chốt nguồn role.
+          Frontend không tự cấp quyền người bán. Mọi thay đổi vai trò đều phải
+          được thực hiện bởi backend qua RPC có kiểm tra quyền.
         </p>
       </section>
     </>

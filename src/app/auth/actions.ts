@@ -12,6 +12,7 @@ import {
   logSupabaseAuthError,
   mapSignupAuthError,
 } from "@/utils/auth/errorMessages";
+import { getMyAccess } from "@/utils/auth/access";
 import { toPublicUser } from "@/utils/auth/publicUser";
 import { getPostLoginRedirectPath } from "@/utils/auth/redirects";
 import { createClient } from "@/utils/supabase/server";
@@ -94,7 +95,26 @@ export async function login(
     };
   }
 
-  const user = toPublicUser(data.user);
+  const access = await getMyAccess(supabase);
+
+  if (!access) {
+    await supabase.auth.signOut();
+    return {
+      status: "error",
+      error:
+        "Không thể tải quyền tài khoản. Hãy kiểm tra SQL 13 đã được chạy đầy đủ.",
+    };
+  }
+
+  if (!access.isActive) {
+    await supabase.auth.signOut();
+    return {
+      status: "error",
+      error: "Tài khoản đã bị tạm khóa. Vui lòng liên hệ bộ phận hỗ trợ.",
+    };
+  }
+
+  const user = toPublicUser(data.user, access);
   const redirectPath = getPostLoginRedirectPath(
     user.roles,
     formString(formData, "next")

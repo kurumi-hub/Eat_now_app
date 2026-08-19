@@ -5,6 +5,8 @@ import HomeWorkOutlinedIcon from "@mui/icons-material/HomeWorkOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
+import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
+import GavelOutlinedIcon from "@mui/icons-material/GavelOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
@@ -58,7 +60,10 @@ export default function CustomerHeader({
   onSectionNavigate,
 }: CustomerHeaderProps) {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
-  const sellerLabel = hasRole(user, "RESTAURANT_OWNER")
+  const sellerLabel = hasAnyRole(user, [
+    "RESTAURANT_OWNER",
+    "RESTAURANT_STAFF",
+  ])
     ? "Kênh người bán"
     : "Mở quán trên EatNow";
 
@@ -225,7 +230,39 @@ export default function CustomerHeader({
                     <ListItemText>Cài đặt</ListItemText>
                   </MenuItem>
                 </Link>
-                {hasAnyRole(user, ["CUSTOMER", "RESTAURANT_OWNER"]) ? (
+                {hasAnyRole(user, ["SUPER_ADMIN", "ADMIN"]) ? (
+                  <Link
+                    href="/admin"
+                    className="home-account-menu__link"
+                    onClick={handleMenuClose}
+                  >
+                    <MenuItem component="span">
+                      <ListItemIcon>
+                        <AdminPanelSettingsOutlinedIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>Khu vực quản trị</ListItemText>
+                    </MenuItem>
+                  </Link>
+                ) : null}
+                {hasAnyRole(user, ["SUPER_ADMIN", "ADMIN", "MODERATOR"]) ? (
+                  <Link
+                    href="/moderator"
+                    className="home-account-menu__link"
+                    onClick={handleMenuClose}
+                  >
+                    <MenuItem component="span">
+                      <ListItemIcon>
+                        <GavelOutlinedIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>Điều hành nội dung</ListItemText>
+                    </MenuItem>
+                  </Link>
+                ) : null}
+                {hasAnyRole(user, [
+                  "CUSTOMER",
+                  "RESTAURANT_OWNER",
+                  "RESTAURANT_STAFF",
+                ]) ? (
                   <Link
                     href="/account/seller"
                     className="home-account-menu__link"

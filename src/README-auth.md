@@ -41,14 +41,24 @@ src/components/auth/RegisterForm.tsx
 src/components/auth/PasswordField.tsx
 src/components/auth/OAuthButtons.tsx
 src/components/auth/VerifyOtpForm.tsx
+src/utils/auth/access.ts             # Đọc quyền từ RPC SQL 13
 src/styles/auth.css
 ```
 
-## Lưu ý với Bao
+## Nguồn role và phân quyền
 
-- Cần xác nhận role cuối cùng nằm ở Supabase metadata, custom claims hay bảng
-  `profiles`.
-- Phase 5 tạm ghi `roles: ["CUSTOMER"]` vào metadata khi public signup.
+- Nguồn role duy nhất của frontend là RPC `api_get_my_access` trong SQL 13.
+- RPC đọc `public.user_roles`; frontend không dùng `user_metadata` để cấp quyền.
+- Frontend hỗ trợ nhiều role và chuẩn hóa đủ `SUPER_ADMIN`, `ADMIN`,
+  `MODERATOR`, `RESTAURANT_OWNER`, `RESTAURANT_STAFF`, `SHIPPER`, `CUSTOMER`.
+- `proxy` refresh session và chặn người chưa đăng nhập. Quyền route được kiểm tra
+  bằng server guard; dữ liệu và thao tác đặc quyền vẫn phải được bảo vệ bằng RLS
+  hoặc RPC.
+- Thứ tự ưu tiên điều hướng là Super Admin, Admin, Moderator, người bán rồi
+  Customer.
+
+## Lưu ý khác
+
 - OAuth buttons hiện là placeholder, chưa gọi provider thật.
 - Nên cấu hình `NEXT_PUBLIC_SITE_URL` bằng origin production để liên kết đặt
   lại mật khẩu luôn quay về đúng domain. Khi biến này chưa có, server action

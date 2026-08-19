@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 
 import CustomerHeader from "@/components/home/CustomerHeader";
 import type { PublicUser } from "@/types/auth";
-import { hasRole } from "@/utils/roles";
+import { hasAnyRole } from "@/utils/roles";
 import AccountSidebar from "./AccountSidebar";
 import { getVisibleAccountNavItems } from "./accountNavItems";
 
@@ -24,7 +24,7 @@ export default function AccountLayout({ user, children }: AccountLayoutProps) {
   const currentPath = visibleItems.some((item) => item.href === pathname)
     ? pathname
     : visibleItems[0]?.href ?? false;
-  const sellerLabel = hasRole(user, "RESTAURANT_OWNER")
+  const sellerLabel = hasAnyRole(user, ["RESTAURANT_OWNER", "RESTAURANT_STAFF"])
     ? "Kênh người bán"
     : "Bán hàng cùng EatNow";
 

@@ -42,7 +42,7 @@ export const accountNavItems: AccountNavItem[] = [
     href: "/account/seller",
     label: "Bán hàng cùng EatNow",
     icon: StorefrontOutlinedIcon,
-    allowedRoles: ["CUSTOMER", "RESTAURANT_OWNER"],
+    allowedRoles: ["CUSTOMER", "RESTAURANT_OWNER", "RESTAURANT_STAFF"],
   },
 ];
 

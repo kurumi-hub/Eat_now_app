@@ -27,11 +27,18 @@ export function getSafeRedirectPath(path: string | null | undefined) {
 }
 
 export function getDefaultPostLoginPath(roles: UserRole[]) {
-  if (roles.includes("ADMIN")) {
+  if (roles.includes("SUPER_ADMIN") || roles.includes("ADMIN")) {
     return "/admin";
   }
 
-  if (roles.includes("RESTAURANT_OWNER")) {
+  if (roles.includes("MODERATOR")) {
+    return "/moderator";
+  }
+
+  if (
+    roles.includes("RESTAURANT_OWNER") ||
+    roles.includes("RESTAURANT_STAFF")
+  ) {
     return "/owner";
   }
 

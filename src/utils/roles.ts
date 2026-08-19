@@ -1,16 +1,24 @@
-import type { PublicUser, UserRole } from "../types/auth";
+import {
+  USER_ROLES,
+  type PublicUser,
+  type UserRole,
+} from "../types/auth";
 
-export const USER_ROLE_VALUES = [
-  "CUSTOMER",
-  "RESTAURANT_OWNER",
-  "ADMIN",
-] as const satisfies readonly UserRole[];
+export const USER_ROLE_VALUES = USER_ROLES;
 
 export const ROLE_LABELS: Record<UserRole, string> = {
+  SUPER_ADMIN: "Chủ nền tảng",
+  ADMIN: "Quản trị viên",
+  MODERATOR: "Điều hành viên",
+  RESTAURANT_STAFF: "Nhân viên quán",
+  SHIPPER: "Tài xế",
   CUSTOMER: "Khách hàng",
   RESTAURANT_OWNER: "Chủ quán",
-  ADMIN: "Quản trị viên",
 };
+
+const ROLE_PRIORITY = new Map<UserRole, number>(
+  USER_ROLE_VALUES.map((role, index) => [role, index] as const)
+);
 
 type RoleReadableUser = Partial<Pick<PublicUser, "roles">> & {
   role?: unknown;
@@ -23,18 +31,34 @@ export function isUserRole(value: unknown): value is UserRole {
   );
 }
 
+function normalizeRoleValue(value: unknown): UserRole | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim().toUpperCase().replace(/[\s-]+/g, "_");
+
+  return isUserRole(normalized) ? normalized : null;
+}
+
 export function normalizeRoles(
   value: unknown,
   fallback: UserRole[] = []
 ): UserRole[] {
   const candidates = Array.isArray(value) ? value : [value];
-  const roles = candidates.filter(isUserRole);
+  const roles = candidates
+    .map(normalizeRoleValue)
+    .filter((role): role is UserRole => Boolean(role));
 
   if (roles.length === 0) {
     return [...fallback];
   }
 
-  return Array.from(new Set(roles));
+  return Array.from(new Set(roles)).sort(
+    (left, right) =>
+      (ROLE_PRIORITY.get(left) ?? Number.MAX_SAFE_INTEGER) -
+      (ROLE_PRIORITY.get(right) ?? Number.MAX_SAFE_INTEGER)
+  );
 }
 
 export function getUserRoles(user: RoleReadableUser | null | undefined) {

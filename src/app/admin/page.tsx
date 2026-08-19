@@ -2,7 +2,7 @@ import RouteNotice from "@/components/common/RouteNotice";
 import { requireAnyRole } from "@/utils/auth/guards";
 
 export default async function AdminPage() {
-  await requireAnyRole(["ADMIN"]);
+  await requireAnyRole(["SUPER_ADMIN", "ADMIN"]);
 
   return (
     <RouteNotice

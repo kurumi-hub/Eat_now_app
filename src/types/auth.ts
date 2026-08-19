@@ -1,6 +1,14 @@
 import type { SellerStatus } from "./account";
 
-export const USER_ROLES = ["CUSTOMER", "RESTAURANT_OWNER", "ADMIN"] as const;
+export const USER_ROLES = [
+  "SUPER_ADMIN",
+  "ADMIN",
+  "MODERATOR",
+  "RESTAURANT_OWNER",
+  "RESTAURANT_STAFF",
+  "SHIPPER",
+  "CUSTOMER",
+] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
 
@@ -22,6 +30,13 @@ export type PublicUser = {
   createdAt: string;
   avatarUrl?: string;
   sellerStatus?: SellerStatus;
+};
+
+export type CurrentUserAccess = {
+  userId: string;
+  roles: UserRole[];
+  isActive: boolean;
+  status: UserStatus;
 };
 
 export type AuthRequestStatus = "idle" | "submitting" | "success" | "error";

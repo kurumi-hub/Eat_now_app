@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { hasAnyRole } from "@/utils/roles";
 import { createClient } from "@/utils/supabase/server";
 import type { PublicUser, UserRole } from "@/types/auth";
+import { getMyAccess } from "./access";
 import { toPublicUser } from "./publicUser";
 
 export async function getCurrentPublicUser(): Promise<PublicUser | null> {
@@ -10,7 +11,13 @@ export async function getCurrentPublicUser(): Promise<PublicUser | null> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return user ? toPublicUser(user) : null;
+  if (!user) {
+    return null;
+  }
+
+  const access = await getMyAccess(supabase);
+
+  return toPublicUser(user, access);
 }
 
 export async function requireCurrentUser(): Promise<PublicUser> {
@@ -18,6 +25,10 @@ export async function requireCurrentUser(): Promise<PublicUser> {
 
   if (!user) {
     redirect("/login");
+  }
+
+  if (user.status === "SUSPENDED") {
+    redirect("/unauthorized?reason=suspended");
   }
 
   return user;
