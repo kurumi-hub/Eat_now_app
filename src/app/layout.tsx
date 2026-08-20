@@ -13,6 +13,7 @@ import "@/styles/auth.css";
 import "@/styles/account.css";
 import "@/styles/restaurant-detail.css";
 import "@/styles/moderator.css";
+import "@/styles/admin.css";
 
 const baloo = Baloo_2({
   variable: "--font-baloo",
