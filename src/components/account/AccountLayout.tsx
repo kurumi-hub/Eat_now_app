@@ -3,7 +3,7 @@
 import { Alert, Snackbar, Tab, Tabs } from "@mui/material";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode, SyntheticEvent } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 import CustomerHeader from "@/components/home/CustomerHeader";
 import type { PublicUser } from "@/types/auth";
@@ -20,6 +20,7 @@ export default function AccountLayout({ user, children }: AccountLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [notice, setNotice] = useState("");
+  const [, startNavigation] = useTransition();
   const visibleItems = useMemo(() => getVisibleAccountNavItems(user), [user]);
   const currentPath = visibleItems.some((item) => item.href === pathname)
     ? pathname
@@ -27,6 +28,10 @@ export default function AccountLayout({ user, children }: AccountLayoutProps) {
   const sellerLabel = hasAnyRole(user, ["RESTAURANT_OWNER", "RESTAURANT_STAFF"])
     ? "Kênh người bán"
     : "Bán hàng cùng EatNow";
+
+  useEffect(() => {
+    visibleItems.forEach((item) => router.prefetch(item.href));
+  }, [router, visibleItems]);
 
   const handlePlaceholder = (message: string) => {
     setNotice(message);
@@ -37,7 +42,7 @@ export default function AccountLayout({ user, children }: AccountLayoutProps) {
   };
 
   const handleMobileNavChange = (_event: SyntheticEvent, value: string) => {
-    router.push(value);
+    startNavigation(() => router.push(value));
   };
 
   return (

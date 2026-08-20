@@ -31,7 +31,7 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   useActionState,
   useEffect,
@@ -46,10 +46,20 @@ import {
   setDefaultAddressAction,
   type AddressActionState,
 } from "@/app/account/addresses/actions";
-import GoogleAddressPicker, {
-  type GoogleAddressSelection,
-} from "@/components/account/GoogleAddressPicker";
+import type { GoogleAddressSelection } from "@/components/account/GoogleAddressPicker";
 import type { AccountAddress } from "@/types/account";
+
+const GoogleAddressPicker = dynamic(
+  () => import("@/components/account/GoogleAddressPicker"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="address-map-loading" aria-busy="true">
+        Đang tải bản đồ...
+      </div>
+    ),
+  }
+);
 
 type AddressManagerProps = {
   addresses: AccountAddress[];
@@ -74,7 +84,6 @@ const labelOptions: Array<{
 ];
 
 export default function AddressManager({ addresses }: AddressManagerProps) {
-  const router = useRouter();
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -100,9 +109,8 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
       setDialogOpen(false);
       setEditorStep("location");
       setSelection(null);
-      router.refresh();
     }
-  }, [requestId, router, state.requestId, state.status]);
+  }, [requestId, state.requestId, state.status]);
 
   const handleOpen = () => {
     setSelection(null);
@@ -127,14 +135,12 @@ export default function AddressManager({ addresses }: AddressManagerProps) {
   const handleDelete = (id: string) => {
     startTransition(async () => {
       await deleteAddressAction(id);
-      router.refresh();
     });
   };
 
   const handleSetDefault = (id: string) => {
     startTransition(async () => {
       await setDefaultAddressAction(id);
-      router.refresh();
     });
   };
 

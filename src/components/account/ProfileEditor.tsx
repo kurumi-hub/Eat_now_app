@@ -19,7 +19,6 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useRouter } from "next/navigation";
 import {
   useMemo,
   useRef,
@@ -101,7 +100,6 @@ type ProfileEditorProps = {
 };
 
 export default function ProfileEditor({ user }: ProfileEditorProps) {
-  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [actionState, setActionState] =
     useState<ProfileActionState>(initialActionState);
@@ -256,7 +254,6 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
           }));
         }
 
-        router.refresh();
         return;
       }
 

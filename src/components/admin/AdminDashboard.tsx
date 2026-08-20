@@ -26,7 +26,7 @@ import {
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent } from "react";
+import { useEffect, useState, useTransition, type FormEvent } from "react";
 
 import {
   reviewRefundAction,
@@ -178,6 +178,15 @@ export default function AdminDashboard({
     severity: "success" | "error" | "info";
   }>({ open: false, message: "", severity: "success" });
 
+  useEffect(() => {
+    TABS.forEach((item) => {
+      router.prefetch(
+        item.value === "overview" ? "/admin" : `/admin?tab=${item.value}`
+      );
+    });
+    router.prefetch("/moderator");
+  }, [router]);
+
   const notify = (result: AdminActionResult) => {
     setSnackbar({
       open: true,
@@ -195,7 +204,6 @@ export default function AdminDashboard({
           setDialog(null);
           setNote("");
           setAmount("");
-          router.refresh();
         }
       } catch {
         notify({ ok: false, message: "Kết nối bị gián đoạn. Vui lòng thử lại." });
@@ -234,14 +242,16 @@ export default function AdminDashboard({
 
   const goToTab = (nextTab: AdminTab) => {
     setSearch("");
-    router.push(nextTab === "overview" ? "/admin" : `/admin?tab=${nextTab}`);
+    startTransition(() => {
+      router.push(nextTab === "overview" ? "/admin" : `/admin?tab=${nextTab}`);
+    });
   };
 
   const setStatus = (status: string) => {
     const params = new URLSearchParams({ tab });
     if (searchTerm) params.set("q", searchTerm);
     if (status) params.set("status", status);
-    router.push(`/admin?${params.toString()}`);
+    startTransition(() => router.push(`/admin?${params.toString()}`));
   };
 
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
@@ -249,7 +259,7 @@ export default function AdminDashboard({
     const params = new URLSearchParams({ tab });
     if (search.trim()) params.set("q", search.trim());
     if (statusFilter) params.set("status", statusFilter);
-    router.push(`/admin?${params.toString()}`);
+    startTransition(() => router.push(`/admin?${params.toString()}`));
   };
 
   const showPlaceholder = (message: string) => {

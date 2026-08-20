@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import "@/styles/account.css";
+
 import AccountLayoutShell from "@/components/account/AccountLayout";
 import { requireCurrentUser } from "@/utils/auth/guards";
 

@@ -13,7 +13,6 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 
 import {
@@ -41,7 +40,6 @@ export default function CheckoutAddressDialog({
   onClose,
   onCreated,
 }: CheckoutAddressDialogProps) {
-  const router = useRouter();
   const [selection, setSelection] = useState<GoogleAddressSelection | null>(
     null
   );
@@ -69,9 +67,8 @@ export default function CheckoutAddressDialog({
     }
 
     if (state.addressId) onCreated(state.addressId);
-    router.refresh();
     onClose();
-  }, [onClose, onCreated, requestId, router, state]);
+  }, [onClose, onCreated, requestId, state]);
 
   const currentState = state.requestId === requestId ? state : initialState;
 

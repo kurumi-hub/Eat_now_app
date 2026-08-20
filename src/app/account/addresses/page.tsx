@@ -1,10 +1,8 @@
-import { requireAnyRole } from "@/utils/auth/guards";
 import AddressManager from "@/components/account/AddressManager";
-import { listAddressesAction } from "./actions";
+import { getCurrentUserAddresses } from "@/lib/data/addresses";
 
 export default async function AccountAddressesPage() {
-  await requireAnyRole(["CUSTOMER"]);
-  const addresses = await listAddressesAction();
+  const addresses = await getCurrentUserAddresses();
 
   return (
     <>

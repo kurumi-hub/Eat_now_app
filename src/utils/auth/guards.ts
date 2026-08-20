@@ -1,3 +1,6 @@
+import "server-only";
+
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { hasAnyRole } from "@/utils/roles";
 import { createClient } from "@/utils/supabase/server";
@@ -5,7 +8,7 @@ import type { PublicUser, UserRole } from "@/types/auth";
 import { getMyAccess } from "./access";
 import { toPublicUser } from "./publicUser";
 
-export async function getCurrentPublicUser(): Promise<PublicUser | null> {
+export const getCurrentPublicUser = cache(async (): Promise<PublicUser | null> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -18,7 +21,7 @@ export async function getCurrentPublicUser(): Promise<PublicUser | null> {
   const access = await getMyAccess(supabase);
 
   return toPublicUser(user, access);
-}
+});
 
 export async function requireCurrentUser(): Promise<PublicUser> {
   const user = await getCurrentPublicUser();

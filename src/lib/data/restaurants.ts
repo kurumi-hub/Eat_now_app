@@ -1,9 +1,13 @@
+import "server-only";
+
+import { unstable_cache } from "next/cache";
+
 import type { HomeRestaurant } from "@/components/home/homeData";
 import type {
   RestaurantDetail,
   RestaurantMenuCategory,
 } from "@/components/restaurant/restaurantDetailData";
-import { createClient } from "@/utils/supabase/server";
+import { createPublicClient } from "@/utils/supabase/public";
 
 type FeaturedRestaurantRpcRow = {
   id: string;
@@ -44,15 +48,14 @@ function formatReviewCount(count: number) {
   return `${count}+ đánh giá`;
 }
 
-export async function getFeaturedRestaurants(): Promise<HomeRestaurant[]> {
-  const supabase = await createClient();
+const fetchFeaturedRestaurants = unstable_cache(async (): Promise<HomeRestaurant[]> => {
+  const supabase = createPublicClient();
   const { data, error } = await supabase.rpc("api_featured_restaurants", {
     p_limit: 8,
   });
 
   if (error || !data) {
-    console.error("getFeaturedRestaurants RPC error:", error?.message);
-    return [];
+    throw new Error(error?.message ?? "Không thể tải nhà hàng nổi bật.");
   }
 
   const rows = data as unknown as FeaturedRestaurantRpcRow[];
@@ -64,19 +67,30 @@ export async function getFeaturedRestaurants(): Promise<HomeRestaurant[]> {
     rating: `${restaurant.rating_average} (${restaurant.rating_count}+)`,
     time: "20 - 30 phút",
   }));
+}, ["catalog-featured-restaurants-v1"], {
+  revalidate: 60,
+  tags: ["catalog", "restaurants"],
+});
+
+export async function getFeaturedRestaurants(): Promise<HomeRestaurant[]> {
+  try {
+    return await fetchFeaturedRestaurants();
+  } catch (error) {
+    console.error("getFeaturedRestaurants RPC error:", error);
+    return [];
+  }
 }
 
-export async function getRestaurantDetailBySlug(
+const fetchRestaurantDetailBySlug = unstable_cache(async (
   slug: string
-): Promise<RestaurantDetail | undefined> {
-  const supabase = await createClient();
+): Promise<RestaurantDetail | undefined> => {
+  const supabase = createPublicClient();
   const { data, error } = await supabase.rpc("api_restaurant_detail", {
     p_slug: slug,
   });
 
   if (error) {
-    console.error("getRestaurantDetailBySlug RPC error:", error.message);
-    return undefined;
+    throw new Error(error.message);
   }
   if (!data) return undefined;
 
@@ -121,4 +135,18 @@ export async function getRestaurantDetailBySlug(
     openUntil: restaurant.close_at ?? "",
     menuCategories: categoryOrder.map((id) => categoriesMap.get(id)!),
   };
+}, ["catalog-restaurant-detail-v1"], {
+  revalidate: 60,
+  tags: ["catalog", "restaurants"],
+});
+
+export async function getRestaurantDetailBySlug(
+  slug: string
+): Promise<RestaurantDetail | undefined> {
+  try {
+    return await fetchRestaurantDetailBySlug(slug);
+  } catch (error) {
+    console.error("getRestaurantDetailBySlug RPC error:", error);
+    return undefined;
+  }
 }

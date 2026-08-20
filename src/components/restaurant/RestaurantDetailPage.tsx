@@ -21,18 +21,23 @@ import {
   Snackbar,
 } from "@mui/material";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import type { PublicUser } from "@/types/auth";
 import SiteFooter from "@/components/common/SiteFooter";
 import CustomerHeader from "@/components/home/CustomerHeader";
-import FoodOptionsModal from "@/components/cart/FoodOptionsModal";
 import { useCartStore } from "@/store/cartStore";
 import type {
   RestaurantDetail,
   RestaurantMenuItem,
 } from "./restaurantDetailData";
+
+const FoodOptionsModal = dynamic(
+  () => import("@/components/cart/FoodOptionsModal"),
+  { ssr: false }
+);
 
 type RestaurantDetailPageProps = {
   restaurant: RestaurantDetail;

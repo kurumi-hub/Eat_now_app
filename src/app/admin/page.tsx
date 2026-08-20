@@ -1,4 +1,4 @@
-import { listAddressesAction } from "@/app/account/addresses/actions";
+import { getCurrentUserAddresses } from "@/lib/data/addresses";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import type {
   AdminAuditList,
@@ -243,7 +243,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const [dashboardResult, contentResult, addresses] = await Promise.all([
     supabase.rpc("api_get_admin_dashboard"),
     contentPromise,
-    hasRole(user, "CUSTOMER") ? listAddressesAction() : Promise.resolve([]),
+    hasRole(user, "CUSTOMER")
+      ? getCurrentUserAddresses()
+      : Promise.resolve([]),
   ]);
   const defaultAddress = addresses.find((address) => address.isDefault) ?? addresses[0] ?? null;
   const errors = [dashboardResult.error, contentResult.error].filter(Boolean);

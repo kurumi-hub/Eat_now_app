@@ -1,4 +1,4 @@
-import { listAddressesAction } from "@/app/account/addresses/actions";
+import { getCurrentUserAddresses } from "@/lib/data/addresses";
 import ModeratorDashboard from "@/components/moderator/ModeratorDashboard";
 import type {
   ModerationQueue,
@@ -100,7 +100,9 @@ export default async function ModeratorPage({ searchParams }: ModeratorPageProps
       p_limit: 50,
       p_offset: 0,
     }),
-    hasRole(user, "CUSTOMER") ? listAddressesAction() : Promise.resolve([]),
+    hasRole(user, "CUSTOMER")
+      ? getCurrentUserAddresses()
+      : Promise.resolve([]),
   ]);
 
   const defaultAddress =

@@ -1,5 +1,5 @@
 import HomePage from "@/components/home/HomePage";
-import { listAddressesAction } from "@/app/account/addresses/actions";
+import { getCurrentUserAddresses } from "@/lib/data/addresses";
 import { getFeaturedRestaurants } from "@/lib/data/restaurants";
 import { getCurrentPublicUser } from "@/utils/auth/guards";
 import { hasRole } from "@/utils/roles";
@@ -11,7 +11,7 @@ export default async function Home() {
   ]);
 
   const addresses =
-    user && hasRole(user, "CUSTOMER") ? await listAddressesAction() : [];
+    user && hasRole(user, "CUSTOMER") ? await getCurrentUserAddresses() : [];
   const defaultAddress =
     addresses.find((address) => address.isDefault) ?? addresses[0] ?? null;
 

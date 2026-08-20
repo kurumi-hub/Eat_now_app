@@ -420,3 +420,12 @@
     flex-direction: column-reverse;
   }
 }
+.address-map-loading {
+  display: grid;
+  min-height: 360px;
+  place-items: center;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #f6f0eb, #fffaf6);
+  color: #7a6255;
+  font-weight: 600;
+}

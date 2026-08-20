@@ -24,7 +24,7 @@ import {
   TextField,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import {
   claimReportAction,
@@ -179,6 +179,15 @@ export default function ModeratorDashboard({
     severity: "success" | "error" | "info";
   }>({ open: false, message: "", severity: "success" });
 
+  useEffect(() => {
+    STATUS_FILTERS.forEach(({ value }) => {
+      router.prefetch(
+        value === "all" ? "/moderator" : `/moderator?status=${value}`
+      );
+    });
+    router.prefetch("/admin");
+  }, [router]);
+
   const notify = (result: ModeratorActionResult) => {
     setSnackbar({
       open: true,
@@ -195,7 +204,6 @@ export default function ModeratorDashboard({
         if (result.ok) {
           setDialog(null);
           setNote("");
-          router.refresh();
         }
       } catch {
         notify({
@@ -238,7 +246,9 @@ export default function ModeratorDashboard({
   };
 
   const changeFilter = (status: StatusFilter) => {
-    router.push(status === "all" ? "/moderator" : `/moderator?status=${status}`);
+    startTransition(() => {
+      router.push(status === "all" ? "/moderator" : `/moderator?status=${status}`);
+    });
   };
 
   const showPlaceholder = (message: string) => {

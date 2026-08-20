@@ -14,8 +14,10 @@ export default async function RestaurantDetailRoute({
   params,
 }: RestaurantDetailRouteProps) {
   const { restaurantId } = await params;
-  const restaurant = await getRestaurantDetailBySlug(restaurantId);
-  const user = await getCurrentPublicUser();
+  const [restaurant, user] = await Promise.all([
+    getRestaurantDetailBySlug(restaurantId),
+    getCurrentPublicUser(),
+  ]);
 
   if (!restaurant) {
     notFound();

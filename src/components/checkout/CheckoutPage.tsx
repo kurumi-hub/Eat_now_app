@@ -19,27 +19,32 @@ import {
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
 } from "react";
 
-import CheckoutAddressDialog from "@/components/checkout/CheckoutAddressDialog";
 import CustomerHeader from "@/components/home/CustomerHeader";
 import type { AccountAddress } from "@/types/account";
 import type { PublicUser } from "@/types/auth";
 import { useCartStore } from "@/store/cartStore";
 import { useCartSession } from "@/store/useCartSession";
 import {
-  listCheckoutVouchers,
+  initializeCheckout,
   placeOrder,
   previewOrder,
-  syncCartToServer,
   type CheckoutVoucher,
 } from "@/app/checkout/actions";
+
+const CheckoutAddressDialog = dynamic(
+  () => import("@/components/checkout/CheckoutAddressDialog"),
+  { ssr: false }
+);
 
 type CheckoutPageProps = {
   user: PublicUser;
@@ -107,6 +112,8 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   const [error, setError] = useState("");
   const [isSyncing, startSyncing] = useTransition();
   const [isPlacing, startPlacing] = useTransition();
+  const initializedRef = useRef(false);
+  const skipNextPreviewRef = useRef(false);
 
   useEffect(() => {
     if (!addressId && defaultAddress) setAddressId(defaultAddress.id);
@@ -125,57 +132,43 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   useEffect(() => {
     if (!cartReady) return;
     if (lines.length === 0) return;
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+    setVoucherError("");
+    setPreviewError("");
+    setIsLoadingVouchers(true);
 
     startSyncing(async () => {
-      const result = await syncCartToServer(lines);
+      const result = await initializeCheckout(
+        lines,
+        addressId || null,
+        paymentMethod
+      );
+      setIsLoadingVouchers(false);
       if (!result.ok) {
         setError(result.error);
         return;
       }
+      skipNextPreviewRef.current = Boolean(addressId);
       setCartId(result.cartId);
+      setVouchers(result.vouchers);
+      setVoucherError(result.voucherError ?? "");
+      setPreview(result.preview as PreviewState);
+      setPreviewError(result.previewError ?? "");
     });
     // Chỉ chạy 1 lần khi vào trang, không refetch mỗi lần user gõ voucher.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartReady]);
 
-  useEffect(() => {
-    if (!cartId) {
-      setVouchers([]);
-      return;
-    }
-
-    let cancelled = false;
-    setVoucherError("");
-    setIsLoadingVouchers(true);
-
-    (async () => {
-      const result = await listCheckoutVouchers(cartId);
-      if (cancelled) return;
-
-      setIsLoadingVouchers(false);
-      if (!result.ok) {
-        setVoucherError(result.error);
-        setVouchers([]);
-        return;
-      }
-
-      setVouchers(result.vouchers);
-      setVoucherCode((current) =>
-        current && !result.vouchers.some((voucher) => voucher.code === current)
-          ? ""
-          : current
-      );
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [cartId]);
-
   // Tính lại preview mỗi khi đổi địa chỉ/voucher, sau khi đã có cartId.
   useEffect(() => {
     if (!cartId || !addressId) {
       setPreview(null);
+      return;
+    }
+
+    if (skipNextPreviewRef.current) {
+      skipNextPreviewRef.current = false;
       return;
     }
 

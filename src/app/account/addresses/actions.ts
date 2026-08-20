@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import type { AccountAddress, AddressFormValues } from "@/types/account";
+import { getCurrentUserAddresses } from "@/lib/data/addresses";
 import { requireAnyRole } from "@/utils/auth/guards";
 import { createClient } from "@/utils/supabase/server";
 import { validateAddressValues, type AddressField } from "@/utils/validation";
@@ -25,39 +26,6 @@ type AddressRpcError = {
   code?: string;
   message: string;
 };
-
-type AddressRow = {
-  id: string;
-  label: string | null;
-  address: string;
-  recipient_name: string | null;
-  recipient_phone: string | null;
-  delivery_note: string | null;
-  ward: string | null;
-  district: string | null;
-  province: string | null;
-  lat: number | null;
-  lon: number | null;
-  is_default: boolean;
-  created_at: string;
-  updated_at: string;
-};
-
-function rowToAddress(row: AddressRow): AccountAddress {
-  return {
-    id: row.id,
-    recipientName: row.recipient_name ?? "",
-    phone: row.recipient_phone ?? "",
-    line1: row.address,
-    ward: row.ward ?? "",
-    district: row.district ?? "",
-    city: row.province ?? "",
-    note: row.delivery_note ?? undefined,
-    isDefault: row.is_default,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
 
 function buildFullAddress(values: AddressFormValues) {
   return [values.line1, values.ward, values.district, values.city]
@@ -91,18 +59,7 @@ function addressSaveErrorMessage(error: AddressRpcError) {
 }
 
 export async function listAddressesAction(): Promise<AccountAddress[]> {
-  await requireAnyRole(["CUSTOMER"]);
-  const supabase = await createClient();
-
-  const { data, error } = await supabase.rpc("api_list_addresses");
-
-  if (error || !data) {
-    console.error("listAddressesAction error:", error?.message);
-    return [];
-  }
-
-  const rows = (data ?? []) as unknown as AddressRow[];
-  return rows.map(rowToAddress);
+  return getCurrentUserAddresses();
 }
 
 export async function createAddressAction(
