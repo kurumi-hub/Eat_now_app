@@ -320,6 +320,8 @@ button.admin-metric { font: inherit; cursor: pointer; }
 
 .admin-media-card {
   min-width: 0;
+  display: grid;
+  grid-template-rows: 210px minmax(0, 1fr);
   overflow: hidden;
   border: 1px solid #eadfd8;
   border-radius: 16px;
@@ -328,16 +330,12 @@ button.admin-metric { font: inherit; cursor: pointer; }
 
 .admin-media-card__preview {
   position: relative;
-  aspect-ratio: 16 / 9;
+  width: 100%;
+  height: 210px;
   background-color: #eee5df;
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
-}
-
-.admin-media-card__preview--auth_login,
-.admin-media-card__preview--auth_register {
-  aspect-ratio: 4 / 3;
 }
 
 .admin-media-card__preview span {
@@ -355,6 +353,7 @@ button.admin-metric { font: inherit; cursor: pointer; }
 
 .admin-media-card__body {
   display: grid;
+  grid-template-rows: minmax(112px, auto) 1fr;
   gap: 18px;
   padding: 17px;
 }
@@ -376,7 +375,11 @@ button.admin-metric { font: inherit; cursor: pointer; }
 
 .admin-media-card small { color: #948880; font-size: 9px; }
 
-.admin-media-form { display: grid; gap: 11px; }
+.admin-media-form {
+  align-self: end;
+  display: grid;
+  gap: 11px;
+}
 
 .admin-media-form > label:not(.admin-media-file) {
   display: grid;
@@ -468,6 +471,8 @@ button.admin-metric { font: inherit; cursor: pointer; }
   .admin-restaurant-row .admin-row-actions,
   .admin-refund-row .admin-row-actions { grid-column: 1 / -1; grid-row: auto; max-width: none; justify-content: flex-start; }
   .admin-media-grid { grid-template-columns: 1fr; padding-inline: 16px; }
+  .admin-media-card { grid-template-rows: 220px minmax(0, 1fr); }
+  .admin-media-card__preview { height: 220px; }
   .admin-media-panel > .MuiAlert-root { margin-inline: 16px; }
 }
 
