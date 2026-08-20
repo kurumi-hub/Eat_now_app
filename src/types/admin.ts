@@ -1,11 +1,15 @@
 import type { UserRole } from "./auth";
+import type { SiteMediaMap } from "./siteMedia";
 
 export type AdminTab =
   | "overview"
   | "users"
   | "restaurants"
   | "refunds"
+  | "media"
   | "audit";
+
+export type AdminSiteMedia = SiteMediaMap;
 
 export type AdminDashboardStats = {
   users: { total: number; active: number; suspended: number };

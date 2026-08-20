@@ -41,6 +41,8 @@ export default function SiteChrome({
   const hideChrome = CHROMELESS_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
+  const showNavigationProgress =
+    pathname !== "/admin" && !pathname.startsWith("/admin/");
 
   useEffect(() => {
     setNavigating(false);
@@ -95,12 +97,14 @@ export default function SiteChrome({
 
   return (
     <div className="site-chrome" onClickCapture={handleClickCapture}>
-      <div
-        className={`navigation-progress${navigating ? " is-visible" : ""}`}
-        role="progressbar"
-        aria-label="Đang chuyển trang"
-        aria-hidden={!navigating}
-      />
+      {showNavigationProgress ? (
+        <div
+          className={`navigation-progress${navigating ? " is-visible" : ""}`}
+          role="progressbar"
+          aria-label="Đang chuyển trang"
+          aria-hidden={!navigating}
+        />
+      ) : null}
       <CustomerHeader
         user={user}
         deliveryAddress={deliveryAddress}

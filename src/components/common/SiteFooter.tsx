@@ -22,7 +22,6 @@ export default function SiteFooter({ onPlaceholder }: SiteFooterProps) {
 
   return (
     <footer className="site-footer">
-      <div className="site-footer__accent" aria-hidden="true" />
       <div className="site-footer__inner">
         <div className="site-footer__grid">
           <section className="site-footer__brand-column">

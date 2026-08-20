@@ -309,6 +309,129 @@ button.admin-metric { font: inherit; cursor: pointer; }
 .admin-empty h3 { margin: 13px 0 3px; font-family: var(--font-baloo), sans-serif; font-size: 19px; }
 .admin-empty p { margin: 0; color: #8e817a; font-size: 11px; }
 
+.admin-media-panel { padding-bottom: 22px; }
+
+.admin-media-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 0 24px 22px;
+}
+
+.admin-media-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #eadfd8;
+  border-radius: 16px;
+  background: #fffaf7;
+}
+
+.admin-media-card__preview {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background-color: #eee5df;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.admin-media-card__preview--auth_login,
+.admin-media-card__preview--auth_register {
+  aspect-ratio: 4 / 3;
+}
+
+.admin-media-card__preview span {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(37, 29, 24, .72);
+  font-size: 9px;
+  font-weight: 800;
+  backdrop-filter: blur(6px);
+}
+
+.admin-media-card__body {
+  display: grid;
+  gap: 18px;
+  padding: 17px;
+}
+
+.admin-media-card h3 {
+  margin: 0;
+  color: #251d18;
+  font-family: var(--font-baloo), sans-serif;
+  font-size: 19px;
+}
+
+.admin-media-card p {
+  min-height: 38px;
+  margin: 4px 0 5px;
+  color: #70645d;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.admin-media-card small { color: #948880; font-size: 9px; }
+
+.admin-media-form { display: grid; gap: 11px; }
+
+.admin-media-form > label:not(.admin-media-file) {
+  display: grid;
+  gap: 6px;
+  color: #5a4136;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.admin-media-form input[type="text"],
+.admin-media-form input:not([type]) {
+  min-width: 0;
+  height: 38px;
+  padding: 0 11px;
+  border: 1px solid #d9c9c1;
+  border-radius: 10px;
+  outline: 0;
+  color: #251d18;
+  background: #fff;
+}
+
+.admin-media-form input:focus { border-color: #7a3000; }
+
+.admin-media-file {
+  position: relative;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  overflow: hidden;
+  border: 1px dashed #c79c87;
+  border-radius: 11px;
+  color: #7a3000;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-media-file:hover { background: #fff4ee; }
+.admin-media-file svg { width: 18px; }
+
+.admin-media-file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.admin-media-actions { display: flex; gap: 7px; flex-wrap: wrap; }
+.admin-media-actions .admin-button { flex: 1 1 135px; }
+.admin-media-actions svg { width: 16px; }
+.admin-media-panel > .MuiAlert-root { margin: 0 24px; }
+
 .admin-dialog.MuiPaper-root { border: 1px solid #eadfd8; border-radius: 22px; }
 .admin-dialog__title.MuiDialogTitle-root { display: flex; align-items: center; justify-content: space-between; padding: 20px 23px 10px; color: #251d18; font-family: var(--font-baloo), sans-serif; font-size: 23px; font-weight: 700; }
 .admin-dialog__title .MuiIconButton-root { padding: 4px; color: #70645d; background: transparent; box-shadow: none; }
@@ -321,6 +444,7 @@ button.admin-metric { font: inherit; cursor: pointer; }
   .admin-user-row { grid-template-columns: 44px minmax(0, 1fr) auto; }
   .admin-user-row__status { grid-column: 2; }
   .admin-user-row .admin-row-actions { grid-column: 3; grid-row: 1 / span 2; max-width: 270px; }
+  .admin-media-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 760px) {
@@ -343,6 +467,8 @@ button.admin-metric { font: inherit; cursor: pointer; }
   .admin-user-row .admin-row-actions,
   .admin-restaurant-row .admin-row-actions,
   .admin-refund-row .admin-row-actions { grid-column: 1 / -1; grid-row: auto; max-width: none; justify-content: flex-start; }
+  .admin-media-grid { grid-template-columns: 1fr; padding-inline: 16px; }
+  .admin-media-panel > .MuiAlert-root { margin-inline: 16px; }
 }
 
 @media (max-width: 480px) {

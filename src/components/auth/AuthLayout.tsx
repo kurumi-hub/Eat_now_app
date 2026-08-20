@@ -3,6 +3,7 @@ import { Box, Paper } from "@mui/material";
 import NextLink from "next/link";
 import type { ReactNode } from "react";
 
+import { getSiteMedia } from "@/lib/data/siteMedia";
 import AuthBrandPanel from "./AuthBrandPanel";
 
 type AuthVariant = "login" | "register";
@@ -15,27 +16,35 @@ type AuthLayoutProps = {
 const contentByVariant: Record<
   AuthVariant,
   {
-    imageSrc: string;
+    mediaSlot: "auth_login" | "auth_register";
     tagline: string;
     subtitle?: string;
   }
 > = {
   login: {
-    imageSrc: "/images/auth/login-food.png",
+    mediaSlot: "auth_login",
     tagline: "Vị ngon quê nhà, giao nhanh tận cửa.",
   },
   register: {
-    imageSrc: "/images/auth/register-food.png",
+    mediaSlot: "auth_register",
     tagline: "Hương vị tận tâm, Giao hàng tận nơi.",
     subtitle: "Trải nghiệm ẩm thực tuyệt vời ngay tại nhà cùng EatNow.",
   },
 };
 
-export default function AuthLayout({
+export default async function AuthLayout({
   children,
   variant = "login",
 }: AuthLayoutProps) {
   const brand = contentByVariant[variant];
+  const siteMedia = await getSiteMedia();
+  const image = siteMedia[brand.mediaSlot];
+  const brandProps = {
+    tagline: brand.tagline,
+    subtitle: brand.subtitle,
+    imageSrc: image.imageUrl,
+    imageAlt: image.altText,
+  };
 
   return (
     <main className="auth-page">
@@ -48,9 +57,9 @@ export default function AuthLayout({
         >
           <CloseOutlinedIcon />
         </NextLink>
-        <AuthBrandPanel {...brand} />
+        <AuthBrandPanel {...brandProps} />
         <Box className="auth-form-panel">
-          <AuthBrandPanel {...brand} compact />
+          <AuthBrandPanel {...brandProps} compact />
           <Box className="auth-form-content">{children}</Box>
         </Box>
       </Paper>

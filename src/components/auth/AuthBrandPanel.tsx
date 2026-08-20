@@ -4,6 +4,7 @@ import Image from "next/image";
 
 type AuthBrandPanelProps = {
   imageSrc: string;
+  imageAlt: string;
   tagline: string;
   subtitle?: string;
   compact?: boolean;
@@ -11,6 +12,7 @@ type AuthBrandPanelProps = {
 
 export default function AuthBrandPanel({
   imageSrc,
+  imageAlt,
   tagline,
   subtitle,
   compact = false,
@@ -34,9 +36,10 @@ export default function AuthBrandPanel({
       <Image
         className="auth-brand-image"
         src={imageSrc}
-        alt="Món ăn Việt Nam tại EatNow"
+        alt={imageAlt}
         fill
         priority
+        unoptimized
         sizes="(max-width: 720px) 0px, 540px"
       />
       <Box className="auth-brand-overlay" aria-hidden="true" />

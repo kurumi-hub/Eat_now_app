@@ -6,10 +6,12 @@ import type {
   AdminRefundList,
   AdminRestaurant,
   AdminRestaurantList,
+  AdminSiteMedia,
   AdminTab,
   AdminUser,
   AdminUserList,
 } from "@/types/admin";
+import { parseSiteMedia } from "@/types/siteMedia";
 import { requirePermission } from "@/utils/auth/guards";
 import { normalizeRoles } from "@/utils/roles";
 import { createClient } from "@/utils/supabase/server";
@@ -30,6 +32,7 @@ const ADMIN_TABS: AdminTab[] = [
   "users",
   "restaurants",
   "refunds",
+  "media",
   "audit",
 ];
 
@@ -47,6 +50,7 @@ const EMPTY_RESTAURANTS: AdminRestaurantList = {
 };
 const EMPTY_REFUNDS: AdminRefundList = { items: [], total: 0, limit: 20, offset: 0 };
 const EMPTY_AUDIT: AdminAuditList = { items: [], total: 0, limit: 20, offset: 0 };
+const EMPTY_MEDIA: AdminSiteMedia = parseSiteMedia(null);
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -223,7 +227,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const user = await requirePermission("users.view");
   const params = await searchParams;
   const requestedTab = firstParam(params.tab) as AdminTab;
-  const tab = ADMIN_TABS.includes(requestedTab) ? requestedTab : "overview";
+  let tab = ADMIN_TABS.includes(requestedTab) ? requestedTab : "overview";
+  if (tab === "media" && !user.permissions.includes("site_media.manage")) {
+    tab = "overview";
+  }
   const search = firstParam(params.q).slice(0, 80);
   const status = firstParam(params.status).slice(0, 30);
   const page = positivePage(params.page);
@@ -246,6 +253,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       return supabase.rpc("api_list_admin_refunds", {
         p_status: status || null, p_search: search || null, p_limit: limit, p_offset: offset,
       });
+    }
+    if (tab === "media") {
+      return supabase.rpc("api_get_site_media");
     }
     return supabase.rpc("api_list_audit_logs", {
       p_limit: tab === "audit" ? limit : 8,
@@ -270,8 +280,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       users={tab === "users" ? parseUsers(contentResult.data) : EMPTY_USERS}
       restaurants={tab === "restaurants" ? parseRestaurants(contentResult.data) : EMPTY_RESTAURANTS}
       refunds={tab === "refunds" ? parseRefunds(contentResult.data) : EMPTY_REFUNDS}
+      media={tab === "media" ? parseSiteMedia(contentResult.data) : EMPTY_MEDIA}
       audit={tab === "overview" || tab === "audit" ? parseAudit(contentResult.data) : EMPTY_AUDIT}
-      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra SQL 13–17." : undefined}
+      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra SQL 13–18." : undefined}
     />
   );
 }

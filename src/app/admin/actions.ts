@@ -1,13 +1,19 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 
 import type { AdminActionResult } from "@/types/admin";
+import {
+  SITE_MEDIA_SLOTS,
+  type SiteMediaSlot,
+} from "@/types/siteMedia";
 import { requirePermission } from "@/utils/auth/guards";
 import { createClient } from "@/utils/supabase/server";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const SITE_MEDIA_BUCKET = "site-media";
 
 type NoteResult =
   | { ok: true; value: string }
@@ -26,6 +32,16 @@ function cleanNote(value: string): NoteResult {
 
 function validId(value: string) {
   return UUID_REGEX.test(value);
+}
+
+function isSiteMediaSlot(value: string): value is SiteMediaSlot {
+  return SITE_MEDIA_SLOTS.includes(value as SiteMediaSlot);
+}
+
+function refreshSiteMedia() {
+  updateTag("site-media");
+  revalidatePath("/", "layout");
+  revalidatePath("/admin");
 }
 
 function failure(message: string, error?: { code?: string; message?: string }) {
@@ -202,4 +218,100 @@ export async function reviewRefundAction(
         ? "Đã duyệt. Hệ thống thanh toán cần tiếp tục xử lý giao dịch hoàn tiền."
         : "Đã từ chối yêu cầu hoàn tiền.",
   };
+}
+
+export async function applySiteMediaAction(
+  slot: string,
+  objectPath: string,
+  altText: string
+): Promise<AdminActionResult> {
+  await requirePermission("site_media.manage");
+
+  if (!isSiteMediaSlot(slot)) {
+    return { ok: false, message: "Vị trí ảnh không hợp lệ." };
+  }
+  const normalizedPath = objectPath.trim();
+  if (
+    normalizedPath.length > 500 ||
+    !normalizedPath.startsWith(`${slot}/`) ||
+    !/^[a-z0-9_/-]+\.(?:jpg|png|webp|avif)$/i.test(normalizedPath)
+  ) {
+    return { ok: false, message: "Đường dẫn ảnh Storage không hợp lệ." };
+  }
+
+  const supabase = await createClient();
+  const { data: publicUrlData } = supabase.storage
+    .from(SITE_MEDIA_BUCKET)
+    .getPublicUrl(normalizedPath);
+  const { data, error } = await supabase.rpc("api_set_site_media", {
+    p_slot: slot,
+    p_object_path: normalizedPath,
+    p_image_url: publicUrlData.publicUrl,
+    p_alt_text: altText.trim().slice(0, 180) || null,
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      message: failure("Không thể lưu cấu hình ảnh.", error),
+    };
+  }
+
+  const result = data as { old_object_path?: unknown } | null;
+  const oldObjectPath =
+    typeof result?.old_object_path === "string"
+      ? result.old_object_path
+      : null;
+  if (oldObjectPath && oldObjectPath !== normalizedPath) {
+    const { error: cleanupError } = await supabase.storage
+      .from(SITE_MEDIA_BUCKET)
+      .remove([oldObjectPath]);
+    if (cleanupError) {
+      console.warn("[admin] Không thể xóa ảnh site-media cũ", cleanupError.message);
+    }
+  }
+
+  refreshSiteMedia();
+  return { ok: true, message: "Đã cập nhật ảnh giao diện." };
+}
+
+export async function resetSiteMediaAction(
+  slot: string
+): Promise<AdminActionResult> {
+  await requirePermission("site_media.manage");
+  if (!isSiteMediaSlot(slot)) {
+    return { ok: false, message: "Vị trí ảnh không hợp lệ." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("api_set_site_media", {
+    p_slot: slot,
+    p_object_path: null,
+    p_image_url: null,
+    p_alt_text: null,
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      message: failure("Không thể khôi phục ảnh mặc định.", error),
+    };
+  }
+
+  const result = data as { old_object_path?: unknown } | null;
+  const oldObjectPath =
+    typeof result?.old_object_path === "string"
+      ? result.old_object_path
+      : null;
+  if (oldObjectPath) {
+    const { error: cleanupError } = await supabase.storage
+      .from(SITE_MEDIA_BUCKET)
+      .remove([oldObjectPath]);
+    if (cleanupError) {
+      console.warn("[admin] Không thể xóa ảnh site-media cũ", cleanupError.message);
+    }
+  }
+
+  refreshSiteMedia();
+  return { ok: true, message: "Đã khôi phục ảnh mặc định." };
 }

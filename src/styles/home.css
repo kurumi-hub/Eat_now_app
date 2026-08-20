@@ -533,11 +533,6 @@
   pointer-events: none;
 }
 
-.site-footer__accent {
-  height: 5px;
-  background: linear-gradient(90deg, #d94720, #ffb84d 52%, #d94720);
-}
-
 .site-footer__inner {
   position: relative;
   z-index: 1;

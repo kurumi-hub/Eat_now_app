@@ -22,8 +22,6 @@ export type HomeFood = {
   image: string;
 };
 
-export const homeHeroImage = "/images/home/hero.png";
-
 export const homeCategories: HomeCategory[] = [
   { label: "Cơm", icon: RiceBowlOutlinedIcon },
   { label: "Phở", icon: RamenDiningOutlinedIcon },

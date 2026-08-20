@@ -12,10 +12,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { PublicUser } from "@/types/auth";
+import type { SiteMediaItem } from "@/types/siteMedia";
 import { signalNavigationStart } from "@/utils/navigationFeedback";
 import {
   homeCategories,
-  homeHeroImage,
   nearbyFoods,
 } from "./homeData";
 import type { HomeRestaurant } from "./homeData";
@@ -23,6 +23,7 @@ import type { HomeRestaurant } from "./homeData";
 type HomePageProps = {
   user: PublicUser | null;
   featuredRestaurants: HomeRestaurant[];
+  heroImage: SiteMediaItem;
 };
 
 type SnackbarState = {
@@ -40,6 +41,7 @@ function scrollToSection(sectionId: string) {
 export default function HomePage({
   user,
   featuredRestaurants,
+  heroImage,
 }: HomePageProps) {
   const router = useRouter();
   const [snackbar, setSnackbar] = useState<SnackbarState>({
@@ -63,12 +65,13 @@ export default function HomePage({
           className="home-hero"
           aria-label="Mâm món Việt nổi bật"
         >
-          <div className="home-hero__media" aria-hidden="true">
+          <div className="home-hero__media">
             <Image
-              src={homeHeroImage}
-              alt=""
+              src={heroImage.imageUrl}
+              alt={heroImage.altText}
               fill
               priority
+              unoptimized
               sizes="(max-width: 760px) 100vw, 1200px"
             />
           </div>

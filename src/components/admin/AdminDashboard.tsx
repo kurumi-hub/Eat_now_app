@@ -6,6 +6,9 @@ import CurrencyExchangeOutlinedIcon from "@mui/icons-material/CurrencyExchangeOu
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import GavelOutlinedIcon from "@mui/icons-material/GavelOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
+import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
+import PhotoLibraryOutlinedIcon from "@mui/icons-material/PhotoLibraryOutlined";
+import RestoreOutlinedIcon from "@mui/icons-material/RestoreOutlined";
 import PeopleOutlineOutlinedIcon from "@mui/icons-material/PeopleOutlineOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
@@ -29,8 +32,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 
 import {
+  applySiteMediaAction,
   reviewRefundAction,
   reviewRestaurantAction,
+  resetSiteMediaAction,
   setAdminRoleAction,
   setModeratorRoleAction,
   setUserActiveAction,
@@ -44,13 +49,25 @@ import type {
   AdminRefundList,
   AdminRestaurant,
   AdminRestaurantList,
+  AdminSiteMedia,
   AdminTab,
   AdminUser,
   AdminUserList,
 } from "@/types/admin";
 import type { PublicUser } from "@/types/auth";
+import type { SiteMediaSlot } from "@/types/siteMedia";
 import { formatRole, hasRole } from "@/utils/roles";
 import { signalNavigationStart } from "@/utils/navigationFeedback";
+import { createClient as createBrowserClient } from "@/utils/supabase/client";
+
+const SITE_MEDIA_BUCKET = "site-media";
+const SITE_MEDIA_MAX_BYTES = 8 * 1024 * 1024;
+const SITE_MEDIA_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/avif": "avif",
+};
 
 type AdminDashboardProps = {
   user: PublicUser;
@@ -61,6 +78,7 @@ type AdminDashboardProps = {
   users: AdminUserList;
   restaurants: AdminRestaurantList;
   refunds: AdminRefundList;
+  media: AdminSiteMedia;
   audit: AdminAuditList;
   loadError?: string;
 };
@@ -86,6 +104,7 @@ const TABS: Array<{
   { value: "users", label: "Tài khoản & phân quyền", icon: PeopleOutlineOutlinedIcon },
   { value: "restaurants", label: "Nhà hàng", icon: StorefrontOutlinedIcon },
   { value: "refunds", label: "Hoàn tiền", icon: CurrencyExchangeOutlinedIcon },
+  { value: "media", label: "Hình ảnh", icon: PhotoLibraryOutlinedIcon },
   { value: "audit", label: "Nhật ký", icon: HistoryOutlinedIcon },
 ];
 
@@ -104,6 +123,8 @@ const ACTION_LABELS: Record<string, string> = {
   refund_reject: "Từ chối hoàn tiền",
   transfer_super_admin_in: "Nhận quyền Chủ nền tảng",
   transfer_super_admin_out: "Chuyển quyền Chủ nền tảng",
+  site_media_update: "Cập nhật ảnh giao diện",
+  site_media_reset: "Khôi phục ảnh giao diện",
 };
 
 const REFUND_STATUS: Record<string, string> = {
@@ -155,6 +176,7 @@ export default function AdminDashboard({
   users,
   restaurants,
   refunds,
+  media,
   audit,
   loadError,
 }: AdminDashboardProps) {
@@ -163,6 +185,10 @@ export default function AdminDashboard({
   const canManageModerator = user.permissions.includes("staff.moderator.manage");
   const canManageAdmin = user.permissions.includes("staff.admin.manage");
   const canTransferOwner = user.permissions.includes("ownership.transfer");
+  const canManageMedia = user.permissions.includes("site_media.manage");
+  const visibleTabs = TABS.filter(
+    (item) => item.value !== "media" || canManageMedia
+  );
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState(searchTerm);
   const [optimisticTab, setOptimisticTab] = useState(tab);
@@ -272,6 +298,62 @@ export default function AdminDashboard({
     startTransition(() => router.push(`/admin?${params.toString()}`));
   };
 
+  const submitMedia = (
+    event: FormEvent<HTMLFormElement>,
+    slot: SiteMediaSlot
+  ) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    runAction(async () => {
+      const file = formData.get("image");
+      const altText = String(formData.get("altText") ?? "");
+      if (!(file instanceof File) || file.size === 0) {
+        return { ok: false, message: "Vui lòng chọn một tệp ảnh." };
+      }
+      const extension = SITE_MEDIA_TYPES[file.type];
+      if (!extension) {
+        return { ok: false, message: "Chỉ hỗ trợ JPG, PNG, WebP hoặc AVIF." };
+      }
+      if (file.size > SITE_MEDIA_MAX_BYTES) {
+        return { ok: false, message: "Ảnh không được lớn hơn 8 MB." };
+      }
+
+      const supabase = createBrowserClient();
+      const objectPath = `${slot}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+      const { error: uploadError } = await supabase.storage
+        .from(SITE_MEDIA_BUCKET)
+        .upload(objectPath, file, {
+          cacheControl: "31536000",
+          contentType: file.type,
+          upsert: false,
+        });
+      if (uploadError) {
+        return {
+          ok: false,
+          message: "Không thể tải ảnh lên Supabase Storage.",
+        };
+      }
+
+      let result: AdminActionResult;
+      try {
+        result = await applySiteMediaAction(slot, objectPath, altText);
+      } catch (error) {
+        await supabase.storage.from(SITE_MEDIA_BUCKET).remove([objectPath]);
+        throw error;
+      }
+      if (!result.ok) {
+        await supabase.storage.from(SITE_MEDIA_BUCKET).remove([objectPath]);
+      }
+      if (result.ok) form.reset();
+      return result;
+    });
+  };
+
+  const resetMedia = (slot: SiteMediaSlot) => {
+    runAction(() => resetSiteMediaAction(slot));
+  };
+
   const pageData =
     tab === "users"
       ? users
@@ -310,7 +392,7 @@ export default function AdminDashboard({
           </header>
 
           <nav className="admin-tabs" aria-label="Chức năng quản trị">
-            {TABS.map((item) => {
+            {visibleTabs.map((item) => {
               const Icon = item.icon;
               return (
                 <button key={item.value} type="button" className={optimisticTab === item.value ? "is-active" : ""} onPointerEnter={() => router.prefetch(tabHref(item.value))} onFocus={() => router.prefetch(tabHref(item.value))} onClick={() => goToTab(item.value)} aria-current={optimisticTab === item.value ? "page" : undefined}>
@@ -496,6 +578,86 @@ export default function AdminDashboard({
             <section className="admin-panel">
               <div className="admin-panel__heading"><div><h2>Nhật ký quản trị</h2><p>Phạm vi hiển thị phụ thuộc cấp quyền</p></div></div>
               <AuditList audit={audit} />
+            </section>
+          ) : null}
+
+          {tab === "media" && canManageMedia ? (
+            <section className="admin-panel admin-media-panel">
+              <div className="admin-panel__heading">
+                <div>
+                  <h2>Hình ảnh giao diện</h2>
+                  <p>Ảnh được lưu trong bucket Supabase Storage “site-media”.</p>
+                </div>
+              </div>
+              <div className="admin-media-grid">
+                {Object.values(media).map((item) => (
+                  <article className="admin-media-card" key={item.slot}>
+                    <div
+                      className={`admin-media-card__preview admin-media-card__preview--${item.slot}`}
+                      style={{ backgroundImage: `url("${item.imageUrl}")` }}
+                      role="img"
+                      aria-label={item.altText}
+                    >
+                      <span>{item.usesFallback ? "Ảnh mặc định" : "Supabase Storage"}</span>
+                    </div>
+                    <div className="admin-media-card__body">
+                      <div>
+                        <h3>{item.label}</h3>
+                        <p>{item.description}</p>
+                        <small>Kích thước đề xuất: {item.recommendedSize}</small>
+                      </div>
+                      <form
+                        key={`${item.slot}-${item.updatedAt ?? "default"}`}
+                        className="admin-media-form"
+                        onSubmit={(event) => submitMedia(event, item.slot)}
+                      >
+                        <label>
+                          Văn bản thay thế
+                          <input
+                            name="altText"
+                            defaultValue={item.altText}
+                            maxLength={180}
+                          />
+                        </label>
+                        <label className="admin-media-file">
+                          <CloudUploadOutlinedIcon />
+                          <span>Chọn ảnh mới</span>
+                          <input
+                            name="image"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/avif"
+                            required
+                          />
+                        </label>
+                        <div className="admin-media-actions">
+                          <button
+                            type="submit"
+                            className="admin-button admin-button--primary"
+                            disabled={isPending}
+                          >
+                            {isPending ? <CircularProgress size={17} color="inherit" /> : null}
+                            Tải lên và áp dụng
+                          </button>
+                          {!item.usesFallback ? (
+                            <button
+                              type="button"
+                              className="admin-button"
+                              disabled={isPending}
+                              onClick={() => resetMedia(item.slot)}
+                            >
+                              <RestoreOutlinedIcon /> Khôi phục mặc định
+                            </button>
+                          ) : null}
+                        </div>
+                      </form>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <Alert severity="info">
+                Hỗ trợ JPG, PNG, WebP và AVIF, tối đa 8 MB. Ảnh cũ được xóa sau
+                khi cấu hình mới lưu thành công.
+              </Alert>
             </section>
           ) : null}
 
