@@ -22,7 +22,7 @@ import {
   MenuItem,
 } from "@mui/material";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { logout } from "@/app/auth/actions";
 import { useCart } from "@/contexts/CartContext";
@@ -36,9 +36,9 @@ type CustomerHeaderProps = {
   searchValue?: string;
 };
 
-const navItems: { label: string; sectionId?: string; href?: string }[] = [
-  { label: "Khám phá", sectionId: "home-hero" },
-  { label: "Nhà hàng", sectionId: "featured-restaurants" },
+const navItems: { label: string; href: string; sectionId?: string }[] = [
+  { label: "Khám phá", href: "/#home-hero", sectionId: "home-hero" },
+  { label: "Nhà hàng", href: "/restaurants" },
   { label: "Ưu đãi", href: "/vouchers" },
 ];
 
@@ -59,6 +59,7 @@ export default function CustomerHeader({
   searchValue = "",
 }: CustomerHeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { itemCount } = useCart();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [searchTerm, setSearchTerm] = useState(searchValue);
@@ -127,28 +128,30 @@ export default function CustomerHeader({
         </form>
 
         <nav className="home-nav" aria-label="Điều hướng trang chủ">
-          {navItems.map((item) =>
-            item.href ? (
+          {navItems.map((item) => {
+            const isActive =
+              item.href === "/restaurants"
+                ? pathname === "/restaurants"
+                : item.href === "/vouchers"
+                ? pathname.startsWith("/vouchers")
+                : pathname === "/" && item.sectionId === "home-hero";
+
+            return (
               <Link
                 key={item.label}
-                className="home-nav__item"
+                className={`home-nav__item ${isActive ? "is-active" : ""}`}
                 href={item.href}
+                onClick={(e) => {
+                  if (item.sectionId && pathname === "/") {
+                    e.preventDefault();
+                    onSectionNavigate(item.sectionId);
+                  }
+                }}
               >
                 {item.label}
               </Link>
-            ) : (
-              <button
-                key={item.label}
-                className={`home-nav__item ${
-                  item.sectionId === "home-hero" ? "is-active" : ""
-                }`}
-                type="button"
-                onClick={() => onSectionNavigate(item.sectionId!)}
-              >
-                {item.label}
-              </button>
-            )
-          )}
+            );
+          })}
         </nav>
 
         <div className="home-actions-top">

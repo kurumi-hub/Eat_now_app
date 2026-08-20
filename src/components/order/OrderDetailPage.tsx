@@ -222,6 +222,19 @@ export default function OrderDetailPage({
                   <span>Phí giao hàng</span>
                   <strong>{formatOrderCurrency(order.deliveryFee)}</strong>
                 </div>
+                {order.discount > 0 && (
+                  <div>
+                    <span>
+                      Ưu đãi
+                      {order.appliedVoucherCode
+                        ? ` (${order.appliedVoucherCode})`
+                        : ""}
+                    </span>
+                    <strong className="order-detail-discount">
+                      -{formatOrderCurrency(order.discount)}
+                    </strong>
+                  </div>
+                )}
               </div>
               <div className="order-detail-total">
                 <span>Tổng thanh toán</span>

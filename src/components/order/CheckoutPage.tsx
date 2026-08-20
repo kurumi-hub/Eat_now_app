@@ -3,8 +3,11 @@
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
 import HomeWorkOutlinedIcon from "@mui/icons-material/HomeWorkOutlined";
+import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import NotesOutlinedIcon from "@mui/icons-material/NotesOutlined";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
@@ -25,9 +28,14 @@ import {
   mockRestaurantNote,
 } from "@/components/cart/cartData";
 import CustomerHeader from "@/components/home/CustomerHeader";
+import {
+  calculateVoucherDiscount,
+  type VoucherItem,
+} from "@/components/voucher/voucherData";
 import { useCart } from "@/contexts/CartContext";
 import type { CartItem, CartRestaurant } from "@/contexts/CartContext";
 import type { PublicUser } from "@/types/auth";
+import VoucherPickerModal from "./VoucherPickerModal";
 import {
   CheckoutField,
   CheckoutFormValues,
@@ -116,6 +124,14 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
     message: "",
     severity: "info",
   });
+  const [voucherCode, setVoucherCode] = useState("");
+  const [appliedVoucher, setAppliedVoucher] = useState<{
+    code: string;
+    discount: number;
+    title: string;
+  } | null>(null);
+  const [voucherError, setVoucherError] = useState("");
+  const [voucherPickerOpen, setVoucherPickerOpen] = useState(false);
 
   const checkoutCart = useMemo<CheckoutCart>(() => {
     if (cart.items.length > 0) {
@@ -155,13 +171,52 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
     [checkoutCart.items]
   );
   const deliveryFee = checkoutCart.items.length > 0 ? mockDeliveryFee : 0;
-  const total = subtotal + deliveryFee;
+  const discount = appliedVoucher?.discount ?? 0;
+  const total = Math.max(0, subtotal + deliveryFee - discount);
 
   const showSnackbar = (
     message: string,
     severity: SnackbarState["severity"] = "info"
   ) => {
     setSnackbar({ open: true, message, severity });
+  };
+
+  const handleApplyVoucher = (codeOverride?: string) => {
+    const targetCode = (codeOverride ?? voucherCode).trim();
+    if (!targetCode) {
+      setVoucherError("Vui lòng nhập mã ưu đãi.");
+      return;
+    }
+
+    const result = calculateVoucherDiscount(targetCode, subtotal, deliveryFee);
+    if (!result.isValid) {
+      setVoucherError(result.errorMessage || "Mã ưu đãi không hợp lệ.");
+      showSnackbar(result.errorMessage || "Mã ưu đãi không hợp lệ.", "error");
+      return;
+    }
+
+    setAppliedVoucher({
+      code: result.voucher?.code || targetCode.toUpperCase(),
+      discount: result.discount,
+      title: result.voucher?.title || "Giảm giá",
+    });
+    setVoucherError("");
+    setVoucherCode("");
+    showSnackbar(
+      `Áp dụng mã ${result.voucher?.code || targetCode.toUpperCase()} thành công!`,
+      "success"
+    );
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherError("");
+    showSnackbar("Đã gỡ bỏ mã ưu đãi.");
+  };
+
+  const handleSelectVoucherFromModal = (voucher: VoucherItem) => {
+    setVoucherPickerOpen(false);
+    handleApplyVoucher(voucher.code);
   };
 
   const handleSnackbarClose = () => {
@@ -225,6 +280,8 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
       const createdOrder = createOrder({
         ...result.normalized,
         paymentMethod,
+        discount,
+        appliedVoucherCode: appliedVoucher?.code || null,
       });
       hasStartedNavigation = true;
       router.push(`/orders/success?orderId=${createdOrder.id}`);
@@ -542,6 +599,84 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
                   <span>Phí giao hàng</span>
                   <strong>{formatOrderCurrency(deliveryFee)}</strong>
                 </div>
+                {discount > 0 && appliedVoucher ? (
+                  <div className="order-summary-row--discount">
+                    <span>Ưu đãi ({appliedVoucher.code})</span>
+                    <strong className="order-discount-text">
+                      -{formatOrderCurrency(discount)}
+                    </strong>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Voucher Section */}
+              <div className="order-voucher-section">
+                <div className="order-voucher-header">
+                  <LocalOfferOutlinedIcon fontSize="small" />
+                  <span>Ưu đãi &amp; Voucher</span>
+                </div>
+
+                {appliedVoucher ? (
+                  <div className="order-voucher-applied">
+                    <div className="order-voucher-applied__info">
+                      <ConfirmationNumberOutlinedIcon fontSize="small" />
+                      <div>
+                        <strong>{appliedVoucher.code}</strong>
+                        <span>
+                          {appliedVoucher.title} (-{formatOrderCurrency(discount)})
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="order-voucher-applied__remove"
+                      onClick={handleRemoveVoucher}
+                      aria-label="Gỡ mã ưu đãi"
+                    >
+                      <CloseOutlinedIcon fontSize="small" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="order-voucher-form">
+                    <div className="order-voucher-input-row">
+                      <input
+                        type="text"
+                        className={`order-voucher-input ${
+                          voucherError ? "is-invalid" : ""
+                        }`}
+                        placeholder="Nhập mã ưu đãi"
+                        value={voucherCode}
+                        onChange={(e) => {
+                          setVoucherCode(e.target.value);
+                          if (voucherError) setVoucherError("");
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleApplyVoucher();
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="order-voucher-apply-btn"
+                        onClick={() => handleApplyVoucher()}
+                      >
+                        Áp dụng
+                      </button>
+                    </div>
+                    {voucherError ? (
+                      <p className="order-voucher-error-msg">{voucherError}</p>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="order-voucher-picker-link"
+                      onClick={() => setVoucherPickerOpen(true)}
+                    >
+                      Chọn hoặc nhập mã &gt;
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="order-summary-total">
@@ -631,6 +766,13 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
           </div>
         </div>
       ) : null}
+
+      <VoucherPickerModal
+        open={voucherPickerOpen}
+        onClose={() => setVoucherPickerOpen(false)}
+        onSelect={handleSelectVoucherFromModal}
+        appliedCode={appliedVoucher?.code}
+      />
 
       <Snackbar
         open={snackbar.open}

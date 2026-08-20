@@ -420,6 +420,326 @@
   background: #7a3000;
 }
 
+/* Checkout Voucher Section */
+.order-voucher-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e2e5;
+}
+
+.order-voucher-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1a1c1e;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.order-voucher-header svg {
+  color: #a04100;
+  font-size: 18px;
+}
+
+.order-voucher-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.order-voucher-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.order-voucher-input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #ddc1b4;
+  background: #ffffff;
+  color: #1a1c1e;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.order-voucher-input:focus {
+  border-color: #a04100;
+  box-shadow: 0 0 0 2px rgba(160, 65, 0, 0.15);
+}
+
+.order-voucher-input.is-invalid {
+  border-color: #ba1a1a;
+  background: #fff8f7;
+}
+
+.order-voucher-apply-btn {
+  padding: 0 16px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  background: #ff5722;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.order-voucher-apply-btn:hover {
+  background: #e64a19;
+}
+
+.order-voucher-apply-btn:active {
+  transform: scale(0.98);
+}
+
+.order-voucher-error-msg {
+  margin: 0;
+  color: #ba1a1a;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.order-voucher-picker-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #a04100;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  display: inline-block;
+  transition: color 0.15s ease;
+}
+
+.order-voucher-picker-link:hover {
+  color: #7a3000;
+  text-decoration: underline;
+}
+
+.order-voucher-applied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #fff5ee;
+  border: 1px dashed #ff8a65;
+  border-radius: 10px;
+}
+
+.order-voucher-applied__info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.order-voucher-applied__info svg {
+  color: #ff5722;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.order-voucher-applied__info div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.order-voucher-applied__info strong {
+  color: #a04100;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.order-voucher-applied__info span,
+.order-voucher-applied__info small {
+  color: #5a4136;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-voucher-applied__remove {
+  background: transparent;
+  border: none;
+  color: #8c6e63;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.order-voucher-applied__remove:hover {
+  background: rgba(160, 65, 0, 0.1);
+  color: #ba1a1a;
+}
+
+/* Discount row highlight */
+.order-summary-row--discount span,
+.order-discount-text,
+.order-discount-highlight,
+.order-detail-discount,
+.order-tracking-discount {
+  color: #2e7d32 !important;
+  font-weight: 700;
+}
+
+/* Voucher Picker Modal */
+.order-voucher-picker-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(47, 49, 51, 0.5);
+  backdrop-filter: blur(4px);
+  padding: 16px;
+  animation: order-modal-fade-in 0.25s ease-out;
+}
+
+.order-voucher-picker-modal {
+  width: 100%;
+  max-width: 480px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 24px 48px rgba(119, 87, 77, 0.16);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: order-modal-slide-up 0.3s ease-out;
+  max-height: 85vh;
+}
+
+.order-voucher-picker-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid #eeeef0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-voucher-picker-header h3 {
+  margin: 0;
+  color: #1a1c1e;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.order-voucher-picker-list {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.order-voucher-picker-empty {
+  padding: 32px 20px;
+  text-align: center;
+  color: #5a4136;
+  font-size: 14px;
+}
+
+.order-voucher-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #fff8f4;
+  border: 1px dashed #ddc1b4;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.order-voucher-picker-item:hover {
+  border-color: #a04100;
+  background: #fff3ec;
+}
+
+.order-voucher-picker-item__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #ffebe0;
+  color: #a04100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.order-voucher-picker-item__icon svg {
+  font-size: 22px;
+}
+
+.order-voucher-picker-item__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.order-voucher-picker-item__info strong {
+  color: #1a1c1e;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.order-voucher-picker-item__info span {
+  color: #5a4136;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.order-voucher-picker-item__info small {
+  color: #8c6e63;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.order-voucher-picker-item__info code {
+  background: #f0e6e0;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: 700;
+  color: #7a3000;
+}
+
+.order-voucher-picker-item__btn.MuiButton-root {
+  min-width: 64px;
+  height: 34px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: none;
+}
+
+.order-voucher-picker-item__btn.MuiButton-contained {
+  background: #a04100;
+  color: #ffffff;
+}
+
+.order-voucher-picker-item__btn.MuiButton-contained:hover {
+  background: #7a3000;
+}
+
 .order-empty-card {
   display: grid;
   justify-items: center;

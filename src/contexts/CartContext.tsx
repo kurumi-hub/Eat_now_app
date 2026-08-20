@@ -57,6 +57,8 @@ export type CheckoutSnapshot = {
   restaurantNote: string;
   subtotal: number;
   deliveryFee: number;
+  discount: number;
+  appliedVoucherCode: string | null;
   total: number;
   itemCount: number;
   preparedAt: string;
@@ -71,6 +73,8 @@ export type CreateOrderInput = {
   deliveryNote: string;
   restaurantNote: string;
   paymentMethod: PaymentMethod | "cod" | string;
+  discount?: number;
+  appliedVoucherCode?: string | null;
 };
 
 export type OrderReceipt = CheckoutSnapshot & {
@@ -212,6 +216,8 @@ function buildCheckoutSnapshot(
     restaurantNote,
     subtotal,
     deliveryFee,
+    discount: 0,
+    appliedVoucherCode: null,
     total: subtotal + deliveryFee,
     itemCount: getCartItemCount(cart.items),
     preparedAt: new Date().toISOString(),
@@ -242,6 +248,8 @@ function buildTemporaryCheckoutSnapshot(
     restaurantNote,
     subtotal,
     deliveryFee: CART_DELIVERY_FEE,
+    discount: 0,
+    appliedVoucherCode: null,
     total: subtotal + CART_DELIVERY_FEE,
     itemCount: getCartItemCount(items),
     preparedAt: new Date().toISOString(),
@@ -361,7 +369,19 @@ function readStoredCheckoutSnapshot() {
 
     const parsedCheckout: unknown = JSON.parse(storedCheckout);
 
-    return isCheckoutSnapshot(parsedCheckout) ? parsedCheckout : null;
+    if (!isCheckoutSnapshot(parsedCheckout)) return null;
+
+    return {
+      ...parsedCheckout,
+      discount:
+        typeof parsedCheckout.discount === "number"
+          ? parsedCheckout.discount
+          : 0,
+      appliedVoucherCode:
+        typeof parsedCheckout.appliedVoucherCode === "string"
+          ? parsedCheckout.appliedVoucherCode
+          : null,
+    };
   } catch {
     window.localStorage.removeItem(CHECKOUT_STORAGE_KEY);
     return null;
@@ -636,6 +656,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
           buildCheckoutSnapshot(cart, input.restaurantNote) ||
           buildTemporaryCheckoutSnapshot(input.restaurantNote);
 
+        const orderDiscount = input.discount ?? snapshot.discount ?? 0;
+        const orderVoucherCode =
+          input.appliedVoucherCode ?? snapshot.appliedVoucherCode ?? null;
+        const orderTotal =
+          snapshot.subtotal + snapshot.deliveryFee - orderDiscount;
+
         const receipt: OrderReceipt = {
           ...snapshot,
           restaurantNote: input.restaurantNote,
@@ -646,6 +672,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
           address: input.address,
           deliveryNote: input.deliveryNote,
           paymentMethod: input.paymentMethod,
+          discount: orderDiscount,
+          appliedVoucherCode: orderVoucherCode,
+          total: orderTotal,
           estimatedDeliveryLabel: "15-20 phút",
           createdAt: new Date().toISOString(),
         };

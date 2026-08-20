@@ -12,6 +12,7 @@ import "@/styles/routes.css";
 import "@/styles/home.css";
 import "@/styles/auth.css";
 import "@/styles/account.css";
+import "@/styles/restaurant-page.css";
 import "@/styles/restaurant-detail.css";
 import "@/styles/search-filter.css";
 import "@/styles/cart.css";

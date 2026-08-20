@@ -60,3 +60,28 @@ test("Home image assets are available from public/images/home", async () => {
     )
   );
 });
+
+test("Home page renders Flash Sale between featured categories and restaurants", async () => {
+  const homePage = await readFile(
+    join(root, "src", "components", "home", "HomePage.tsx"),
+    "utf8"
+  );
+  const homeData = await readFile(
+    join(root, "src", "components", "home", "homeData.ts"),
+    "utf8"
+  );
+  const homeCss = await readFile(join(root, "src", "styles", "home.css"), "utf8");
+
+  assert.match(homeData, /flashSaleItems/);
+  assert.match(homePage, /home-flash-sale/);
+  assert.match(homePage, /Flash Sale - Giá sốc hôm nay/);
+  assert.match(homePage, /home-flash-progress/);
+  assert.ok(
+    homePage.indexOf('id="featured-categories"') <
+      homePage.indexOf('id="flash-sale"') &&
+      homePage.indexOf('id="flash-sale"') <
+        homePage.indexOf('id="featured-restaurants"')
+  );
+  assert.match(homeCss, /\.home-flash-sale-grid/);
+  assert.match(homeCss, /\.home-flash-progress/);
+});

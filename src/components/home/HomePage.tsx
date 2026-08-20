@@ -1,6 +1,7 @@
 "use client";
 
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
+import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
@@ -15,6 +16,7 @@ import type { PublicUser } from "@/types/auth";
 import CustomerFooter from "./CustomerFooter";
 import CustomerHeader from "./CustomerHeader";
 import {
+  flashSaleItems,
   homeCategories,
   homeHeroImage,
   nearbyFoods,
@@ -36,6 +38,10 @@ function scrollToSection(sectionId: string) {
     behavior: "smooth",
     block: "start",
   });
+}
+
+function formatHomeCurrency(value: number) {
+  return `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 }
 
 export default function HomePage({
@@ -124,12 +130,81 @@ export default function HomePage({
           </div>
         </section>
 
+        <section id="flash-sale" className="home-section home-flash-sale">
+          <div className="home-flash-sale__heading">
+            <div className="home-flash-sale__title">
+              <h2>Flash Sale - Giá sốc hôm nay</h2>
+              <span className="home-flash-countdown" aria-label="Thời gian còn lại">
+                <AccessTimeOutlinedIcon fontSize="small" />
+                02:45:12
+              </span>
+            </div>
+            <button type="button" onClick={() => router.push("/search?sale=flash")}>
+              Xem tất cả
+            </button>
+          </div>
+
+          <div className="home-flash-sale-grid">
+            {flashSaleItems.map((item) => {
+              const progress = Math.min(100, (item.sold / item.total) * 100);
+              const remaining = Math.max(0, item.total - item.sold);
+
+              return (
+                <article className="home-flash-card" key={item.name}>
+                  <button
+                    type="button"
+                    className="home-flash-card__hitarea"
+                    onClick={() =>
+                      router.push(`/search?q=${encodeURIComponent(item.name)}`)
+                    }
+                    aria-label={`Mua ngay ${item.name}`}
+                  >
+                    <div className="home-flash-card__media">
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        fill
+                        sizes="(max-width: 760px) 100vw, 33vw"
+                      />
+                      <span className="home-flash-badge">
+                        {item.discountLabel}
+                      </span>
+                    </div>
+                    <div className="home-flash-card__body">
+                      <h3>{item.name}</h3>
+                      <div className="home-flash-price-row">
+                        <strong>{formatHomeCurrency(item.price)}</strong>
+                        <span>{formatHomeCurrency(item.originalPrice)}</span>
+                      </div>
+                      <div className="home-flash-sale-meter">
+                        <div className="home-flash-sale-meter__text">
+                          <span>
+                            Đã bán {item.sold}/{item.total}
+                          </span>
+                          <span>Còn lại {remaining}</span>
+                        </div>
+                        <div
+                          className="home-flash-progress"
+                          aria-hidden="true"
+                        >
+                          <span style={{ width: `${progress}%` }} />
+                        </div>
+                      </div>
+                      <span className="home-flash-buy-button">Mua ngay</span>
+                    </div>
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+
         <section id="featured-restaurants" className="home-section">
           <div className="home-section__heading">
             <h2>Nhà Hàng Nổi Bật</h2>
             <button
               type="button"
-              onClick={() => router.push("/search?type=restaurants")}
+              onClick={() => router.push("/restaurants")}
             >
               Xem tất cả
             </button>

@@ -123,3 +123,75 @@ export const mockPromos: PromoItem[] = [
     unavailableReason: "Chưa tới giờ",
   },
 ];
+
+export type VoucherResult = {
+  isValid: boolean;
+  discount: number;
+  errorMessage?: string;
+  voucher?: VoucherItem;
+};
+
+export function calculateVoucherDiscount(
+  code: string,
+  subtotal: number,
+  deliveryFee: number
+): VoucherResult {
+  const normalizedCode = code.trim().toUpperCase();
+
+  if (!normalizedCode) {
+    return { isValid: false, discount: 0, errorMessage: "Vui lòng nhập mã ưu đãi" };
+  }
+
+  const voucher = mockUserVouchers.find(
+    (v) => v.code.toUpperCase() === normalizedCode
+  );
+
+  if (!voucher) {
+    return { isValid: false, discount: 0, errorMessage: "Mã ưu đãi không hợp lệ" };
+  }
+
+  if (voucher.status === "used") {
+    return { isValid: false, discount: 0, errorMessage: "Mã ưu đãi đã được sử dụng", voucher };
+  }
+
+  if (voucher.status === "expired") {
+    return { isValid: false, discount: 0, errorMessage: "Mã ưu đãi đã hết hạn", voucher };
+  }
+
+  let discount = 0;
+
+  switch (voucher.category) {
+    case "freeship":
+      if (subtotal < 50000) {
+        return {
+          isValid: false,
+          discount: 0,
+          errorMessage: "Đơn tối thiểu 50.000đ để áp dụng mã này",
+          voucher,
+        };
+      }
+      discount = Math.min(deliveryFee, 15000);
+      break;
+
+    case "percent-discount":
+      discount = Math.min(Math.round(subtotal * 0.2), 50000);
+      break;
+
+    case "food-discount":
+      if (subtotal < 200000) {
+        return {
+          isValid: false,
+          discount: 0,
+          errorMessage: "Đơn tối thiểu 200.000đ để áp dụng mã này",
+          voucher,
+        };
+      }
+      discount = 50000;
+      break;
+
+    default:
+      discount = 0;
+  }
+
+  return { isValid: true, discount, voucher };
+}

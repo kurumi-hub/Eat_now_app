@@ -234,8 +234,15 @@ export default function OrderTrackingPage({
                 </div>
                 {order.discount > 0 && (
                   <div>
-                    <span>Khuyến mãi</span>
-                    <strong className="order-tracking-discount">-{formatOrderCurrency(order.discount)}</strong>
+                    <span>
+                      Ưu đãi
+                      {order.appliedVoucherCode
+                        ? ` (${order.appliedVoucherCode})`
+                        : ""}
+                    </span>
+                    <strong className="order-tracking-discount">
+                      -{formatOrderCurrency(order.discount)}
+                    </strong>
                   </div>
                 )}
                 {order.surcharge > 0 && (

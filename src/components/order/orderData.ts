@@ -121,6 +121,7 @@ export type OrderDisplayRecord = {
   itemCount: number;
   items: OrderDisplayItem[];
   issueReason?: string;
+  appliedVoucherCode?: string | null;
 };
 
 export type OrderTimelineStep = {
@@ -352,10 +353,14 @@ function mapReceiptToOrderRecord(receipt: OrderReceipt): OrderDisplayRecord {
     updatedAtLabel: "Vừa xong",
     subtotal: receipt.subtotal,
     deliveryFee: receipt.deliveryFee,
-    discount: 0,
+    discount: typeof receipt.discount === "number" ? receipt.discount : 0,
     surcharge: 0,
     total: receipt.total,
     itemCount: receipt.itemCount,
+    appliedVoucherCode:
+      typeof receipt.appliedVoucherCode === "string"
+        ? receipt.appliedVoucherCode
+        : null,
     items: receipt.items.map((item) => ({
       foodId: item.foodId,
       name: item.name,

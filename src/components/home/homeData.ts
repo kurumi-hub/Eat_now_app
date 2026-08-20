@@ -22,6 +22,16 @@ export type HomeFood = {
   image: string;
 };
 
+export type HomeFlashSaleItem = {
+  name: string;
+  image: string;
+  discountLabel: string;
+  price: number;
+  originalPrice: number;
+  sold: number;
+  total: number;
+};
+
 export type HomeRecipe = {
   title: string;
   description: string;
@@ -35,6 +45,36 @@ export const homeCategories: HomeCategory[] = [
   { label: "Phở", icon: RamenDiningOutlinedIcon },
   { label: "Bún", icon: SoupKitchenOutlinedIcon },
   { label: "Bánh mì", icon: BakeryDiningOutlinedIcon },
+];
+
+export const flashSaleItems: HomeFlashSaleItem[] = [
+  {
+    name: "Phở đặc biệt",
+    image: "/images/home/food-pho.png",
+    discountLabel: "-30%",
+    price: 45000,
+    originalPrice: 65000,
+    sold: 12,
+    total: 20,
+  },
+  {
+    name: "Gỏi cuốn tôm thịt",
+    image: "/images/home/food-goi-cuon.png",
+    discountLabel: "-25%",
+    price: 30000,
+    originalPrice: 40000,
+    sold: 15,
+    total: 20,
+  },
+  {
+    name: "Bánh mì thịt nướng",
+    image: "/images/home/food-banh-mi.png",
+    discountLabel: "-40%",
+    price: 15000,
+    originalPrice: 25000,
+    sold: 18,
+    total: 20,
+  },
 ];
 
 export const featuredRestaurants: HomeRestaurant[] = [

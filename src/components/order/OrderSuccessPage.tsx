@@ -49,6 +49,19 @@ export default function OrderSuccessPage() {
               <span>Nhà hàng</span>
               <strong>{lastOrder.restaurant.restaurantName}</strong>
             </div>
+            {lastOrder.discount > 0 ? (
+              <div className="order-receipt-row">
+                <span>
+                  Ưu đãi
+                  {lastOrder.appliedVoucherCode
+                    ? ` (${lastOrder.appliedVoucherCode})`
+                    : ""}
+                </span>
+                <strong className="order-discount-text">
+                  -{formatOrderCurrency(lastOrder.discount)}
+                </strong>
+              </div>
+            ) : null}
             <div className="order-receipt-row">
               <span>Tổng cộng</span>
               <strong>{formatOrderCurrency(lastOrder.total)}</strong>
