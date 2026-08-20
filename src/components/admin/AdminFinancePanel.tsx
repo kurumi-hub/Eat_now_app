@@ -2,8 +2,12 @@
 
 import AccountBalanceOutlinedIcon from "@mui/icons-material/AccountBalanceOutlined";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import CalculateOutlinedIcon from "@mui/icons-material/CalculateOutlined";
+import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import PercentRoundedIcon from "@mui/icons-material/PercentRounded";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import {
@@ -122,6 +126,13 @@ const TAX_BASIS_LABELS: Record<FinanceTaxBasis, string> = {
   order_subtotal: "Giá trị món",
 };
 
+const FINANCE_FORM_STEPS = [
+  "Phạm vi áp dụng",
+  "Phí & voucher",
+  "Đối soát",
+  "Thuế & xác nhận",
+] as const;
+
 function formatMoney(value: number) {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -206,6 +217,7 @@ function TaxEditor({
 
 function FinanceNumberField({
   label,
+  hint,
   value,
   onChange,
   suffix,
@@ -213,13 +225,62 @@ function FinanceNumberField({
   max,
 }: {
   label: string;
+  hint?: string;
   value: string;
   onChange: (value: string) => void;
   suffix?: string;
   optional?: boolean;
   max?: number;
 }) {
-  return <label>{label}{optional ? <small>Để trống = kế thừa</small> : null}<span><input type="number" min="0" max={max} step="0.01" value={value} required={!optional} onChange={(event) => onChange(event.target.value)} />{suffix ? <em>{suffix}</em> : null}</span></label>;
+  return <label className="admin-finance-number-field"><span className="admin-finance-field-label"><b>{label}</b>{optional ? <small>Để trống để kế thừa</small> : null}</span><span className="admin-finance-input-wrap"><input type="number" min="0" max={max} step="0.01" value={value} required={!optional} onChange={(event) => onChange(event.target.value)} />{suffix ? <em>{suffix}</em> : null}</span>{hint ? <small className="admin-finance-field-hint"><InfoOutlinedIcon /> {hint}</small> : null}</label>;
+}
+
+function FinanceStepper({ step }: { step: number }) {
+  return <ol className="admin-finance-stepper" aria-label="Các bước cấu hình biểu phí">
+    {FINANCE_FORM_STEPS.map((label, index) => <li key={label} className={index === step ? "is-current" : index < step ? "is-done" : ""} aria-current={index === step ? "step" : undefined}>
+      <span>{index < step ? <CheckCircleOutlineRoundedIcon /> : index + 1}</span>
+      <b>{label}</b>
+    </li>)}
+  </ol>;
+}
+
+function FinanceFormIntro({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return <div className="admin-finance-form-intro"><small>{eyebrow}</small><h3>{title}</h3><p>{description}</p></div>;
+}
+
+function displayFormValue(value: string, suffix: string, optional: boolean) {
+  if (!value.trim()) return optional ? "Kế thừa biểu phí chung" : `0 ${suffix}`;
+  const number = Number(value);
+  if (!Number.isFinite(number)) return value;
+  return suffix === "₫" ? formatMoney(number) : `${number}${suffix}`;
+}
+
+function FinanceFormReview({
+  form,
+  override,
+}: {
+  form: VersionForm | OverrideForm;
+  override?: boolean;
+}) {
+  return <div className="admin-finance-review">
+    <div className="admin-finance-review__heading"><CheckCircleOutlineRoundedIcon /><div><strong>Sẵn sàng tạo phiên bản</strong><small>Kiểm tra nhanh các thông số quan trọng trước khi lưu.</small></div></div>
+    <div className="admin-finance-review__grid">
+      <article><small>Hoa hồng</small><strong>{displayFormValue(form.commissionPercent, "%", Boolean(override))}</strong></article>
+      <article><small>Phí cố định</small><strong>{displayFormValue(form.fixedOrderFee, "₫", Boolean(override))}</strong></article>
+      <article><small>Voucher nền tảng</small><strong>{displayFormValue(form.voucherPlatformPercent, "%", Boolean(override))}</strong></article>
+      <article><small>Đối soát</small><strong>{form.settlementDay ? `${CYCLE_LABELS[form.settlementCycle]} · ngày ${form.settlementDay}` : override ? "Kế thừa biểu phí chung" : CYCLE_LABELS[form.settlementCycle]}</strong></article>
+      <article><small>Mức thanh toán tối thiểu</small><strong>{displayFormValue(form.minimumPayout, "₫", Boolean(override))}</strong></article>
+      <article><small>Thuế</small><strong>{"overrideTaxes" in form && !form.overrideTaxes ? "Kế thừa biểu phí chung" : `${form.taxes.length} loại thuế`}</strong></article>
+    </div>
+  </div>;
 }
 
 export default function AdminFinancePanel({ finance }: { finance: AdminFinanceSettings }) {
@@ -227,6 +288,8 @@ export default function AdminFinancePanel({ finance }: { finance: AdminFinanceSe
   const [isPending, startTransition] = useTransition();
   const [versionOpen, setVersionOpen] = useState(false);
   const [overrideOpen, setOverrideOpen] = useState(false);
+  const [versionStep, setVersionStep] = useState(0);
+  const [overrideStep, setOverrideStep] = useState(0);
   const [versionForm, setVersionForm] = useState<VersionForm>(EMPTY_VERSION_FORM);
   const [overrideForm, setOverrideForm] = useState<OverrideForm>(EMPTY_OVERRIDE_FORM);
   const [fieldError, setFieldError] = useState("");
@@ -288,6 +351,7 @@ export default function AdminFinancePanel({ finance }: { finance: AdminFinanceSe
       notify(result);
       if (result.ok) {
         setVersionOpen(false);
+        setVersionStep(0);
         setVersionForm(EMPTY_VERSION_FORM);
         router.refresh();
       }
@@ -334,6 +398,7 @@ export default function AdminFinancePanel({ finance }: { finance: AdminFinanceSe
       notify(result);
       if (result.ok) {
         setOverrideOpen(false);
+        setOverrideStep(0);
         setOverrideForm(EMPTY_OVERRIDE_FORM);
         router.refresh();
       }
@@ -364,30 +429,132 @@ export default function AdminFinancePanel({ finance }: { finance: AdminFinanceSe
     });
   };
 
-  const renderCommonFields = (
+  const goToNextVersionStep = () => {
+    setFieldError("");
+    if (versionStep === 0 && (!versionForm.name.trim() || !versionForm.effectiveFrom)) {
+      setFieldError("Hãy nhập tên phiên bản và ngày bắt đầu.");
+      return;
+    }
+    if (versionStep === 1 && [
+      versionForm.commissionPercent, versionForm.fixedOrderFee,
+      versionForm.gatewayPercent, versionForm.gatewayFixed,
+      versionForm.refundPercent, versionForm.refundFixed,
+      versionForm.voucherPlatformPercent,
+    ].some((value) => !value.trim())) {
+      setFieldError("Hãy nhập đầy đủ các mức phí và tỷ lệ voucher.");
+      return;
+    }
+    if (versionStep === 2 && [
+      versionForm.settlementDay, versionForm.minimumPayout,
+      versionForm.holdPercent, versionForm.holdFixed, versionForm.holdDays,
+    ].some((value) => !value.trim())) {
+      setFieldError("Hãy nhập đầy đủ thông tin đối soát và tạm giữ.");
+      return;
+    }
+    setVersionStep((current) => Math.min(current + 1, FINANCE_FORM_STEPS.length - 1));
+  };
+
+  const goToNextOverrideStep = () => {
+    setFieldError("");
+    if (overrideStep === 0 && (
+      !overrideForm.restaurantId || !overrideForm.name.trim() || !overrideForm.effectiveFrom
+    )) {
+      setFieldError("Hãy chọn nhà hàng, nhập tên ngoại lệ và ngày bắt đầu.");
+      return;
+    }
+    setOverrideStep((current) => Math.min(current + 1, FINANCE_FORM_STEPS.length - 1));
+  };
+
+  const renderFeeFields = (
     form: VersionForm | OverrideForm,
     setForm: (next: never) => void,
     optional = false
   ) => {
     const update = (patch: Partial<VersionForm | OverrideForm>) =>
       setForm({ ...form, ...patch } as never);
-    return <>
-      <div className="admin-finance-field-grid">
-        <FinanceNumberField label="Hoa hồng nền tảng" suffix="%" max={100} optional={optional} value={form.commissionPercent} onChange={(value) => update({ commissionPercent: value })} />
-        <FinanceNumberField label="Phí cố định mỗi đơn" suffix="₫" optional={optional} value={form.fixedOrderFee} onChange={(value) => update({ fixedOrderFee: value })} />
-        <FinanceNumberField label="Phí cổng thanh toán" suffix="%" max={100} optional={optional} value={form.gatewayPercent} onChange={(value) => update({ gatewayPercent: value })} />
-        <FinanceNumberField label="Phí gateway cố định" suffix="₫" optional={optional} value={form.gatewayFixed} onChange={(value) => update({ gatewayFixed: value })} />
-        <FinanceNumberField label="Phí xử lý hoàn tiền" suffix="%" max={100} optional={optional} value={form.refundPercent} onChange={(value) => update({ refundPercent: value })} />
-        <FinanceNumberField label="Phí hoàn cố định" suffix="₫" optional={optional} value={form.refundFixed} onChange={(value) => update({ refundFixed: value })} />
+    const rawShare = Number(form.voucherPlatformPercent);
+    const platformShare = Number.isFinite(rawShare) ? Math.min(Math.max(rawShare, 0), 100) : 0;
+    return <div className="admin-finance-form-stack">
+      <section className="admin-finance-form-card">
+        <FinanceFormIntro eyebrow="Phí vận hành" title="Khoản nền tảng thu trên mỗi đơn" description="Kết hợp tỷ lệ hoa hồng và phí cố định. Có thể đặt một trong hai bằng 0." />
+        <div className="admin-finance-field-grid admin-finance-field-grid--two">
+          <FinanceNumberField label="Hoa hồng nền tảng" hint="Tính trên doanh thu Owner sau phần voucher Owner chịu và tiền hoàn." suffix="%" max={100} optional={optional} value={form.commissionPercent} onChange={(value) => update({ commissionPercent: value })} />
+          <FinanceNumberField label="Phí cố định mỗi đơn" hint="Khoản tiền cố định trừ thêm cho mỗi đơn hoàn tất." suffix="₫" optional={optional} value={form.fixedOrderFee} onChange={(value) => update({ fixedOrderFee: value })} />
+        </div>
+      </section>
+      <section className="admin-finance-form-card">
+        <FinanceFormIntro eyebrow="Thanh toán & hoàn tiền" title="Chi phí giao dịch" description="Tách phần trăm và phần cố định để khớp chính sách của cổng thanh toán." />
+        <div className="admin-finance-field-grid admin-finance-field-grid--two">
+          <FinanceNumberField label="Phí cổng thanh toán" hint="Tỷ lệ tính trên số tiền khách thực trả sau voucher." suffix="%" max={100} optional={optional} value={form.gatewayPercent} onChange={(value) => update({ gatewayPercent: value })} />
+          <FinanceNumberField label="Phí gateway cố định" suffix="₫" optional={optional} value={form.gatewayFixed} onChange={(value) => update({ gatewayFixed: value })} />
+          <FinanceNumberField label="Phí xử lý hoàn tiền" hint="Chỉ phát sinh khi đơn có số tiền hoàn." suffix="%" max={100} optional={optional} value={form.refundPercent} onChange={(value) => update({ refundPercent: value })} />
+          <FinanceNumberField label="Phí hoàn cố định" suffix="₫" optional={optional} value={form.refundFixed} onChange={(value) => update({ refundFixed: value })} />
+        </div>
+      </section>
+      <section className="admin-finance-form-card admin-finance-voucher-card">
+        <FinanceFormIntro eyebrow="Chia sẻ khuyến mãi" title="Ai chịu chi phí voucher?" description="Nhập tỷ lệ nền tảng chịu; phần còn lại tự động thuộc Owner." />
         <FinanceNumberField label="Nền tảng chịu voucher" suffix="%" max={100} optional={optional} value={form.voucherPlatformPercent} onChange={(value) => update({ voucherPlatformPercent: value })} />
-        <FinanceNumberField label="Mức thanh toán tối thiểu" suffix="₫" optional={optional} value={form.minimumPayout} onChange={(value) => update({ minimumPayout: value })} />
-        <FinanceNumberField label="Tỷ lệ tạm giữ" suffix="%" max={100} optional={optional} value={form.holdPercent} onChange={(value) => update({ holdPercent: value })} />
-        <FinanceNumberField label="Tạm giữ cố định" suffix="₫" optional={optional} value={form.holdFixed} onChange={(value) => update({ holdFixed: value })} />
-        <FinanceNumberField label="Số ngày tạm giữ" suffix="ngày" max={365} optional={optional} value={form.holdDays} onChange={(value) => update({ holdDays: value })} />
-        <label>Chu kỳ đối soát{optional ? <small>Nhập ngày để ghi đè</small> : null}<select value={form.settlementCycle} onChange={(event) => update({ settlementCycle: event.target.value as FinanceSettlementCycle })}>{Object.entries(CYCLE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-        <FinanceNumberField label="Ngày trong chu kỳ" optional={optional} value={form.settlementDay} onChange={(value) => update({ settlementDay: value })} />
-      </div>
-    </>;
+        {optional && !form.voucherPlatformPercent ? <p className="admin-finance-inherit-note">Ngoại lệ này sẽ dùng tỷ lệ voucher của biểu phí chung.</p> : <div className="admin-finance-voucher-split">
+          <div><span style={{ width: `${platformShare}%` }} /><i style={{ width: `${100 - platformShare}%` }} /></div>
+          <p><strong>Nền tảng {platformShare}%</strong><strong>Owner {100 - platformShare}%</strong></p>
+        </div>}
+      </section>
+    </div>;
+  };
+
+  const renderSettlementFields = (
+    form: VersionForm | OverrideForm,
+    setForm: (next: never) => void,
+    optional = false
+  ) => {
+    const update = (patch: Partial<VersionForm | OverrideForm>) =>
+      setForm({ ...form, ...patch } as never);
+    return <div className="admin-finance-form-stack">
+      <section className="admin-finance-form-card">
+        <FinanceFormIntro eyebrow="Lịch chuyển tiền" title="Chu kỳ đối soát" description="Xác định thời điểm số dư đủ điều kiện được gom và thanh toán cho Owner." />
+        <div className="admin-finance-field-grid admin-finance-field-grid--two">
+          <label className="admin-finance-select-field"><span className="admin-finance-field-label"><b>Chu kỳ</b>{optional ? <small>Chỉ áp dụng khi nhập ngày</small> : null}</span><select value={form.settlementCycle} onChange={(event) => update({ settlementCycle: event.target.value as FinanceSettlementCycle })}>{Object.entries(CYCLE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+          <FinanceNumberField label="Ngày trong chu kỳ" hint="Hàng tuần: 1–7; hai tuần: 1–14; hàng tháng: 1–28." optional={optional} value={form.settlementDay} onChange={(value) => update({ settlementDay: value })} />
+          <FinanceNumberField label="Mức thanh toán tối thiểu" hint="Số dư thấp hơn mức này sẽ được cộng dồn sang kỳ sau." suffix="₫" optional={optional} value={form.minimumPayout} onChange={(value) => update({ minimumPayout: value })} />
+        </div>
+      </section>
+      <section className="admin-finance-form-card">
+        <FinanceFormIntro eyebrow="Quản trị rủi ro" title="Khoản tạm giữ" description="Có thể tạm giữ theo tỷ lệ, số tiền cố định hoặc kết hợp cả hai." />
+        <div className="admin-finance-field-grid admin-finance-field-grid--three">
+          <FinanceNumberField label="Tỷ lệ tạm giữ" suffix="%" max={100} optional={optional} value={form.holdPercent} onChange={(value) => update({ holdPercent: value })} />
+          <FinanceNumberField label="Tạm giữ cố định" suffix="₫" optional={optional} value={form.holdFixed} onChange={(value) => update({ holdFixed: value })} />
+          <FinanceNumberField label="Thời gian giữ" suffix="ngày" max={365} optional={optional} value={form.holdDays} onChange={(value) => update({ holdDays: value })} />
+        </div>
+      </section>
+    </div>;
+  };
+
+  const renderStepError = () => fieldError ? <Alert severity="error" className="admin-finance-step-error">{fieldError}</Alert> : null;
+
+  const openVersionDialog = () => {
+    setFieldError("");
+    setVersionStep(0);
+    setVersionOpen(true);
+  };
+
+  const openOverrideDialog = () => {
+    setFieldError("");
+    setOverrideStep(0);
+    setOverrideOpen(true);
+  };
+
+  const closeVersionDialog = () => {
+    if (isPending) return;
+    setVersionOpen(false);
+    setVersionStep(0);
+    setFieldError("");
+  };
+
+  const closeOverrideDialog = () => {
+    if (isPending) return;
+    setOverrideOpen(false);
+    setOverrideStep(0);
+    setFieldError("");
   };
 
   return (
@@ -395,8 +562,10 @@ export default function AdminFinancePanel({ finance }: { finance: AdminFinanceSe
       <div className="admin-panel admin-finance-hero">
         <div className="admin-finance-heading">
           <div><p><AccountBalanceOutlinedIcon /> Chỉ Super Admin</p><h2>Cấu hình tài chính</h2><span>Biểu phí được phiên bản hóa; dữ liệu lịch sử không bị sửa đè.</span></div>
-          <div><button type="button" className="admin-button" onClick={() => { setFieldError(""); setOverrideOpen(true); }}><StorefrontOutlinedIcon /> Thêm ngoại lệ</button><button type="button" className="admin-button admin-button--primary" onClick={() => { setFieldError(""); setVersionOpen(true); }}><AddRoundedIcon /> Tạo biểu phí</button></div>
+          <div><button type="button" className="admin-button" onClick={openOverrideDialog}><StorefrontOutlinedIcon /> Thêm ngoại lệ</button><button type="button" className="admin-button admin-button--primary" onClick={openVersionDialog}><AddRoundedIcon /> Tạo biểu phí</button></div>
         </div>
+
+        <div className="admin-finance-formula"><InfoOutlinedIcon /><div><strong>Cách tính nhanh số tiền Owner nhận</strong><span>Giá trị món − voucher Owner chịu − hoàn tiền − phí nền tảng − thuế − tạm giữ</span></div></div>
 
         {activeVersion ? (
           <div className="admin-finance-current">
@@ -411,12 +580,12 @@ export default function AdminFinancePanel({ finance }: { finance: AdminFinanceSe
       <div className="admin-finance-grid">
         <section className="admin-panel admin-finance-simulator">
           <div className="admin-panel__heading"><div><h2>Mô phỏng Owner nhận</h2><p>Tính theo biểu phí và ngoại lệ có hiệu lực tại thời điểm chọn.</p></div><CalculateOutlinedIcon /></div>
-          <form onSubmit={submitSimulation}>
+          <form onSubmit={submitSimulation} className="admin-finance-simulator-form">
             <label>Nhà hàng<select value={simulationRestaurant} onChange={(event) => setSimulationRestaurant(event.target.value)}><option value="">Không áp dụng ngoại lệ</option>{finance.restaurants.map((restaurant) => <option key={restaurant.id} value={restaurant.id}>{restaurant.name}</option>)}</select></label>
             <label>Thời điểm<input type="datetime-local" required value={simulationAt} onChange={(event) => setSimulationAt(event.target.value)} /></label>
-            <label>Giá trị món<input type="number" min="0" required value={simulationSubtotal} onChange={(event) => setSimulationSubtotal(event.target.value)} /></label>
-            <label>Voucher<input type="number" min="0" required value={simulationVoucher} onChange={(event) => setSimulationVoucher(event.target.value)} /></label>
-            <label>Tiền hoàn<input type="number" min="0" required value={simulationRefund} onChange={(event) => setSimulationRefund(event.target.value)} /></label>
+            <label>Giá trị món <small>Tổng tiền món trước giảm giá</small><input type="number" min="0" required value={simulationSubtotal} onChange={(event) => setSimulationSubtotal(event.target.value)} /></label>
+            <label>Voucher <small>Tổng ưu đãi của đơn</small><input type="number" min="0" required value={simulationVoucher} onChange={(event) => setSimulationVoucher(event.target.value)} /></label>
+            <label>Tiền hoàn <small>Nhập 0 nếu không hoàn</small><input type="number" min="0" required value={simulationRefund} onChange={(event) => setSimulationRefund(event.target.value)} /></label>
             <button className="admin-button admin-button--primary" disabled={isPending} type="submit"><CalculateOutlinedIcon /> Tính thử</button>
           </form>
           {simulation ? <div className="admin-finance-result">
@@ -453,43 +622,71 @@ export default function AdminFinancePanel({ finance }: { finance: AdminFinanceSe
         </article>)}</div>
       </section>
 
-      <Dialog open={versionOpen} onClose={() => { if (!isPending) setVersionOpen(false); }} fullWidth maxWidth="md" slotProps={{ paper: { className: "admin-dialog admin-finance-dialog" } }}>
+      <Dialog open={versionOpen} onClose={closeVersionDialog} fullWidth maxWidth="md" slotProps={{ paper: { className: "admin-dialog admin-finance-dialog" } }}>
         <form onSubmit={submitVersion}>
-          <DialogTitle className="admin-dialog__title"><span>Tạo phiên bản biểu phí</span><IconButton onClick={() => setVersionOpen(false)} disabled={isPending}><CloseRoundedIcon /></IconButton></DialogTitle>
+          <DialogTitle className="admin-dialog__title"><span className="admin-finance-dialog-title">Tạo phiên bản biểu phí<small>Bước {versionStep + 1}/4 · {FINANCE_FORM_STEPS[versionStep]}</small></span><IconButton onClick={closeVersionDialog} disabled={isPending}><CloseRoundedIcon /></IconButton></DialogTitle>
           <DialogContent>
-            <Alert severity="info">Phiên bản đã tạo không thể sửa hoặc xóa. Nếu thời gian trùng, phiên bản đang mở sẽ được đóng tại mốc bắt đầu mới.</Alert>
-            <div className="admin-finance-meta-grid">
-              <label>Tên phiên bản<input required maxLength={120} value={versionForm.name} onChange={(event) => setVersionForm({ ...versionForm, name: event.target.value })} /></label>
-              <label>Bắt đầu<input required type="datetime-local" value={versionForm.effectiveFrom} onChange={(event) => setVersionForm({ ...versionForm, effectiveFrom: event.target.value })} /></label>
-              <label>Kết thúc <small>Tùy chọn</small><input type="datetime-local" value={versionForm.effectiveTo} onChange={(event) => setVersionForm({ ...versionForm, effectiveTo: event.target.value })} /></label>
-            </div>
-            {renderCommonFields(versionForm, setVersionForm as (next: never) => void)}
-            <TaxEditor taxes={versionForm.taxes} onChange={(taxes) => setVersionForm({ ...versionForm, taxes })} />
-            <label className="admin-finance-note">Ghi chú<textarea maxLength={1000} rows={3} value={versionForm.note} onChange={(event) => setVersionForm({ ...versionForm, note: event.target.value })} /></label>
-            {fieldError ? <Alert severity="error">{fieldError}</Alert> : null}
+            <FinanceStepper step={versionStep} />
+            {versionStep === 0 ? <div className="admin-finance-form-stack">
+              <FinanceFormIntro eyebrow="Bước 1" title="Phiên bản này áp dụng khi nào?" description="Đặt tên dễ nhận biết và chọn thời gian hiệu lực. Lịch sử cũ luôn được giữ nguyên." />
+              <Alert severity="info">Nếu thời gian trùng, phiên bản đang mở sẽ tự đóng tại mốc bắt đầu mới.</Alert>
+              <section className="admin-finance-form-card">
+                <div className="admin-finance-meta-grid">
+                  <label>Tên phiên bản<input required maxLength={120} placeholder="Ví dụ: Biểu phí quý 3/2026" value={versionForm.name} onChange={(event) => setVersionForm({ ...versionForm, name: event.target.value })} /></label>
+                  <label>Bắt đầu<input required type="datetime-local" value={versionForm.effectiveFrom} onChange={(event) => setVersionForm({ ...versionForm, effectiveFrom: event.target.value })} /></label>
+                  <label>Kết thúc <small>Tùy chọn</small><input type="datetime-local" value={versionForm.effectiveTo} onChange={(event) => setVersionForm({ ...versionForm, effectiveTo: event.target.value })} /></label>
+                </div>
+              </section>
+            </div> : null}
+            {versionStep === 1 ? renderFeeFields(versionForm, setVersionForm as (next: never) => void) : null}
+            {versionStep === 2 ? renderSettlementFields(versionForm, setVersionForm as (next: never) => void) : null}
+            {versionStep === 3 ? <div className="admin-finance-form-stack">
+              <FinanceFormIntro eyebrow="Bước cuối" title="Thuế và xác nhận" description="Thiết lập các loại thuế, thêm ghi chú nội bộ rồi kiểm tra tóm tắt trước khi tạo." />
+              <TaxEditor taxes={versionForm.taxes} onChange={(taxes) => setVersionForm({ ...versionForm, taxes })} />
+              <label className="admin-finance-note">Ghi chú <small>Tùy chọn</small><textarea maxLength={1000} rows={3} placeholder="Lý do hoặc phạm vi áp dụng của biểu phí…" value={versionForm.note} onChange={(event) => setVersionForm({ ...versionForm, note: event.target.value })} /></label>
+              <FinanceFormReview form={versionForm} />
+            </div> : null}
+            {renderStepError()}
           </DialogContent>
-          <DialogActions className="admin-dialog__actions"><button type="button" className="admin-button" disabled={isPending} onClick={() => setVersionOpen(false)}>Hủy</button><button type="submit" className="admin-button admin-button--primary" disabled={isPending}>Tạo phiên bản</button></DialogActions>
+          <DialogActions className="admin-dialog__actions admin-finance-dialog-actions">
+            <button type="button" className="admin-button" disabled={isPending} onClick={closeVersionDialog}>Hủy</button>
+            <div>{versionStep > 0 ? <button type="button" className="admin-button" disabled={isPending} onClick={() => { setFieldError(""); setVersionStep((current) => current - 1); }}><ArrowBackRoundedIcon /> Quay lại</button> : null}{versionStep < 3 ? <button type="button" className="admin-button admin-button--primary" disabled={isPending} onClick={goToNextVersionStep}>Tiếp tục <ArrowForwardRoundedIcon /></button> : <button type="submit" className="admin-button admin-button--primary" disabled={isPending}><CheckCircleOutlineRoundedIcon /> Tạo phiên bản</button>}</div>
+          </DialogActions>
         </form>
       </Dialog>
 
-      <Dialog open={overrideOpen} onClose={() => { if (!isPending) setOverrideOpen(false); }} fullWidth maxWidth="md" slotProps={{ paper: { className: "admin-dialog admin-finance-dialog" } }}>
+      <Dialog open={overrideOpen} onClose={closeOverrideDialog} fullWidth maxWidth="md" slotProps={{ paper: { className: "admin-dialog admin-finance-dialog" } }}>
         <form onSubmit={submitOverride}>
-          <DialogTitle className="admin-dialog__title"><span>Tạo ngoại lệ nhà hàng</span><IconButton onClick={() => setOverrideOpen(false)} disabled={isPending}><CloseRoundedIcon /></IconButton></DialogTitle>
+          <DialogTitle className="admin-dialog__title"><span className="admin-finance-dialog-title">Tạo ngoại lệ nhà hàng<small>Bước {overrideStep + 1}/4 · {FINANCE_FORM_STEPS[overrideStep]}</small></span><IconButton onClick={closeOverrideDialog} disabled={isPending}><CloseRoundedIcon /></IconButton></DialogTitle>
           <DialogContent>
-            <Alert severity="info">Chỉ nhập các trường cần ghi đè. Những trường để trống tiếp tục dùng biểu phí chung.</Alert>
-            <div className="admin-finance-meta-grid">
-              <label>Nhà hàng<select required value={overrideForm.restaurantId} onChange={(event) => setOverrideForm({ ...overrideForm, restaurantId: event.target.value })}><option value="">Chọn nhà hàng</option>{finance.restaurants.map((restaurant) => <option key={restaurant.id} value={restaurant.id}>{restaurant.name}</option>)}</select></label>
-              <label>Tên ngoại lệ<input required maxLength={120} value={overrideForm.name} onChange={(event) => setOverrideForm({ ...overrideForm, name: event.target.value })} /></label>
-              <label>Bắt đầu<input required type="datetime-local" value={overrideForm.effectiveFrom} onChange={(event) => setOverrideForm({ ...overrideForm, effectiveFrom: event.target.value })} /></label>
-              <label>Kết thúc <small>Tùy chọn</small><input type="datetime-local" value={overrideForm.effectiveTo} onChange={(event) => setOverrideForm({ ...overrideForm, effectiveTo: event.target.value })} /></label>
-            </div>
-            {renderCommonFields(overrideForm, setOverrideForm as (next: never) => void, true)}
-            <label className="admin-finance-tax-toggle"><input type="checkbox" checked={overrideForm.overrideTaxes} onChange={(event) => setOverrideForm({ ...overrideForm, overrideTaxes: event.target.checked, taxes: event.target.checked ? overrideForm.taxes : [] })} /> Ghi đè danh sách thuế</label>
-            {overrideForm.overrideTaxes ? <TaxEditor taxes={overrideForm.taxes} onChange={(taxes) => setOverrideForm({ ...overrideForm, taxes })} /> : null}
-            <label className="admin-finance-note">Ghi chú<textarea maxLength={1000} rows={3} value={overrideForm.note} onChange={(event) => setOverrideForm({ ...overrideForm, note: event.target.value })} /></label>
-            {fieldError ? <Alert severity="error">{fieldError}</Alert> : null}
+            <FinanceStepper step={overrideStep} />
+            {overrideStep === 0 ? <div className="admin-finance-form-stack">
+              <FinanceFormIntro eyebrow="Bước 1" title="Ngoại lệ dành cho nhà hàng nào?" description="Chọn phạm vi và khoảng hiệu lực. Mọi trường phí để trống ở bước sau sẽ kế thừa biểu phí chung." />
+              <Alert severity="info">Ngoại lệ được phiên bản hóa, không sửa đè lịch sử đã áp dụng.</Alert>
+              <section className="admin-finance-form-card">
+                <div className="admin-finance-meta-grid admin-finance-meta-grid--override">
+                  <label>Nhà hàng<select required value={overrideForm.restaurantId} onChange={(event) => setOverrideForm({ ...overrideForm, restaurantId: event.target.value })}><option value="">Chọn nhà hàng</option>{finance.restaurants.map((restaurant) => <option key={restaurant.id} value={restaurant.id}>{restaurant.name}</option>)}</select></label>
+                  <label>Tên ngoại lệ<input required maxLength={120} placeholder="Ví dụ: Ưu đãi đối tác chiến lược" value={overrideForm.name} onChange={(event) => setOverrideForm({ ...overrideForm, name: event.target.value })} /></label>
+                  <label>Bắt đầu<input required type="datetime-local" value={overrideForm.effectiveFrom} onChange={(event) => setOverrideForm({ ...overrideForm, effectiveFrom: event.target.value })} /></label>
+                  <label>Kết thúc <small>Tùy chọn</small><input type="datetime-local" value={overrideForm.effectiveTo} onChange={(event) => setOverrideForm({ ...overrideForm, effectiveTo: event.target.value })} /></label>
+                </div>
+              </section>
+            </div> : null}
+            {overrideStep === 1 ? renderFeeFields(overrideForm, setOverrideForm as (next: never) => void, true) : null}
+            {overrideStep === 2 ? renderSettlementFields(overrideForm, setOverrideForm as (next: never) => void, true) : null}
+            {overrideStep === 3 ? <div className="admin-finance-form-stack">
+              <FinanceFormIntro eyebrow="Bước cuối" title="Thuế và xác nhận ngoại lệ" description="Chỉ bật ghi đè thuế khi nhà hàng này có chính sách thực sự khác biểu phí chung." />
+              <label className="admin-finance-tax-toggle"><input type="checkbox" checked={overrideForm.overrideTaxes} onChange={(event) => setOverrideForm({ ...overrideForm, overrideTaxes: event.target.checked, taxes: event.target.checked ? overrideForm.taxes : [] })} /><span><b>Ghi đè danh sách thuế</b><small>Tắt để tiếp tục kế thừa toàn bộ thuế từ biểu phí chung.</small></span></label>
+              {overrideForm.overrideTaxes ? <TaxEditor taxes={overrideForm.taxes} onChange={(taxes) => setOverrideForm({ ...overrideForm, taxes })} /> : null}
+              <label className="admin-finance-note">Ghi chú <small>Tùy chọn</small><textarea maxLength={1000} rows={3} placeholder="Lý do tạo ngoại lệ…" value={overrideForm.note} onChange={(event) => setOverrideForm({ ...overrideForm, note: event.target.value })} /></label>
+              <FinanceFormReview form={overrideForm} override />
+            </div> : null}
+            {renderStepError()}
           </DialogContent>
-          <DialogActions className="admin-dialog__actions"><button type="button" className="admin-button" disabled={isPending} onClick={() => setOverrideOpen(false)}>Hủy</button><button type="submit" className="admin-button admin-button--primary" disabled={isPending}>Tạo ngoại lệ</button></DialogActions>
+          <DialogActions className="admin-dialog__actions admin-finance-dialog-actions">
+            <button type="button" className="admin-button" disabled={isPending} onClick={closeOverrideDialog}>Hủy</button>
+            <div>{overrideStep > 0 ? <button type="button" className="admin-button" disabled={isPending} onClick={() => { setFieldError(""); setOverrideStep((current) => current - 1); }}><ArrowBackRoundedIcon /> Quay lại</button> : null}{overrideStep < 3 ? <button type="button" className="admin-button admin-button--primary" disabled={isPending} onClick={goToNextOverrideStep}>Tiếp tục <ArrowForwardRoundedIcon /></button> : <button type="submit" className="admin-button admin-button--primary" disabled={isPending}><CheckCircleOutlineRoundedIcon /> Tạo ngoại lệ</button>}</div>
+          </DialogActions>
         </form>
       </Dialog>
 
