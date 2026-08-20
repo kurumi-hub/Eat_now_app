@@ -6,7 +6,14 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
+  // Chỉ chạy middleware (và gọi Supabase getUser() qua network) trên các route
+  // thực sự cần xác thực. Trước đây matcher chặn gần như mọi request (kể cả
+  // trang chủ, danh mục, nhà hàng...), khiến mỗi lần click Link đều phải chờ
+  // round-trip tới Supabase Auth trước khi Next.js bắt đầu render trang.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/account/:path*",
+    "/owner/:path*",
+    "/admin/:path*",
+    "/moderator/:path*",
   ],
 };
