@@ -2,6 +2,7 @@
 
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
+import AccountBalanceOutlinedIcon from "@mui/icons-material/AccountBalanceOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import CurrencyExchangeOutlinedIcon from "@mui/icons-material/CurrencyExchangeOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
@@ -30,7 +31,7 @@ import {
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition, type FormEvent } from "react";
+import { useOptimistic, useState, useTransition, type FormEvent } from "react";
 
 import {
   applySiteMediaAction,
@@ -43,12 +44,14 @@ import {
   transferOwnerAction,
 } from "@/app/admin/actions";
 import AdminCatalogPanel from "@/components/admin/AdminCatalogPanel";
+import AdminFinancePanel from "@/components/admin/AdminFinancePanel";
 import type {
   AdminActionResult,
   AdminAuditList,
   AdminCatalogKind,
   AdminCategoryList,
   AdminDashboardStats,
+  AdminFinanceSettings,
   AdminRefund,
   AdminRefundList,
   AdminRestaurant,
@@ -87,6 +90,7 @@ type AdminDashboardProps = {
   categories: AdminCategoryList;
   tags: AdminTagList;
   media: AdminSiteMedia;
+  finance: AdminFinanceSettings;
   audit: AdminAuditList;
   loadError?: string;
 };
@@ -113,6 +117,7 @@ const TABS: Array<{
   { value: "restaurants", label: "Nhà hàng", icon: StorefrontOutlinedIcon },
   { value: "refunds", label: "Hoàn tiền", icon: CurrencyExchangeOutlinedIcon },
   { value: "catalog", label: "Catalog", icon: CategoryOutlinedIcon },
+  { value: "finance", label: "Tài chính", icon: AccountBalanceOutlinedIcon },
   { value: "media", label: "Hình ảnh", icon: PhotoLibraryOutlinedIcon },
   { value: "audit", label: "Nhật ký", icon: HistoryOutlinedIcon },
 ];
@@ -148,6 +153,10 @@ const ACTION_LABELS: Record<string, string> = {
   tag_deactivate: "Tắt tag",
   tag_reorder: "Sắp xếp tag",
   tag_delete: "Xóa tag",
+  finance_version_create: "Tạo phiên bản biểu phí",
+  finance_version_close: "Đóng phiên bản biểu phí",
+  finance_override_create: "Tạo ngoại lệ tài chính",
+  finance_override_close: "Đóng ngoại lệ tài chính",
 };
 
 const REFUND_STATUS: Record<string, string> = {
@@ -203,6 +212,7 @@ export default function AdminDashboard({
   categories,
   tags,
   media,
+  finance,
   audit,
   loadError,
 }: AdminDashboardProps) {
@@ -213,14 +223,16 @@ export default function AdminDashboard({
   const canTransferOwner = user.permissions.includes("ownership.transfer");
   const canManageMedia = user.permissions.includes("site_media.manage");
   const canManageCatalog = user.permissions.includes("catalog.manage");
+  const canManageFinance = user.permissions.includes("finance.settings.manage");
   const visibleTabs = TABS.filter(
     (item) =>
       (item.value !== "media" || canManageMedia) &&
-      (item.value !== "catalog" || canManageCatalog)
+      (item.value !== "catalog" || canManageCatalog) &&
+      (item.value !== "finance" || canManageFinance)
   );
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState(searchTerm);
-  const [optimisticTab, setOptimisticTab] = useState(tab);
+  const [optimisticTab, setOptimisticTab] = useOptimistic(tab);
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [note, setNote] = useState("");
   const [amount, setAmount] = useState("");
@@ -230,10 +242,6 @@ export default function AdminDashboard({
     message: string;
     severity: "success" | "error" | "info";
   }>({ open: false, message: "", severity: "success" });
-
-  useEffect(() => {
-    setOptimisticTab(tab);
-  }, [tab]);
 
   const tabHref = (nextTab: AdminTab) =>
     nextTab === "overview" ? "/admin" : `/admin?tab=${nextTab}`;
@@ -294,9 +302,9 @@ export default function AdminDashboard({
   const goToTab = (nextTab: AdminTab) => {
     if (nextTab === tab) return;
     setSearch("");
-    setOptimisticTab(nextTab);
     signalNavigationStart();
     startTransition(() => {
+      setOptimisticTab(nextTab);
       router.push(tabHref(nextTab));
     });
   };
@@ -612,6 +620,7 @@ export default function AdminDashboard({
 
           {tab === "catalog" && canManageCatalog ? (
             <AdminCatalogPanel
+              key={`${catalogKind}:${searchTerm}:${statusFilter}`}
               kind={catalogKind}
               categories={categories}
               tags={tags}
@@ -698,6 +707,10 @@ export default function AdminDashboard({
                 khi cấu hình mới lưu thành công.
               </Alert>
             </section>
+          ) : null}
+
+          {tab === "finance" && canManageFinance ? (
+            <AdminFinancePanel finance={finance} />
           ) : null}
 
           {pageData ? (

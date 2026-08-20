@@ -26,7 +26,7 @@ import {
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition, type ChangeEvent, type FormEvent } from "react";
+import { useState, useTransition, type ChangeEvent, type FormEvent } from "react";
 
 import {
   applyCategoryMediaAction,
@@ -116,8 +116,6 @@ export default function AdminCatalogPanel({
     message: string;
     severity: "success" | "error" | "info";
   }>({ open: false, message: "", severity: "success" });
-
-  useEffect(() => setSearch(searchTerm), [searchTerm]);
 
   const notify = (result: AdminActionResult) => {
     setSnackbar({
@@ -253,7 +251,7 @@ export default function AdminCatalogPanel({
 
     setUploadingId(category.id);
     const supabase = createBrowserClient();
-    const objectPath = `categories/${category.id}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+    const objectPath = `categories/${category.id}/${crypto.randomUUID()}.${extension}`;
     const { error: uploadError } = await supabase.storage
       .from(CATALOG_MEDIA_BUCKET)
       .upload(objectPath, file, {

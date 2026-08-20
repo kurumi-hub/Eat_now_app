@@ -5,7 +5,13 @@ import { revalidatePath, updateTag } from "next/cache";
 import type {
   AdminActionResult,
   AdminCatalogOrderItem,
+  CreateFinanceOverrideInput,
+  CreateFinanceVersionInput,
+  FinanceSimulationActionResult,
+  FinanceSimulationInput,
+  FinanceTaxRule,
 } from "@/types/admin";
+import { parseFinanceSimulation } from "@/lib/data/adminFinance";
 import {
   SITE_MEDIA_SLOTS,
   type SiteMediaSlot,
@@ -63,7 +69,7 @@ function failure(message: string, error?: { code?: string; message?: string }) {
 
   if (error?.code === "42501") return "Bạn không có quyền thực hiện thao tác này.";
   if (error?.code === "P0002") return "Không tìm thấy dữ liệu cần xử lý.";
-  if (["22023", "23503", "23505"].includes(error?.code ?? "")) {
+  if (["22023", "23503", "23505", "23P01"].includes(error?.code ?? "")) {
     return error?.message?.trim() || message;
   }
   return message;
@@ -90,6 +96,71 @@ function validOrderItems(items: AdminCatalogOrderItem[]) {
     ids.add(item.id);
     return true;
   });
+}
+
+function validFinanceDate(value: string) {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toISOString() : null;
+}
+
+function validFinanceNumber(value: unknown, max = Number.MAX_SAFE_INTEGER) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= max;
+}
+
+function validCycleDay(cycle: string, day: number) {
+  if (!Number.isInteger(day)) return false;
+  if (cycle === "daily") return day === 1;
+  if (cycle === "weekly") return day >= 1 && day <= 7;
+  if (cycle === "biweekly") return day >= 1 && day <= 14;
+  return cycle === "monthly" && day >= 1 && day <= 28;
+}
+
+function cleanFinanceTaxes(taxes: FinanceTaxRule[]) {
+  if (!Array.isArray(taxes) || taxes.length > 12) return null;
+  const codes = new Set<string>();
+  const cleaned: FinanceTaxRule[] = [];
+  for (const tax of taxes) {
+    const code = tax.code.trim().toUpperCase();
+    const name = tax.name.trim();
+    if (!/^[A-Z][A-Z0-9_]{0,29}$/.test(code) || !name || name.length > 120) {
+      return null;
+    }
+    if (codes.has(code) || !validFinanceNumber(tax.rate_percent, 100)) return null;
+    if (!["platform_fees", "owner_revenue", "order_subtotal"].includes(tax.basis)) {
+      return null;
+    }
+    codes.add(code);
+    cleaned.push({ code, name, rate_percent: tax.rate_percent, basis: tax.basis });
+  }
+  return cleaned;
+}
+
+function cleanVersionSettings(input: CreateFinanceVersionInput) {
+  const settings = input.settings;
+  const percentages = [
+    settings.commission_percent,
+    settings.gateway_fee_percent,
+    settings.refund_fee_percent,
+    settings.voucher_platform_percent,
+    settings.hold_percent,
+  ];
+  const amounts = [
+    settings.fixed_order_fee,
+    settings.gateway_fixed_fee,
+    settings.refund_fixed_fee,
+    settings.minimum_payout,
+    settings.hold_fixed_amount,
+  ];
+  const taxes = cleanFinanceTaxes(settings.taxes);
+  if (percentages.some((value) => !validFinanceNumber(value, 100))) return null;
+  if (amounts.some((value) => !validFinanceNumber(value))) return null;
+  if (!Number.isInteger(settings.hold_days) || settings.hold_days < 0 || settings.hold_days > 365) {
+    return null;
+  }
+  if (!validCycleDay(settings.settlement_cycle, settings.settlement_day) || !taxes) {
+    return null;
+  }
+  return { ...settings, taxes };
 }
 
 export async function setUserActiveAction(
@@ -690,4 +761,180 @@ export async function reorderTagsAction(
 
   refreshCatalog();
   return { ok: true, message: "Đã cập nhật thứ tự tag." };
+}
+
+export async function createFinanceVersionAction(
+  input: CreateFinanceVersionInput
+): Promise<AdminActionResult> {
+  await requirePermission("finance.settings.manage");
+  const name = input.name.trim();
+  const note = input.note.trim();
+  const effectiveFrom = validFinanceDate(input.effective_from);
+  const effectiveTo = input.effective_to ? validFinanceDate(input.effective_to) : null;
+  const settings = cleanVersionSettings(input);
+
+  if (!name || name.length > 120) {
+    return { ok: false, message: "Tên phiên bản phải từ 1 đến 120 ký tự." };
+  }
+  if (note.length > 1000) {
+    return { ok: false, message: "Ghi chú không được vượt quá 1.000 ký tự." };
+  }
+  if (!effectiveFrom || (input.effective_to && !effectiveTo)) {
+    return { ok: false, message: "Khoảng thời gian áp dụng không hợp lệ." };
+  }
+  if (effectiveTo && effectiveTo <= effectiveFrom) {
+    return { ok: false, message: "Ngày kết thúc phải sau ngày bắt đầu." };
+  }
+  if (!settings) {
+    return { ok: false, message: "Thông số biểu phí không hợp lệ." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("api_create_finance_version", {
+    p_name: name,
+    p_effective_from: effectiveFrom,
+    p_effective_to: effectiveTo,
+    p_settings: settings,
+    p_note: note || null,
+  });
+  if (error) {
+    return { ok: false, message: failure("Không thể tạo phiên bản biểu phí.", error) };
+  }
+
+  revalidatePath("/admin");
+  return { ok: true, message: "Đã tạo phiên bản biểu phí mới." };
+}
+
+export async function createFinanceOverrideAction(
+  input: CreateFinanceOverrideInput
+): Promise<AdminActionResult> {
+  await requirePermission("finance.settings.manage");
+  const name = input.name.trim();
+  const note = input.note.trim();
+  const effectiveFrom = validFinanceDate(input.effective_from);
+  const effectiveTo = input.effective_to ? validFinanceDate(input.effective_to) : null;
+  if (!validId(input.restaurant_id)) {
+    return { ok: false, message: "Nhà hàng không hợp lệ." };
+  }
+  if (!name || name.length > 120) {
+    return { ok: false, message: "Tên ngoại lệ phải từ 1 đến 120 ký tự." };
+  }
+  if (note.length > 1000) {
+    return { ok: false, message: "Ghi chú không được vượt quá 1.000 ký tự." };
+  }
+  if (!effectiveFrom || (input.effective_to && !effectiveTo)) {
+    return { ok: false, message: "Khoảng thời gian áp dụng không hợp lệ." };
+  }
+  if (effectiveTo && effectiveTo <= effectiveFrom) {
+    return { ok: false, message: "Ngày kết thúc phải sau ngày bắt đầu." };
+  }
+
+  const source = input.settings;
+  const settings: Record<string, unknown> = {};
+  const percentageKeys = [
+    "commission_percent",
+    "gateway_fee_percent",
+    "refund_fee_percent",
+    "voucher_platform_percent",
+    "hold_percent",
+  ] as const;
+  const amountKeys = [
+    "fixed_order_fee",
+    "gateway_fixed_fee",
+    "refund_fixed_fee",
+    "minimum_payout",
+    "hold_fixed_amount",
+  ] as const;
+  for (const key of percentageKeys) {
+    const value = source[key];
+    if (value == null) continue;
+    if (!validFinanceNumber(value, 100)) {
+      return { ok: false, message: `Tỷ lệ ${key} không hợp lệ.` };
+    }
+    settings[key] = value;
+  }
+  for (const key of amountKeys) {
+    const value = source[key];
+    if (value == null) continue;
+    if (!validFinanceNumber(value)) {
+      return { ok: false, message: `Số tiền ${key} không hợp lệ.` };
+    }
+    settings[key] = value;
+  }
+  if (source.hold_days != null) {
+    if (!Number.isInteger(source.hold_days) || source.hold_days < 0 || source.hold_days > 365) {
+      return { ok: false, message: "Số ngày tạm giữ không hợp lệ." };
+    }
+    settings.hold_days = source.hold_days;
+  }
+  if (source.settlement_cycle != null || source.settlement_day != null) {
+    if (!source.settlement_cycle || source.settlement_day == null
+        || !validCycleDay(source.settlement_cycle, source.settlement_day)) {
+      return { ok: false, message: "Chu kỳ đối soát ngoại lệ không hợp lệ." };
+    }
+    settings.settlement_cycle = source.settlement_cycle;
+    settings.settlement_day = source.settlement_day;
+  }
+  if (source.taxes != null) {
+    const taxes = cleanFinanceTaxes(source.taxes);
+    if (!taxes) return { ok: false, message: "Danh sách thuế ngoại lệ không hợp lệ." };
+    settings.taxes = taxes;
+  }
+  if (Object.keys(settings).length === 0) {
+    return { ok: false, message: "Hãy chọn ít nhất một thông số cần ghi đè." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("api_create_finance_override", {
+    p_restaurant_id: input.restaurant_id,
+    p_name: name,
+    p_effective_from: effectiveFrom,
+    p_effective_to: effectiveTo,
+    p_settings: settings,
+    p_note: note || null,
+  });
+  if (error) {
+    return { ok: false, message: failure("Không thể tạo ngoại lệ nhà hàng.", error) };
+  }
+
+  revalidatePath("/admin");
+  return { ok: true, message: "Đã tạo phiên bản ngoại lệ nhà hàng." };
+}
+
+export async function simulateFinancePayoutAction(
+  input: FinanceSimulationInput
+): Promise<FinanceSimulationActionResult> {
+  await requirePermission("finance.settings.manage");
+  const at = validFinanceDate(input.at);
+  if (input.restaurant_id && !validId(input.restaurant_id)) {
+    return { ok: false, message: "Nhà hàng mô phỏng không hợp lệ." };
+  }
+  if (!at || !validFinanceNumber(input.order_subtotal) || input.order_subtotal <= 0
+      || !validFinanceNumber(input.voucher_discount)
+      || !validFinanceNumber(input.refund_amount)) {
+    return { ok: false, message: "Dữ liệu mô phỏng không hợp lệ." };
+  }
+  if (input.voucher_discount > input.order_subtotal) {
+    return { ok: false, message: "Voucher không được lớn hơn giá trị món." };
+  }
+  if (input.refund_amount > input.order_subtotal) {
+    return { ok: false, message: "Tiền hoàn không được lớn hơn giá trị món." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("api_simulate_owner_payout", {
+    p_restaurant_id: input.restaurant_id,
+    p_at: at,
+    p_order_subtotal: input.order_subtotal,
+    p_voucher_discount: input.voucher_discount,
+    p_refund_amount: input.refund_amount,
+  });
+  if (error) {
+    return { ok: false, message: failure("Không thể mô phỏng khoản Owner nhận.", error) };
+  }
+  const simulation = parseFinanceSimulation(data);
+  if (!simulation) {
+    return { ok: false, message: "Kết quả mô phỏng không hợp lệ." };
+  }
+  return { ok: true, message: "Đã tính khoản Owner dự kiến nhận.", data: simulation };
 }

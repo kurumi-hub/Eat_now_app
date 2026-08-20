@@ -3,6 +3,7 @@ import type {
   AdminAuditList,
   AdminCatalogKind,
   AdminDashboardStats,
+  AdminFinanceSettings,
   AdminRefund,
   AdminRefundList,
   AdminRestaurant,
@@ -12,6 +13,7 @@ import type {
   AdminUser,
   AdminUserList,
 } from "@/types/admin";
+import { EMPTY_ADMIN_FINANCE, parseAdminFinance } from "@/lib/data/adminFinance";
 import {
   EMPTY_ADMIN_CATEGORIES,
   EMPTY_ADMIN_TAGS,
@@ -41,6 +43,7 @@ const ADMIN_TABS: AdminTab[] = [
   "restaurants",
   "refunds",
   "catalog",
+  "finance",
   "media",
   "audit",
 ];
@@ -60,6 +63,7 @@ const EMPTY_RESTAURANTS: AdminRestaurantList = {
 const EMPTY_REFUNDS: AdminRefundList = { items: [], total: 0, limit: 20, offset: 0 };
 const EMPTY_AUDIT: AdminAuditList = { items: [], total: 0, limit: 20, offset: 0 };
 const EMPTY_MEDIA: AdminSiteMedia = parseSiteMedia(null);
+const EMPTY_FINANCE: AdminFinanceSettings = EMPTY_ADMIN_FINANCE;
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -243,6 +247,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   if (tab === "catalog" && !user.permissions.includes("catalog.manage")) {
     tab = "overview";
   }
+  if (tab === "finance" && !user.permissions.includes("finance.settings.manage")) {
+    tab = "overview";
+  }
   const catalogKind: AdminCatalogKind =
     firstParam(params.catalog) === "tags" ? "tags" : "categories";
   const search = firstParam(params.q).slice(0, 80);
@@ -282,6 +289,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     if (tab === "media") {
       return supabase.rpc("api_get_site_media");
     }
+    if (tab === "finance") {
+      return supabase.rpc("api_get_finance_settings", {
+        p_version_limit: 50,
+        p_override_limit: 100,
+      });
+    }
     return supabase.rpc("api_list_audit_logs", {
       p_limit: tab === "audit" ? limit : 8,
       p_offset: tab === "audit" ? offset : 0,
@@ -317,8 +330,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           : EMPTY_ADMIN_TAGS
       }
       media={tab === "media" ? parseSiteMedia(contentResult.data) : EMPTY_MEDIA}
+      finance={tab === "finance" ? parseAdminFinance(contentResult.data) : EMPTY_FINANCE}
       audit={tab === "overview" || tab === "audit" ? parseAudit(contentResult.data) : EMPTY_AUDIT}
-      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra SQL 13–19." : undefined}
+      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra SQL 13–20." : undefined}
     />
   );
 }
