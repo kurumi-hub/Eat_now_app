@@ -397,3 +397,31 @@
     animation: none;
   }
 }
+.navigation-progress {
+  position: fixed;
+  z-index: 2200;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 3px;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(90deg, #df3d24, #ff9a3d);
+  transition: width 180ms ease, opacity 120ms ease;
+}
+
+.navigation-progress.is-visible {
+  width: 72%;
+  opacity: 1;
+  animation: navigation-progress-pulse 900ms ease-in-out infinite alternate;
+}
+
+@keyframes navigation-progress-pulse {
+  to { width: 92%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navigation-progress.is-visible {
+    animation: none;
+  }
+}

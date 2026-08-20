@@ -36,8 +36,6 @@ import {
   setUserActiveAction,
   transferOwnerAction,
 } from "@/app/admin/actions";
-import SiteFooter from "@/components/common/SiteFooter";
-import CustomerHeader from "@/components/home/CustomerHeader";
 import type {
   AdminActionResult,
   AdminAuditList,
@@ -52,6 +50,7 @@ import type {
 } from "@/types/admin";
 import type { PublicUser } from "@/types/auth";
 import { formatRole, hasRole } from "@/utils/roles";
+import { signalNavigationStart } from "@/utils/navigationFeedback";
 
 type AdminDashboardProps = {
   user: PublicUser;
@@ -63,7 +62,6 @@ type AdminDashboardProps = {
   restaurants: AdminRestaurantList;
   refunds: AdminRefundList;
   audit: AdminAuditList;
-  defaultDeliveryAddress?: string | null;
   loadError?: string;
 };
 
@@ -158,7 +156,6 @@ export default function AdminDashboard({
   restaurants,
   refunds,
   audit,
-  defaultDeliveryAddress,
   loadError,
 }: AdminDashboardProps) {
   const router = useRouter();
@@ -168,6 +165,7 @@ export default function AdminDashboard({
   const canTransferOwner = user.permissions.includes("ownership.transfer");
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState(searchTerm);
+  const [optimisticTab, setOptimisticTab] = useState(tab);
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [note, setNote] = useState("");
   const [amount, setAmount] = useState("");
@@ -179,13 +177,11 @@ export default function AdminDashboard({
   }>({ open: false, message: "", severity: "success" });
 
   useEffect(() => {
-    TABS.forEach((item) => {
-      router.prefetch(
-        item.value === "overview" ? "/admin" : `/admin?tab=${item.value}`
-      );
-    });
-    router.prefetch("/moderator");
-  }, [router]);
+    setOptimisticTab(tab);
+  }, [tab]);
+
+  const tabHref = (nextTab: AdminTab) =>
+    nextTab === "overview" ? "/admin" : `/admin?tab=${nextTab}`;
 
   const notify = (result: AdminActionResult) => {
     setSnackbar({
@@ -241,9 +237,12 @@ export default function AdminDashboard({
   };
 
   const goToTab = (nextTab: AdminTab) => {
+    if (nextTab === tab) return;
     setSearch("");
+    setOptimisticTab(nextTab);
+    signalNavigationStart();
     startTransition(() => {
-      router.push(nextTab === "overview" ? "/admin" : `/admin?tab=${nextTab}`);
+      router.push(tabHref(nextTab));
     });
   };
 
@@ -251,6 +250,7 @@ export default function AdminDashboard({
     const params = new URLSearchParams({ tab });
     if (searchTerm) params.set("q", searchTerm);
     if (status) params.set("status", status);
+    signalNavigationStart();
     startTransition(() => router.push(`/admin?${params.toString()}`));
   };
 
@@ -259,12 +259,29 @@ export default function AdminDashboard({
     const params = new URLSearchParams({ tab });
     if (search.trim()) params.set("q", search.trim());
     if (statusFilter) params.set("status", statusFilter);
+    signalNavigationStart();
     startTransition(() => router.push(`/admin?${params.toString()}`));
   };
 
-  const showPlaceholder = (message: string) => {
-    setSnackbar({ open: true, message, severity: "info" });
+  const changePage = (page: number) => {
+    const params = new URLSearchParams({ tab });
+    if (searchTerm) params.set("q", searchTerm);
+    if (statusFilter) params.set("status", statusFilter);
+    if (page > 1) params.set("page", String(page));
+    signalNavigationStart();
+    startTransition(() => router.push(`/admin?${params.toString()}`));
   };
+
+  const pageData =
+    tab === "users"
+      ? users
+      : tab === "restaurants"
+        ? restaurants
+        : tab === "refunds"
+          ? refunds
+          : tab === "audit"
+            ? audit
+            : null;
 
   const dialogTitle = (() => {
     if (!dialog) return "";
@@ -278,14 +295,6 @@ export default function AdminDashboard({
 
   return (
     <div className="admin-page">
-      <CustomerHeader
-        user={user}
-        deliveryAddress={defaultDeliveryAddress}
-        activeSectionId={null}
-        onPlaceholder={showPlaceholder}
-        onSectionNavigate={(sectionId) => router.push(`/#${sectionId}`)}
-      />
-
       <main className="admin-main">
         <div className="admin-content">
           <header className="admin-heading">
@@ -304,7 +313,7 @@ export default function AdminDashboard({
             {TABS.map((item) => {
               const Icon = item.icon;
               return (
-                <button key={item.value} type="button" className={tab === item.value ? "is-active" : ""} onClick={() => goToTab(item.value)}>
+                <button key={item.value} type="button" className={optimisticTab === item.value ? "is-active" : ""} onPointerEnter={() => router.prefetch(tabHref(item.value))} onFocus={() => router.prefetch(tabHref(item.value))} onClick={() => goToTab(item.value)} aria-current={optimisticTab === item.value ? "page" : undefined}>
                   <Icon /> <span>{item.label}</span>
                 </button>
               );
@@ -489,10 +498,18 @@ export default function AdminDashboard({
               <AuditList audit={audit} />
             </section>
           ) : null}
+
+          {pageData ? (
+            <PaginationControls
+              total={pageData.total}
+              limit={pageData.limit}
+              offset={pageData.offset}
+              onPageChange={changePage}
+              disabled={isPending}
+            />
+          ) : null}
         </div>
       </main>
-
-      <SiteFooter onPlaceholder={showPlaceholder} />
 
       <Dialog open={Boolean(dialog)} onClose={isPending ? undefined : () => setDialog(null)} fullWidth maxWidth="sm" slotProps={{ paper: { className: "admin-dialog" } }}>
         {dialog ? <>
@@ -538,6 +555,46 @@ function PanelToolbar({ title, subtitle, search, placeholder, onSearchChange, on
 
 function EmptyState({ label }: { label: string }) {
   return <div className="admin-empty"><CheckCircleOutlineOutlinedIcon /><h3>{label}</h3><p>Hãy thử thay đổi từ khóa hoặc bộ lọc.</p></div>;
+}
+
+function PaginationControls({
+  total,
+  limit,
+  offset,
+  onPageChange,
+  disabled,
+}: {
+  total: number;
+  limit: number;
+  offset: number;
+  onPageChange: (page: number) => void;
+  disabled: boolean;
+}) {
+  if (total <= limit && offset === 0) return null;
+  const current = Math.floor(offset / limit) + 1;
+  const pages = Math.max(1, Math.ceil(total / limit));
+
+  return (
+    <nav className="admin-pagination" aria-label="Phân trang quản trị">
+      <button
+        type="button"
+        disabled={disabled || current <= 1}
+        onClick={() => onPageChange(current - 1)}
+      >
+        Trang trước
+      </button>
+      <span>
+        Trang <strong>{current}</strong> / {pages}
+      </span>
+      <button
+        type="button"
+        disabled={disabled || current >= pages}
+        onClick={() => onPageChange(current + 1)}
+      >
+        Trang sau
+      </button>
+    </nav>
+  );
 }
 
 function AuditList({ audit }: { audit: AdminAuditList }) {

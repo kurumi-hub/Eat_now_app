@@ -697,3 +697,31 @@
     width: 100%;
   }
 }
+.moderator-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.moderator-pagination button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid #ead8cd;
+  border-radius: 12px;
+  background: #fff;
+  color: #9f301e;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.moderator-pagination button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.moderator-pagination span {
+  color: #745e52;
+  font-size: 0.9rem;
+}

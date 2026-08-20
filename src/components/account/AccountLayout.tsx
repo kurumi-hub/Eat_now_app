@@ -1,13 +1,13 @@
 "use client";
 
-import { Alert, Snackbar, Tab, Tabs } from "@mui/material";
+import { Tab, Tabs } from "@mui/material";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode, SyntheticEvent } from "react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
-import CustomerHeader from "@/components/home/CustomerHeader";
 import type { PublicUser } from "@/types/auth";
 import { hasAnyRole } from "@/utils/roles";
+import { signalNavigationStart } from "@/utils/navigationFeedback";
 import AccountSidebar from "./AccountSidebar";
 import { getVisibleAccountNavItems } from "./accountNavItems";
 
@@ -19,40 +19,29 @@ type AccountLayoutProps = {
 export default function AccountLayout({ user, children }: AccountLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [notice, setNotice] = useState("");
   const [, startNavigation] = useTransition();
+  const [optimisticPath, setOptimisticPath] = useState(pathname);
   const visibleItems = useMemo(() => getVisibleAccountNavItems(user), [user]);
-  const currentPath = visibleItems.some((item) => item.href === pathname)
-    ? pathname
+  const currentPath = visibleItems.some((item) => item.href === optimisticPath)
+    ? optimisticPath
     : visibleItems[0]?.href ?? false;
   const sellerLabel = hasAnyRole(user, ["RESTAURANT_OWNER", "RESTAURANT_STAFF"])
     ? "Kênh người bán"
     : "Bán hàng cùng EatNow";
 
   useEffect(() => {
-    visibleItems.forEach((item) => router.prefetch(item.href));
-  }, [router, visibleItems]);
-
-  const handlePlaceholder = (message: string) => {
-    setNotice(message);
-  };
-
-  const handleSectionNavigate = (sectionId: string) => {
-    router.push(`/#${sectionId}`);
-  };
+    setOptimisticPath(pathname);
+  }, [pathname]);
 
   const handleMobileNavChange = (_event: SyntheticEvent, value: string) => {
+    if (value === pathname) return;
+    setOptimisticPath(value);
+    signalNavigationStart();
     startNavigation(() => router.push(value));
   };
 
   return (
     <div className="account-page">
-      <CustomerHeader
-        user={user}
-        onPlaceholder={handlePlaceholder}
-        onSectionNavigate={handleSectionNavigate}
-      />
-
       <main className="account-shell">
         <div className="account-layout-grid">
           <AccountSidebar user={user} />
@@ -73,6 +62,8 @@ export default function AccountLayout({ user, children }: AccountLayoutProps) {
                       item.href === "/account/seller" ? sellerLabel : item.label
                     }
                     value={item.href}
+                    onPointerEnter={() => router.prefetch(item.href)}
+                    onFocus={() => router.prefetch(item.href)}
                   />
                 ))}
               </Tabs>
@@ -85,16 +76,6 @@ export default function AccountLayout({ user, children }: AccountLayoutProps) {
         </div>
       </main>
 
-      <Snackbar
-        open={Boolean(notice)}
-        autoHideDuration={3200}
-        onClose={() => setNotice("")}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert severity="info" variant="filled" onClose={() => setNotice("")}>
-          {notice}
-        </Alert>
-      </Snackbar>
     </div>
   );
 }

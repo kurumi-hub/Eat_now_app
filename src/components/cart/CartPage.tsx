@@ -18,10 +18,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import CustomerHeader from "@/components/home/CustomerHeader";
 import type { PublicUser } from "@/types/auth";
 import { useCartStore, type CartLine } from "@/store/cartStore";
 import { useCartSession } from "@/store/useCartSession";
+import { signalNavigationStart } from "@/utils/navigationFeedback";
 
 type CartPageProps = {
   user: PublicUser | null;
@@ -66,6 +66,7 @@ export default function CartPage({ user }: CartPageProps) {
   // tạo đơn ngay tại trang giỏ hàng này.
   const handleCheckoutClick = () => {
     if (!user) {
+      signalNavigationStart();
       router.push("/login?next=/checkout");
       return;
     }
@@ -75,6 +76,7 @@ export default function CartPage({ user }: CartPageProps) {
       return;
     }
 
+    signalNavigationStart();
     router.push("/checkout");
   };
 
@@ -82,12 +84,6 @@ export default function CartPage({ user }: CartPageProps) {
 
   return (
     <div className="restaurant-detail-page">
-      <CustomerHeader
-        user={user}
-        onPlaceholder={showMessage}
-        onSectionNavigate={(sectionId) => router.push(`/#${sectionId}`)}
-      />
-
       <main style={{ maxWidth: 720, margin: "0 auto", padding: "32px 16px 96px" }}>
         <Typography variant="h5" sx={{ fontWeight: 700 }} gutterBottom>
           Giỏ hàng của bạn

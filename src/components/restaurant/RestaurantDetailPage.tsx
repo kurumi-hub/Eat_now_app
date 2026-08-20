@@ -25,10 +25,8 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import type { PublicUser } from "@/types/auth";
-import SiteFooter from "@/components/common/SiteFooter";
-import CustomerHeader from "@/components/home/CustomerHeader";
 import { useCartStore } from "@/store/cartStore";
+import { signalNavigationStart } from "@/utils/navigationFeedback";
 import type {
   RestaurantDetail,
   RestaurantMenuItem,
@@ -41,7 +39,6 @@ const FoodOptionsModal = dynamic(
 
 type RestaurantDetailPageProps = {
   restaurant: RestaurantDetail;
-  user: PublicUser | null;
 };
 
 type SnackbarState = {
@@ -59,7 +56,6 @@ function formatCurrency(value: number) {
 
 export default function RestaurantDetailPage({
   restaurant,
-  user,
 }: RestaurantDetailPageProps) {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState(
@@ -106,10 +102,6 @@ export default function RestaurantDetailPage({
 
   const handleSnackbarClose = () => {
     setSnackbar((current) => ({ ...current, open: false }));
-  };
-
-  const handleSectionNavigate = (sectionId: string) => {
-    router.push(`/#${sectionId}`);
   };
 
   const handleCategoryClick = (categoryId: string) => {
@@ -190,12 +182,6 @@ export default function RestaurantDetailPage({
 
   return (
     <div className="restaurant-detail-page">
-      <CustomerHeader
-        user={user}
-        onPlaceholder={showPlaceholder}
-        onSectionNavigate={handleSectionNavigate}
-      />
-
       <main className="restaurant-detail-main">
         <section className="restaurant-hero" aria-labelledby="restaurant-title">
           <div className="restaurant-hero__media">
@@ -334,10 +320,11 @@ export default function RestaurantDetailPage({
         </div>
       </main>
 
-      <SiteFooter onPlaceholder={showPlaceholder} />
-
       <nav className="restaurant-bottom-nav" aria-label="Điều hướng nhanh">
-        <button type="button" onClick={() => router.push("/")}>
+        <button type="button" onClick={() => {
+          signalNavigationStart();
+          router.push("/");
+        }}>
           <HomeOutlinedIcon />
           <span>Trang chủ</span>
         </button>

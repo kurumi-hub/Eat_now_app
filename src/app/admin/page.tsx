@@ -1,4 +1,3 @@
-import { getCurrentUserAddresses } from "@/lib/data/addresses";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import type {
   AdminAuditList,
@@ -12,7 +11,7 @@ import type {
   AdminUserList,
 } from "@/types/admin";
 import { requirePermission } from "@/utils/auth/guards";
-import { normalizeRoles, hasRole } from "@/utils/roles";
+import { normalizeRoles } from "@/utils/roles";
 import { createClient } from "@/utils/supabase/server";
 
 type AdminPageProps = {
@@ -20,6 +19,7 @@ type AdminPageProps = {
     tab?: string | string[];
     q?: string | string[];
     status?: string | string[];
+    page?: string | string[];
   }>;
 };
 
@@ -41,12 +41,12 @@ const EMPTY_STATS: AdminDashboardStats = {
   moderation: { open: 0, in_review: 0, urgent: 0, resolved_today: 0 },
 };
 
-const EMPTY_USERS: AdminUserList = { items: [], total: 0, limit: 50, offset: 0 };
+const EMPTY_USERS: AdminUserList = { items: [], total: 0, limit: 20, offset: 0 };
 const EMPTY_RESTAURANTS: AdminRestaurantList = {
-  items: [], total: 0, limit: 50, offset: 0,
+  items: [], total: 0, limit: 20, offset: 0,
 };
-const EMPTY_REFUNDS: AdminRefundList = { items: [], total: 0, limit: 50, offset: 0 };
-const EMPTY_AUDIT: AdminAuditList = { items: [], limit: 50, offset: 0 };
+const EMPTY_REFUNDS: AdminRefundList = { items: [], total: 0, limit: 20, offset: 0 };
+const EMPTY_AUDIT: AdminAuditList = { items: [], total: 0, limit: 20, offset: 0 };
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -96,7 +96,7 @@ function parseUsers(value: unknown): AdminUserList {
   return {
     items,
     total: numberValue(value.total),
-    limit: numberValue(value.limit) || 50,
+    limit: numberValue(value.limit) || 20,
     offset: numberValue(value.offset),
   };
 }
@@ -134,7 +134,7 @@ function parseRestaurants(value: unknown): AdminRestaurantList {
   return {
     items,
     total: numberValue(value.total),
-    limit: numberValue(value.limit) || 50,
+    limit: numberValue(value.limit) || 20,
     offset: numberValue(value.offset),
   };
 }
@@ -175,7 +175,7 @@ function parseRefunds(value: unknown): AdminRefundList {
   return {
     items,
     total: numberValue(value.total),
-    limit: numberValue(value.limit) || 50,
+    limit: numberValue(value.limit) || 20,
     offset: numberValue(value.offset),
   };
 }
@@ -201,13 +201,22 @@ function parseAudit(value: unknown): AdminAuditList {
     : [];
   return {
     items,
-    limit: numberValue(value.limit) || 50,
+    total:
+      numberValue(value.total) ||
+      numberValue(value.offset) + items.length +
+        (items.length === numberValue(value.limit) ? 1 : 0),
+    limit: numberValue(value.limit) || 20,
     offset: numberValue(value.offset),
   };
 }
 
 function firstParam(value: string | string[] | undefined) {
   return (Array.isArray(value) ? value[0] : value)?.trim() ?? "";
+}
+
+function positivePage(value: string | string[] | undefined) {
+  const parsed = Number.parseInt(firstParam(value), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
 }
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
@@ -217,37 +226,37 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const tab = ADMIN_TABS.includes(requestedTab) ? requestedTab : "overview";
   const search = firstParam(params.q).slice(0, 80);
   const status = firstParam(params.status).slice(0, 30);
+  const page = positivePage(params.page);
+  const limit = 20;
+  const offset = (page - 1) * limit;
   const supabase = await createClient();
 
   const contentPromise = (() => {
     if (tab === "users") {
       return supabase.rpc("api_list_admin_users", {
-        p_search: search || null, p_limit: 50, p_offset: 0,
+        p_search: search || null, p_limit: limit, p_offset: offset,
       });
     }
     if (tab === "restaurants") {
       return supabase.rpc("api_list_admin_restaurants", {
-        p_status: status || null, p_search: search || null, p_limit: 50, p_offset: 0,
+        p_status: status || null, p_search: search || null, p_limit: limit, p_offset: offset,
       });
     }
     if (tab === "refunds") {
       return supabase.rpc("api_list_admin_refunds", {
-        p_status: status || null, p_search: search || null, p_limit: 50, p_offset: 0,
+        p_status: status || null, p_search: search || null, p_limit: limit, p_offset: offset,
       });
     }
     return supabase.rpc("api_list_audit_logs", {
-      p_limit: tab === "audit" ? 50 : 8, p_offset: 0,
+      p_limit: tab === "audit" ? limit : 8,
+      p_offset: tab === "audit" ? offset : 0,
     });
   })();
 
-  const [dashboardResult, contentResult, addresses] = await Promise.all([
+  const [dashboardResult, contentResult] = await Promise.all([
     supabase.rpc("api_get_admin_dashboard"),
     contentPromise,
-    hasRole(user, "CUSTOMER")
-      ? getCurrentUserAddresses()
-      : Promise.resolve([]),
   ]);
-  const defaultAddress = addresses.find((address) => address.isDefault) ?? addresses[0] ?? null;
   const errors = [dashboardResult.error, contentResult.error].filter(Boolean);
   if (errors.length) console.error("[admin] Không thể tải dashboard", errors);
 
@@ -262,8 +271,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       restaurants={tab === "restaurants" ? parseRestaurants(contentResult.data) : EMPTY_RESTAURANTS}
       refunds={tab === "refunds" ? parseRefunds(contentResult.data) : EMPTY_REFUNDS}
       audit={tab === "overview" || tab === "audit" ? parseAudit(contentResult.data) : EMPTY_AUDIT}
-      defaultDeliveryAddress={defaultAddress?.line1 ?? null}
-      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra SQL 13–15." : undefined}
+      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra SQL 13–17." : undefined}
     />
   );
 }

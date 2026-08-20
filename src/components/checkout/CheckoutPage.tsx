@@ -29,7 +29,6 @@ import {
   useTransition,
 } from "react";
 
-import CustomerHeader from "@/components/home/CustomerHeader";
 import type { AccountAddress } from "@/types/account";
 import type { PublicUser } from "@/types/auth";
 import { useCartStore } from "@/store/cartStore";
@@ -40,6 +39,7 @@ import {
   previewOrder,
   type CheckoutVoucher,
 } from "@/app/checkout/actions";
+import { signalNavigationStart } from "@/utils/navigationFeedback";
 
 const CheckoutAddressDialog = dynamic(
   () => import("@/components/checkout/CheckoutAddressDialog"),
@@ -236,25 +236,22 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
       }
 
       clearCart();
+      signalNavigationStart();
       router.push(`/orders/${result.orderId}`);
     });
   };
 
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-
   if (cartReady && lines.length === 0) {
     return (
       <>
-        <CustomerHeader
-          user={user}
-          onPlaceholder={setSnackbarMessage}
-          onSectionNavigate={(sectionId) => router.push(`/#${sectionId}`)}
-        />
         <Box sx={{ maxWidth: 640, mx: "auto", p: 4, textAlign: "center" }}>
           <Typography variant="h6" gutterBottom>
             Giỏ hàng đang trống
           </Typography>
-          <Button variant="contained" onClick={() => router.push("/")}>
+          <Button variant="contained" onClick={() => {
+            signalNavigationStart();
+            router.push("/");
+          }}>
             Quay lại trang chủ
           </Button>
         </Box>
@@ -264,11 +261,6 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
 
   return (
     <>
-      <CustomerHeader
-        user={user}
-        onPlaceholder={setSnackbarMessage}
-        onSectionNavigate={(sectionId) => router.push(`/#${sectionId}`)}
-      />
       <Box
         sx={{
           maxWidth: 720,

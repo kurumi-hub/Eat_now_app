@@ -1,4 +1,3 @@
-import { getCurrentUserAddresses } from "@/lib/data/addresses";
 import ModeratorDashboard from "@/components/moderator/ModeratorDashboard";
 import type {
   ModerationQueue,
@@ -9,10 +8,12 @@ import type {
 import { MODERATION_STATUSES } from "@/types/moderator";
 import { requirePermission } from "@/utils/auth/guards";
 import { createClient } from "@/utils/supabase/server";
-import { hasRole } from "@/utils/roles";
 
 type ModeratorPageProps = {
-  searchParams: Promise<{ status?: string | string[] }>;
+  searchParams: Promise<{
+    status?: string | string[];
+    page?: string | string[];
+  }>;
 };
 
 type UnknownRecord = Record<string, unknown>;
@@ -27,7 +28,7 @@ const EMPTY_STATS: ModeratorDashboardStats = {
 const EMPTY_QUEUE: ModerationQueue = {
   items: [],
   total: 0,
-  limit: 50,
+  limit: 20,
   offset: 0,
 };
 
@@ -75,7 +76,7 @@ function parseQueue(value: unknown): ModerationQueue {
   return {
     items,
     total: safeNumber(value.total),
-    limit: safeNumber(value.limit) || 50,
+    limit: safeNumber(value.limit) || 20,
     offset: safeNumber(value.offset),
   };
 }
@@ -91,22 +92,20 @@ export default async function ModeratorPage({ searchParams }: ModeratorPageProps
   const user = await requirePermission("moderation.queue");
   const params = await searchParams;
   const activeStatus = normalizeStatus(params.status);
+  const pageValue = Array.isArray(params.page) ? params.page[0] : params.page;
+  const parsedPage = Number.parseInt(pageValue ?? "", 10);
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const limit = 20;
   const supabase = await createClient();
 
-  const [dashboardResult, queueResult, addresses] = await Promise.all([
+  const [dashboardResult, queueResult] = await Promise.all([
     supabase.rpc("api_get_admin_dashboard"),
     supabase.rpc("api_list_moderation_queue", {
       p_status: activeStatus === "all" ? null : activeStatus,
-      p_limit: 50,
-      p_offset: 0,
+      p_limit: limit,
+      p_offset: (page - 1) * limit,
     }),
-    hasRole(user, "CUSTOMER")
-      ? getCurrentUserAddresses()
-      : Promise.resolve([]),
   ]);
-
-  const defaultAddress =
-    addresses.find((address) => address.isDefault) ?? addresses[0] ?? null;
 
   const errors = [dashboardResult.error, queueResult.error].filter(Boolean);
   if (errors.length > 0) {
@@ -119,10 +118,9 @@ export default async function ModeratorPage({ searchParams }: ModeratorPageProps
       stats={parseStats(dashboardResult.data)}
       queue={parseQueue(queueResult.data)}
       activeStatus={activeStatus}
-      defaultDeliveryAddress={defaultAddress?.line1 ?? null}
       loadError={
         errors.length > 0
-          ? "Chưa thể tải đầy đủ dữ liệu kiểm duyệt. Hãy kiểm tra SQL 14 và thử tải lại."
+          ? "Chưa thể tải đầy đủ dữ liệu kiểm duyệt. Hãy kiểm tra SQL 14–17 và thử tải lại."
           : undefined
       }
     />

@@ -110,6 +110,7 @@ export type AdminAuditLog = {
 
 export type AdminAuditList = {
   items: AdminAuditLog[];
+  total: number;
   limit: number;
   offset: number;
 };

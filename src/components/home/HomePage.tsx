@@ -12,8 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { PublicUser } from "@/types/auth";
-import SiteFooter from "@/components/common/SiteFooter";
-import CustomerHeader from "./CustomerHeader";
+import { signalNavigationStart } from "@/utils/navigationFeedback";
 import {
   homeCategories,
   homeHeroImage,
@@ -23,7 +22,6 @@ import type { HomeRestaurant } from "./homeData";
 
 type HomePageProps = {
   user: PublicUser | null;
-  defaultDeliveryAddress: string | null;
   featuredRestaurants: HomeRestaurant[];
 };
 
@@ -41,7 +39,6 @@ function scrollToSection(sectionId: string) {
 
 export default function HomePage({
   user,
-  defaultDeliveryAddress,
   featuredRestaurants,
 }: HomePageProps) {
   const router = useRouter();
@@ -60,13 +57,6 @@ export default function HomePage({
 
   return (
     <div className="home-experience">
-      <CustomerHeader
-        user={user}
-        deliveryAddress={defaultDeliveryAddress}
-        onPlaceholder={showPlaceholder}
-        onSectionNavigate={scrollToSection}
-      />
-
       <main className="home-main">
         <section
           id="home-hero"
@@ -225,14 +215,15 @@ export default function HomePage({
         </button>
         <button
           type="button"
-          onClick={() => router.push(user ? "/account/profile" : "/login")}
+          onClick={() => {
+            signalNavigationStart();
+            router.push(user ? "/account/profile" : "/login");
+          }}
         >
           <AccountCircleOutlinedIcon />
           <span>Tài khoản</span>
         </button>
       </nav>
-
-      <SiteFooter onPlaceholder={showPlaceholder} />
 
       <Snackbar
         open={snackbar.open}

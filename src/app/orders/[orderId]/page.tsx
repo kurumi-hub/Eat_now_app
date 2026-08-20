@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 
-import OrderPageHeader from "@/components/common/OrderPageHeader";
 import { requireCurrentUser } from "@/utils/auth/guards";
 import { createClient } from "@/utils/supabase/server";
 
@@ -116,7 +115,7 @@ export default async function OrderDetailRoute({
 }: OrderDetailRouteProps) {
   const { orderId } = await params;
   // Trang này bắt buộc đăng nhập vì hiển thị đơn hàng vừa đặt.
-  const user = await requireCurrentUser();
+  await requireCurrentUser();
   const supabase = await createClient();
 
   // Dùng RPC get_order_detail thay vì truy vấn bảng trực tiếp:
@@ -143,8 +142,6 @@ export default async function OrderDetailRoute({
 
   return (
     <div className="restaurant-detail-page">
-      <OrderPageHeader user={user} />
-
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "32px 16px 96px" }}>
         <p style={{ color: "var(--color-text-secondary, #6b7280)", marginBottom: 4 }}>
           Đơn hàng #{order.code}

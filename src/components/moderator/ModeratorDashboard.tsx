@@ -32,8 +32,6 @@ import {
   escalateReportAction,
   moderateReviewAction,
 } from "@/app/moderator/actions";
-import SiteFooter from "@/components/common/SiteFooter";
-import CustomerHeader from "@/components/home/CustomerHeader";
 import type { PublicUser } from "@/types/auth";
 import type {
   ModerationQueue,
@@ -42,6 +40,7 @@ import type {
   ModeratorActionResult,
   ModeratorDashboardStats,
 } from "@/types/moderator";
+import { signalNavigationStart } from "@/utils/navigationFeedback";
 
 type StatusFilter = ModerationStatus | "all";
 type DialogMode = "hide" | "restore" | "dismiss" | "escalate";
@@ -51,7 +50,6 @@ type ModeratorDashboardProps = {
   stats: ModeratorDashboardStats;
   queue: ModerationQueue;
   activeStatus: StatusFilter;
-  defaultDeliveryAddress?: string | null;
   loadError?: string;
 };
 
@@ -160,13 +158,13 @@ export default function ModeratorDashboard({
   stats,
   queue,
   activeStatus,
-  defaultDeliveryAddress,
   loadError,
 }: ModeratorDashboardProps) {
   const router = useRouter();
   const canReview = user.permissions.includes("moderation.review");
   const canResolve = user.permissions.includes("moderation.resolve");
   const [isPending, startTransition] = useTransition();
+  const [optimisticStatus, setOptimisticStatus] = useState(activeStatus);
   const [dialog, setDialog] = useState<{
     mode: DialogMode;
     report: ModerationReport;
@@ -180,13 +178,11 @@ export default function ModeratorDashboard({
   }>({ open: false, message: "", severity: "success" });
 
   useEffect(() => {
-    STATUS_FILTERS.forEach(({ value }) => {
-      router.prefetch(
-        value === "all" ? "/moderator" : `/moderator?status=${value}`
-      );
-    });
-    router.prefetch("/admin");
-  }, [router]);
+    setOptimisticStatus(activeStatus);
+  }, [activeStatus]);
+
+  const filterHref = (status: StatusFilter) =>
+    status === "all" ? "/moderator" : `/moderator?status=${status}`;
 
   const notify = (result: ModeratorActionResult) => {
     setSnackbar({
@@ -246,29 +242,30 @@ export default function ModeratorDashboard({
   };
 
   const changeFilter = (status: StatusFilter) => {
+    if (status === activeStatus) return;
+    setOptimisticStatus(status);
+    signalNavigationStart();
     startTransition(() => {
-      router.push(status === "all" ? "/moderator" : `/moderator?status=${status}`);
+      router.push(filterHref(status));
     });
   };
 
-  const showPlaceholder = (message: string) => {
-    setSnackbar({ open: true, message, severity: "info" });
+  const changePage = (page: number) => {
+    const params = new URLSearchParams();
+    if (activeStatus !== "all") params.set("status", activeStatus);
+    if (page > 1) params.set("page", String(page));
+    signalNavigationStart();
+    startTransition(() => {
+      const query = params.toString();
+      router.push(query ? `/moderator?${query}` : "/moderator");
+    });
   };
 
-  const handleSectionNavigate = (sectionId: string) => {
-    router.push(`/#${sectionId}`);
-  };
+  const currentPage = Math.floor(queue.offset / queue.limit) + 1;
+  const totalPages = Math.max(1, Math.ceil(queue.total / queue.limit));
 
   return (
     <div className="moderator-page">
-      <CustomerHeader
-        user={user}
-        deliveryAddress={defaultDeliveryAddress}
-        activeSectionId={null}
-        onPlaceholder={showPlaceholder}
-        onSectionNavigate={handleSectionNavigate}
-      />
-
       <main className="moderator-main">
         <div className="moderator-content">
           <section id="overview" className="moderator-heading">
@@ -323,8 +320,11 @@ export default function ModeratorDashboard({
                 <button
                   key={filter.value}
                   type="button"
+                  onPointerEnter={() => router.prefetch(filterHref(filter.value))}
+                  onFocus={() => router.prefetch(filterHref(filter.value))}
                   onClick={() => changeFilter(filter.value)}
-                  className={activeStatus === filter.value ? "is-active" : ""}
+                  className={optimisticStatus === filter.value ? "is-active" : ""}
+                  aria-pressed={optimisticStatus === filter.value}
                 >
                   {filter.label}
                 </button>
@@ -430,11 +430,30 @@ export default function ModeratorDashboard({
                 })
               )}
             </div>
+            {queue.total > queue.limit || queue.offset > 0 ? (
+              <nav className="moderator-pagination" aria-label="Phân trang báo cáo">
+                <button
+                  type="button"
+                  disabled={isPending || currentPage <= 1}
+                  onClick={() => changePage(currentPage - 1)}
+                >
+                  Trang trước
+                </button>
+                <span>
+                  Trang <strong>{currentPage}</strong> / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={isPending || currentPage >= totalPages}
+                  onClick={() => changePage(currentPage + 1)}
+                >
+                  Trang sau
+                </button>
+              </nav>
+            ) : null}
           </section>
         </div>
       </main>
-
-      <SiteFooter onPlaceholder={showPlaceholder} />
 
       <Dialog
         open={Boolean(dialog)}
