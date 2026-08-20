@@ -1,6 +1,7 @@
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import type {
   AdminAuditList,
+  AdminCatalogKind,
   AdminDashboardStats,
   AdminRefund,
   AdminRefundList,
@@ -11,6 +12,12 @@ import type {
   AdminUser,
   AdminUserList,
 } from "@/types/admin";
+import {
+  EMPTY_ADMIN_CATEGORIES,
+  EMPTY_ADMIN_TAGS,
+  parseAdminCategories,
+  parseAdminTags,
+} from "@/lib/data/adminCatalog";
 import { parseSiteMedia } from "@/types/siteMedia";
 import { requirePermission } from "@/utils/auth/guards";
 import { normalizeRoles } from "@/utils/roles";
@@ -22,6 +29,7 @@ type AdminPageProps = {
     q?: string | string[];
     status?: string | string[];
     page?: string | string[];
+    catalog?: string | string[];
   }>;
 };
 
@@ -32,6 +40,7 @@ const ADMIN_TABS: AdminTab[] = [
   "users",
   "restaurants",
   "refunds",
+  "catalog",
   "media",
   "audit",
 ];
@@ -231,6 +240,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   if (tab === "media" && !user.permissions.includes("site_media.manage")) {
     tab = "overview";
   }
+  if (tab === "catalog" && !user.permissions.includes("catalog.manage")) {
+    tab = "overview";
+  }
+  const catalogKind: AdminCatalogKind =
+    firstParam(params.catalog) === "tags" ? "tags" : "categories";
   const search = firstParam(params.q).slice(0, 80);
   const status = firstParam(params.status).slice(0, 30);
   const page = positivePage(params.page);
@@ -252,6 +266,17 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     if (tab === "refunds") {
       return supabase.rpc("api_list_admin_refunds", {
         p_status: status || null, p_search: search || null, p_limit: limit, p_offset: offset,
+      });
+    }
+    if (tab === "catalog") {
+      const rpc = catalogKind === "tags"
+        ? "api_list_admin_tags"
+        : "api_list_admin_categories";
+      return supabase.rpc(rpc, {
+        p_status: status || null,
+        p_search: search || null,
+        p_limit: limit,
+        p_offset: offset,
       });
     }
     if (tab === "media") {
@@ -280,9 +305,20 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       users={tab === "users" ? parseUsers(contentResult.data) : EMPTY_USERS}
       restaurants={tab === "restaurants" ? parseRestaurants(contentResult.data) : EMPTY_RESTAURANTS}
       refunds={tab === "refunds" ? parseRefunds(contentResult.data) : EMPTY_REFUNDS}
+      catalogKind={catalogKind}
+      categories={
+        tab === "catalog" && catalogKind === "categories"
+          ? parseAdminCategories(contentResult.data)
+          : EMPTY_ADMIN_CATEGORIES
+      }
+      tags={
+        tab === "catalog" && catalogKind === "tags"
+          ? parseAdminTags(contentResult.data)
+          : EMPTY_ADMIN_TAGS
+      }
       media={tab === "media" ? parseSiteMedia(contentResult.data) : EMPTY_MEDIA}
       audit={tab === "overview" || tab === "audit" ? parseAudit(contentResult.data) : EMPTY_AUDIT}
-      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra SQL 13–18." : undefined}
+      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra SQL 13–19." : undefined}
     />
   );
 }

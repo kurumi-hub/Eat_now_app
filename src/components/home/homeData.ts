@@ -1,12 +1,8 @@
-import BakeryDiningOutlinedIcon from "@mui/icons-material/BakeryDiningOutlined";
-import RamenDiningOutlinedIcon from "@mui/icons-material/RamenDiningOutlined";
-import RiceBowlOutlinedIcon from "@mui/icons-material/RiceBowlOutlined";
-import SoupKitchenOutlinedIcon from "@mui/icons-material/SoupKitchenOutlined";
-import type { SvgIconComponent } from "@mui/icons-material";
-
 export type HomeCategory = {
+  id: string;
   label: string;
-  icon: SvgIconComponent;
+  imageUrl?: string | null;
+  altText: string;
 };
 
 export type HomeRestaurant = {
@@ -21,13 +17,6 @@ export type HomeFood = {
   name: string;
   image: string;
 };
-
-export const homeCategories: HomeCategory[] = [
-  { label: "Cơm", icon: RiceBowlOutlinedIcon },
-  { label: "Phở", icon: RamenDiningOutlinedIcon },
-  { label: "Bún", icon: SoupKitchenOutlinedIcon },
-  { label: "Bánh mì", icon: BakeryDiningOutlinedIcon },
-];
 
 export const featuredRestaurants: HomeRestaurant[] = [
   {

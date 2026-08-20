@@ -2,6 +2,7 @@
 
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import CurrencyExchangeOutlinedIcon from "@mui/icons-material/CurrencyExchangeOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import GavelOutlinedIcon from "@mui/icons-material/GavelOutlined";
@@ -41,15 +42,19 @@ import {
   setUserActiveAction,
   transferOwnerAction,
 } from "@/app/admin/actions";
+import AdminCatalogPanel from "@/components/admin/AdminCatalogPanel";
 import type {
   AdminActionResult,
   AdminAuditList,
+  AdminCatalogKind,
+  AdminCategoryList,
   AdminDashboardStats,
   AdminRefund,
   AdminRefundList,
   AdminRestaurant,
   AdminRestaurantList,
   AdminSiteMedia,
+  AdminTagList,
   AdminTab,
   AdminUser,
   AdminUserList,
@@ -78,6 +83,9 @@ type AdminDashboardProps = {
   users: AdminUserList;
   restaurants: AdminRestaurantList;
   refunds: AdminRefundList;
+  catalogKind: AdminCatalogKind;
+  categories: AdminCategoryList;
+  tags: AdminTagList;
   media: AdminSiteMedia;
   audit: AdminAuditList;
   loadError?: string;
@@ -104,6 +112,7 @@ const TABS: Array<{
   { value: "users", label: "Tài khoản & phân quyền", icon: PeopleOutlineOutlinedIcon },
   { value: "restaurants", label: "Nhà hàng", icon: StorefrontOutlinedIcon },
   { value: "refunds", label: "Hoàn tiền", icon: CurrencyExchangeOutlinedIcon },
+  { value: "catalog", label: "Catalog", icon: CategoryOutlinedIcon },
   { value: "media", label: "Hình ảnh", icon: PhotoLibraryOutlinedIcon },
   { value: "audit", label: "Nhật ký", icon: HistoryOutlinedIcon },
 ];
@@ -125,6 +134,20 @@ const ACTION_LABELS: Record<string, string> = {
   transfer_super_admin_out: "Chuyển quyền Chủ nền tảng",
   site_media_update: "Cập nhật ảnh giao diện",
   site_media_reset: "Khôi phục ảnh giao diện",
+  category_create: "Tạo danh mục",
+  category_update: "Cập nhật danh mục",
+  category_activate: "Bật danh mục",
+  category_deactivate: "Tắt danh mục",
+  category_reorder: "Sắp xếp danh mục",
+  category_delete: "Xóa danh mục",
+  category_media_update: "Cập nhật ảnh danh mục",
+  category_media_remove: "Gỡ ảnh danh mục",
+  tag_create: "Tạo tag",
+  tag_update: "Cập nhật tag",
+  tag_activate: "Bật tag",
+  tag_deactivate: "Tắt tag",
+  tag_reorder: "Sắp xếp tag",
+  tag_delete: "Xóa tag",
 };
 
 const REFUND_STATUS: Record<string, string> = {
@@ -176,6 +199,9 @@ export default function AdminDashboard({
   users,
   restaurants,
   refunds,
+  catalogKind,
+  categories,
+  tags,
   media,
   audit,
   loadError,
@@ -186,8 +212,11 @@ export default function AdminDashboard({
   const canManageAdmin = user.permissions.includes("staff.admin.manage");
   const canTransferOwner = user.permissions.includes("ownership.transfer");
   const canManageMedia = user.permissions.includes("site_media.manage");
+  const canManageCatalog = user.permissions.includes("catalog.manage");
   const visibleTabs = TABS.filter(
-    (item) => item.value !== "media" || canManageMedia
+    (item) =>
+      (item.value !== "media" || canManageMedia) &&
+      (item.value !== "catalog" || canManageCatalog)
   );
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState(searchTerm);
@@ -579,6 +608,16 @@ export default function AdminDashboard({
               <div className="admin-panel__heading"><div><h2>Nhật ký quản trị</h2><p>Phạm vi hiển thị phụ thuộc cấp quyền</p></div></div>
               <AuditList audit={audit} />
             </section>
+          ) : null}
+
+          {tab === "catalog" && canManageCatalog ? (
+            <AdminCatalogPanel
+              kind={catalogKind}
+              categories={categories}
+              tags={tags}
+              searchTerm={searchTerm}
+              statusFilter={statusFilter}
+            />
           ) : null}
 
           {tab === "media" && canManageMedia ? (

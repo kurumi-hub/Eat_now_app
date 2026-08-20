@@ -6,6 +6,7 @@ export type AdminTab =
   | "users"
   | "restaurants"
   | "refunds"
+  | "catalog"
   | "media"
   | "audit";
 
@@ -98,6 +99,50 @@ export type AdminRefundList = {
   total: number;
   limit: number;
   offset: number;
+};
+
+export type AdminCatalogKind = "categories" | "tags";
+
+export type AdminCategory = {
+  id: string;
+  name: string;
+  icon_url: string | null;
+  icon_object_path: string | null;
+  icon_alt_text: string;
+  display_order: number;
+  is_active: boolean;
+  usage_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminTag = {
+  id: string;
+  name: string;
+  display_order: number;
+  is_active: boolean;
+  usage_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminCategoryList = {
+  items: AdminCategory[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export type AdminTagList = {
+  items: AdminTag[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export type AdminCatalogOrderItem = {
+  id: string;
+  display_order: number;
 };
 
 export type AdminAuditLog = {

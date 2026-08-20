@@ -14,14 +14,12 @@ import { useState } from "react";
 import type { PublicUser } from "@/types/auth";
 import type { SiteMediaItem } from "@/types/siteMedia";
 import { signalNavigationStart } from "@/utils/navigationFeedback";
-import {
-  homeCategories,
-  nearbyFoods,
-} from "./homeData";
-import type { HomeRestaurant } from "./homeData";
+import { nearbyFoods } from "./homeData";
+import type { HomeCategory, HomeRestaurant } from "./homeData";
 
 type HomePageProps = {
   user: PublicUser | null;
+  categories: HomeCategory[];
   featuredRestaurants: HomeRestaurant[];
   heroImage: SiteMediaItem;
 };
@@ -40,6 +38,7 @@ function scrollToSection(sectionId: string) {
 
 export default function HomePage({
   user,
+  categories,
   featuredRestaurants,
   heroImage,
 }: HomePageProps) {
@@ -98,12 +97,11 @@ export default function HomePage({
         <section id="featured-categories" className="home-section">
           <h2>Danh Mục Nổi Bật</h2>
           <div className="home-category-grid">
-            {homeCategories.map((category) => {
-              const Icon = category.icon;
-
-              return (
+            {categories.length === 0 ? (
+              <p className="home-category-empty">Danh mục món ăn đang được cập nhật.</p>
+            ) : categories.map((category) => (
                 <button
-                  key={category.label}
+                  key={category.id}
                   className="home-category-card"
                   type="button"
                   onClick={() =>
@@ -113,12 +111,21 @@ export default function HomePage({
                   }
                 >
                   <span className="home-category-card__icon">
-                    <Icon />
+                    {category.imageUrl ? (
+                      <Image
+                        src={category.imageUrl}
+                        alt={category.altText}
+                        width={64}
+                        height={64}
+                        unoptimized
+                      />
+                    ) : (
+                      <RestaurantMenuOutlinedIcon />
+                    )}
                   </span>
                   <span>{category.label}</span>
                 </button>
-              );
-            })}
+              ))}
           </div>
         </section>
 
