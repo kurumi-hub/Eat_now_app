@@ -1,3 +1,5 @@
+"use client";
+
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
