@@ -49,6 +49,7 @@ export default function SiteFooter({ onPlaceholder }: SiteFooterProps) {
             <h2>Khám phá</h2>
             <Link href="/">Trang chủ</Link>
             <Link href="/#featured-restaurants">Nhà hàng nổi bật</Link>
+            <Link href="/vouchers">Ưu đãi và voucher</Link>
             <Link href="/account/seller">Trở thành đối tác</Link>
           </nav>
 

@@ -42,7 +42,7 @@ type CustomerHeaderProps = {
 const navItems = [
   { label: "Khám phá", sectionId: "home-hero" },
   { label: "Nhà hàng", sectionId: "featured-restaurants" },
-  { label: "Ưu đãi", sectionId: "featured-categories" },
+  { label: "Ưu đãi", sectionId: "vouchers", href: "/vouchers" },
 ];
 
 function getInitials(fullName = "EatNow") {
@@ -135,18 +135,14 @@ export default function CustomerHeader({
         </form>
 
         <nav className="home-nav" aria-label="Điều hướng trang chủ">
-          {navItems.map((item) => (
-            <button
-              key={item.label}
-              className={`home-nav__item ${
-                item.sectionId === activeSectionId ? "is-active" : ""
-              }`}
-              type="button"
-              onClick={() => onSectionNavigate(item.sectionId)}
-            >
-              {item.label}
-            </button>
-          ))}
+          {navItems.map((item) => {
+            const className = `home-nav__item ${item.sectionId === activeSectionId ? "is-active" : ""}`;
+            return item.href ? (
+              <Link key={item.label} className={className} href={item.href}>{item.label}</Link>
+            ) : (
+              <button key={item.label} className={className} type="button" onClick={() => onSectionNavigate(item.sectionId)}>{item.label}</button>
+            );
+          })}
         </nav>
 
         <div className="home-actions-top">

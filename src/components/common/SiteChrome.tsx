@@ -53,7 +53,13 @@ export default function SiteChrome({
       <CustomerHeader
         user={user}
         deliveryAddress={deliveryAddress}
-        activeSectionId={pathname === "/" ? "home-hero" : null}
+        activeSectionId={
+          pathname === "/"
+            ? "home-hero"
+            : pathname === "/vouchers"
+              ? "vouchers"
+              : null
+        }
         onPlaceholder={setNotice}
         onSectionNavigate={navigateToSection}
       />

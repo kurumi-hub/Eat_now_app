@@ -137,12 +137,15 @@
 }
 
 .home-nav__item {
+  display: inline-flex;
+  align-items: center;
   min-height: 44px;
   border-bottom: 2px solid transparent;
   color: #1a1c1e;
   font-size: 15px;
   font-weight: 600;
   padding: 8px 0;
+  text-decoration: none;
 }
 
 .home-nav__item:hover,
