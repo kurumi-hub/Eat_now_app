@@ -1,6 +1,14 @@
 import type { SellerStatus } from "./account";
 
-export const USER_ROLES = ["CUSTOMER", "RESTAURANT_OWNER", "ADMIN"] as const;
+export const USER_ROLES = [
+  "SUPER_ADMIN",
+  "ADMIN",
+  "MODERATOR",
+  "RESTAURANT_OWNER",
+  "RESTAURANT_STAFF",
+  "SHIPPER",
+  "CUSTOMER",
+] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
 
@@ -18,10 +26,19 @@ export type PublicUser = {
   email: string;
   phone?: string;
   roles: UserRole[];
+  permissions?: string[];
   status: UserStatus;
   createdAt: string;
   avatarUrl?: string;
   sellerStatus?: SellerStatus;
+};
+
+export type CurrentUserAccess = {
+  userId: string;
+  roles: UserRole[];
+  permissions: string[];
+  isActive: boolean;
+  status: UserStatus;
 };
 
 export type AuthRequestStatus = "idle" | "submitting" | "success" | "error";
@@ -41,18 +58,20 @@ export type RegisterFormValues = {
   termsAccepted: boolean;
 };
 
-export type PasswordResetRequestFormValues = {
+export type SignupOtpFormValues = {
+  email: string;
+  token: string;
+};
+
+export type ForgotPasswordFormValues = {
   email: string;
 };
+
+export type PasswordResetRequestFormValues = ForgotPasswordFormValues;
 
 export type ResetPasswordFormValues = {
   password: string;
   confirmPassword: string;
-};
-
-export type SignupOtpFormValues = {
-  email: string;
-  token: string;
 };
 
 export type AuthActionState<TField extends string = string> = {

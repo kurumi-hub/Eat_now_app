@@ -1,6 +1,11 @@
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import type { SellerStatus } from "../../types/account";
-import type { PublicUser, UserRole, UserStatus } from "../../types/auth";
+import type {
+  CurrentUserAccess,
+  PublicUser,
+  UserRole,
+  UserStatus,
+} from "../../types/auth";
 
 type SupabasePublicUserSource = Pick<
   SupabaseUser,
@@ -9,17 +14,21 @@ type SupabasePublicUserSource = Pick<
 
 type MetadataRecord = Record<string, unknown>;
 
-const USER_ROLE_VALUES = [
-  "CUSTOMER",
-  "RESTAURANT_OWNER",
-  "ADMIN",
-] as const satisfies readonly UserRole[];
-
 const USER_STATUS_VALUES = [
   "ACTIVE",
   "PENDING_VERIFICATION",
   "SUSPENDED",
 ] as const satisfies readonly UserStatus[];
+
+const USER_ROLE_VALUES = [
+  "CUSTOMER",
+  "RESTAURANT_OWNER",
+  "ADMIN",
+  "SUPER_ADMIN",
+  "MODERATOR",
+  "RESTAURANT_STAFF",
+  "SHIPPER",
+] as const satisfies readonly UserRole[];
 
 const SELLER_STATUS_VALUES = [
   "NOT_APPLIED",
@@ -84,13 +93,20 @@ function readRoles(metadata: MetadataRecord) {
     readMetadataValue(metadata, ["roles", "role", "app_role", "user_role"])
   );
 
-  // TODO: Confirm with Bao whether roles come from Supabase metadata,
-  // custom JWT claims, or a profiles table before using this for enforcement.
   return roles.length > 0 ? roles : (["CUSTOMER"] satisfies UserRole[]);
 }
 
-function readStatus(metadata: MetadataRecord, isEmailConfirmed: boolean) {
-  const status = readMetadataValue(metadata, ["status", "account_status"]);
+function readStatus(
+  metadata: MetadataRecord,
+  access: CurrentUserAccess | null | undefined,
+  isEmailConfirmed: boolean
+) {
+  const status =
+    access?.status ?? readMetadataValue(metadata, ["status", "account_status"]);
+
+  if (access && !access.isActive) {
+    return "SUSPENDED";
+  }
 
   if (
     typeof status === "string" &&
@@ -118,7 +134,10 @@ function readSellerStatus(metadata: MetadataRecord) {
   return "NOT_APPLIED";
 }
 
-export function toPublicUser(user: SupabasePublicUserSource): PublicUser {
+export function toPublicUser(
+  user: SupabasePublicUserSource,
+  access?: CurrentUserAccess | null
+): PublicUser {
   const metadata = isRecord(user.user_metadata) ? user.user_metadata : {};
   const email = user.email ?? readMetadataString(metadata, ["email"]) ?? "";
   const phone =
@@ -141,8 +160,9 @@ export function toPublicUser(user: SupabasePublicUserSource): PublicUser {
       ]) ?? "Người dùng EatNow",
     email,
     phone: phone ? normalizeVietnamesePhone(phone) : undefined,
-    roles: readRoles(metadata),
-    status: readStatus(metadata, Boolean(user.email_confirmed_at)),
+    roles: access?.roles?.length ? access.roles : readRoles(metadata),
+    ...(access ? { permissions: access.permissions } : {}),
+    status: readStatus(metadata, access, Boolean(user.email_confirmed_at)),
     createdAt: user.created_at ?? "",
     avatarUrl,
     sellerStatus: readSellerStatus(metadata),
@@ -150,7 +170,8 @@ export function toPublicUser(user: SupabasePublicUserSource): PublicUser {
 }
 
 export function toPublicUserOrNull(
-  user: SupabasePublicUserSource | null | undefined
+  user: SupabasePublicUserSource | null | undefined,
+  access?: CurrentUserAccess | null
 ) {
-  return user ? toPublicUser(user) : null;
+  return user ? toPublicUser(user, access) : null;
 }

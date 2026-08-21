@@ -4,12 +4,20 @@ export const USER_ROLE_VALUES = [
   "CUSTOMER",
   "RESTAURANT_OWNER",
   "ADMIN",
+  "SUPER_ADMIN",
+  "MODERATOR",
+  "RESTAURANT_STAFF",
+  "SHIPPER",
 ] as const satisfies readonly UserRole[];
 
 export const ROLE_LABELS: Record<UserRole, string> = {
+  SUPER_ADMIN: "Chủ nền tảng",
+  ADMIN: "Quản trị viên",
+  MODERATOR: "Điều hành viên",
+  RESTAURANT_STAFF: "Nhân viên quán",
+  SHIPPER: "Tài xế",
   CUSTOMER: "Khách hàng",
   RESTAURANT_OWNER: "Chủ quán",
-  ADMIN: "Quản trị viên",
 };
 
 type RoleReadableUser = Partial<Pick<PublicUser, "roles">> & {
@@ -23,12 +31,24 @@ export function isUserRole(value: unknown): value is UserRole {
   );
 }
 
+function normalizeRoleValue(value: unknown): UserRole | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim().toUpperCase().replace(/[\s-]+/g, "_");
+
+  return isUserRole(normalized) ? normalized : null;
+}
+
 export function normalizeRoles(
   value: unknown,
   fallback: UserRole[] = []
 ): UserRole[] {
   const candidates = Array.isArray(value) ? value : [value];
-  const roles = candidates.filter(isUserRole);
+  const roles = candidates
+    .map(normalizeRoleValue)
+    .filter((role): role is UserRole => Boolean(role));
 
   if (roles.length === 0) {
     return [...fallback];

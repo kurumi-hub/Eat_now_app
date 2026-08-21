@@ -4,8 +4,8 @@ import type {
   SecurityPasswordFormValues,
 } from "../types/account";
 import type {
+  ForgotPasswordFormValues,
   LoginFormValues,
-  PasswordResetRequestFormValues,
   RegisterFormValues,
   ResetPasswordFormValues,
 } from "../types/auth";
@@ -25,6 +25,9 @@ export type ValidationResult<TField extends string, TNormalized> = {
 };
 
 export type LoginField = "email" | "password";
+export type ForgotPasswordField = "email";
+export type PasswordResetRequestField = ForgotPasswordField;
+export type ResetPasswordField = "password" | "confirmPassword";
 export type RegisterField =
   | "fullName"
   | "email"
@@ -32,8 +35,6 @@ export type RegisterField =
   | "password"
   | "confirmPassword"
   | "termsAccepted";
-export type PasswordResetRequestField = "email";
-export type ResetPasswordField = "password" | "confirmPassword";
 export type ProfileField = "fullName" | "phone";
 export type SecurityPasswordField =
   | "currentPassword"
@@ -156,6 +157,44 @@ export function validateLoginValues(
   };
 }
 
+export function validateForgotPasswordValues(
+  values: ForgotPasswordFormValues
+): ValidationResult<ForgotPasswordField, { email: string }> {
+  const errors: ValidationErrors<ForgotPasswordField> = {
+    email: validateEmail(values.email),
+  };
+
+  return {
+    isValid: !hasValidationErrors(errors),
+    errors,
+    normalized: { email: normalizeEmail(values.email) },
+  };
+}
+
+export function validatePasswordResetRequestValues(
+  values: ForgotPasswordFormValues
+): ValidationResult<PasswordResetRequestField, { email: string }> {
+  return validateForgotPasswordValues(values);
+}
+
+export function validateResetPasswordValues(
+  values: ResetPasswordFormValues
+): ValidationResult<ResetPasswordField, Record<string, never>> {
+  const errors: ValidationErrors<ResetPasswordField> = {
+    password: validatePasswordMinLength(values.password),
+    confirmPassword: validateConfirmPassword(
+      values.confirmPassword,
+      values.password
+    ),
+  };
+
+  return {
+    isValid: !hasValidationErrors(errors),
+    errors,
+    normalized: {},
+  };
+}
+
 export function validateRegisterValues(
   values: RegisterFormValues
 ): ValidationResult<
@@ -185,41 +224,6 @@ export function validateRegisterValues(
     isValid: !hasValidationErrors(errors),
     errors,
     normalized,
-  };
-}
-
-export function validatePasswordResetRequestValues(
-  values: PasswordResetRequestFormValues
-): ValidationResult<PasswordResetRequestField, { email: string }> {
-  const normalized = {
-    email: normalizeEmail(values.email),
-  };
-  const errors: ValidationErrors<PasswordResetRequestField> = {
-    email: validateEmail(values.email),
-  };
-
-  return {
-    isValid: !hasValidationErrors(errors),
-    errors,
-    normalized,
-  };
-}
-
-export function validateResetPasswordValues(
-  values: ResetPasswordFormValues
-): ValidationResult<ResetPasswordField, Record<string, never>> {
-  const errors: ValidationErrors<ResetPasswordField> = {
-    password: validatePasswordMinLength(values.password),
-    confirmPassword: validateConfirmPassword(
-      values.confirmPassword,
-      values.password
-    ),
-  };
-
-  return {
-    isValid: !hasValidationErrors(errors),
-    errors,
-    normalized: {},
   };
 }
 
@@ -283,9 +287,11 @@ export function validateAddressValues(
       : "Vui lòng nhập tên người nhận.",
     phone: validateVietnamesePhone(values.phone),
     line1: normalized.line1 ? "" : "Vui lòng nhập địa chỉ.",
-    ward: normalized.ward ? "" : "Vui lòng nhập phường/xã.",
-    district: normalized.district ? "" : "Vui lòng nhập quận/huyện.",
-    city: normalized.city ? "" : "Vui lòng nhập tỉnh/thành phố.",
+    // Google có thể không trả đủ cấp hành chính cho mọi địa chỉ tại Việt Nam.
+    // Tọa độ + formattedAddress mới là dữ liệu bắt buộc để giao hàng.
+    ward: "",
+    district: "",
+    city: "",
   };
 
   return {

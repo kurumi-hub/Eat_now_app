@@ -19,10 +19,10 @@ Sau khi tạo hoặc sửa `.env.local`, tắt và chạy lại `npm run dev`.
 - `/login`: đăng nhập email + mật khẩu.
 - `/register`: route sản phẩm để đăng ký tài khoản khách hàng.
 - `/signup`: alias tạm thời của `/register`.
-- `/signup/verify?email=...`: nhập mã OTP 6 số sau khi đăng ký.
+- `/signup/verify?email=...`: nhập mã OTP 8 số sau khi đăng ký.
 - `/signup/check-email`: fallback hướng dẫn kiểm tra email.
-- `/forgot-password`: gửi email đặt lại mật khẩu qua Supabase.
-- `/reset-password`: tạo mật khẩu mới sau khi recovery link được xác nhận qua `/auth/confirm`.
+- `/forgot-password`: yêu cầu email đặt lại mật khẩu.
+- `/reset-password`: đặt mật khẩu mới sau khi xác nhận liên kết recovery.
 
 ## Cấu trúc chính
 
@@ -30,26 +30,36 @@ Sau khi tạo hoặc sửa `.env.local`, tắt và chạy lại `npm run dev`.
 src/app/auth/actions.ts             # Server Actions Supabase
 src/app/login/page.tsx              # Login route
 src/app/register/page.tsx           # Register route
-src/app/forgot-password/page.tsx    # Forgot password route
-src/app/reset-password/page.tsx     # Reset password route
 src/app/signup/page.tsx             # Legacy alias
 src/app/signup/verify/page.tsx      # OTP route
+src/app/forgot-password/page.tsx    # Request password reset
+src/app/reset-password/page.tsx     # Set a new password
 src/components/auth/AuthLayout.tsx
 src/components/auth/AuthBrandPanel.tsx
-src/components/auth/ForgotPasswordForm.tsx
 src/components/auth/LoginForm.tsx
 src/components/auth/RegisterForm.tsx
-src/components/auth/ResetPasswordForm.tsx
 src/components/auth/PasswordField.tsx
 src/components/auth/OAuthButtons.tsx
 src/components/auth/VerifyOtpForm.tsx
+src/utils/auth/access.ts             # Đọc quyền từ RPC SQL 13
 src/styles/auth.css
 ```
 
-## Lưu ý với Bao
+## Nguồn role và phân quyền
 
-- Cần xác nhận role cuối cùng nằm ở Supabase metadata, custom claims hay bảng
-  `profiles`.
-- Public signup không tự ghi role/account status; backend sở hữu các field này.
+- Nguồn role duy nhất của frontend là RPC `api_get_my_access` trong SQL 13.
+- RPC đọc `public.user_roles`; frontend không dùng `user_metadata` để cấp quyền.
+- Frontend hỗ trợ nhiều role và chuẩn hóa đủ `SUPER_ADMIN`, `ADMIN`,
+  `MODERATOR`, `RESTAURANT_OWNER`, `RESTAURANT_STAFF`, `SHIPPER`, `CUSTOMER`.
+- `proxy` refresh session và chặn người chưa đăng nhập. Quyền route được kiểm tra
+  bằng server guard; dữ liệu và thao tác đặc quyền vẫn phải được bảo vệ bằng RLS
+  hoặc RPC.
+- Thứ tự ưu tiên điều hướng là Super Admin, Admin, Moderator, người bán rồi
+  Customer.
+
+## Lưu ý khác
+
 - OAuth buttons hiện là placeholder, chưa gọi provider thật.
-- Password reset đang dùng Supabase `resetPasswordForEmail` và `updateUser`.
+- Nên cấu hình `NEXT_PUBLIC_SITE_URL` bằng origin production để liên kết đặt
+  lại mật khẩu luôn quay về đúng domain. Khi biến này chưa có, server action
+  dùng host của request hiện tại.

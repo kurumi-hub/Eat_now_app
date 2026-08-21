@@ -1,7 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PRIVATE_ROUTE_PREFIXES = ["/account", "/owner", "/admin"];
+const PRIVATE_ROUTE_PREFIXES = [
+  "/account",
+  "/owner",
+  "/admin",
+  "/moderator",
+  "/checkout",
+  "/orders",
+];
 
 function isPrivateRoute(pathname: string) {
   return PRIVATE_ROUTE_PREFIXES.some(
@@ -33,13 +40,15 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Bắt buộc phải gọi getUser() ở đây để Supabase tự refresh token nếu cần.
-  // Không được bỏ qua bước này hoặc chèn logic giữa createServerClient và getUser().
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims xác minh JWT bằng JWKS đã cache (cục bộ với signing key bất đối
+  // xứng) và vẫn cho Supabase SSR refresh cookie khi cần. getUser luôn tạo
+  // thêm một round-trip tới Auth server cho mọi lần điều hướng.
+  const { data: claimsData, error: claimsError } =
+    await supabase.auth.getClaims();
+  const hasAuthenticatedUser =
+    !claimsError && typeof claimsData?.claims?.sub === "string";
 
-  if (!user && isPrivateRoute(request.nextUrl.pathname)) {
+  if (!hasAuthenticatedUser && isPrivateRoute(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();
     const nextPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
 
@@ -49,6 +58,9 @@ export async function updateSession(request: NextRequest) {
 
     return NextResponse.redirect(url);
   }
+
+  // Proxy chỉ xác thực phiên. Phân quyền route được thực hiện trong server
+  // guard bằng session-context RPC; dữ liệu đặc quyền tiếp tục do RLS/RPC bảo vệ.
 
   return supabaseResponse;
 }

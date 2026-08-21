@@ -9,17 +9,22 @@ import type {
   ResetPasswordFormValues,
 } from "@/types/auth";
 import {
+  isEmailNotConfirmedError,
   logSupabaseAuthError,
   mapSignupAuthError,
 } from "@/utils/auth/errorMessages";
+import { getMyAccess } from "@/utils/auth/access";
 import { toPublicUser } from "@/utils/auth/publicUser";
-import { getPostLoginRedirectPath } from "@/utils/auth/redirects";
+import {
+  getPostLoginRedirectPath,
+  getSafeRedirectPath,
+} from "@/utils/auth/redirects";
 import { createClient } from "@/utils/supabase/server";
 import {
   normalizeEmail,
   validateEmail,
+  validateForgotPasswordValues,
   validateLoginValues,
-  validatePasswordResetRequestValues,
   validateRegisterValues,
   validateResetPasswordValues,
 } from "@/utils/validation";
@@ -29,8 +34,6 @@ export type AuthState = AuthActionState | null;
 const SIGNUP_OTP_REGEX = /^\d{6}$/;
 const SIGNUP_OTP_EMPTY_ERROR = "Vui lòng nhập mã xác nhận.";
 const SIGNUP_OTP_FORMAT_ERROR = "Vui lòng nhập mã xác nhận gồm 6 chữ số.";
-const PASSWORD_RESET_SUCCESS_MESSAGE =
-  "Nếu email tồn tại trong hệ thống, EatNow đã gửi hướng dẫn đặt lại mật khẩu.";
 
 function formString(formData: FormData, name: string) {
   return String(formData.get(name) || "");
@@ -46,33 +49,24 @@ function firstFieldError(fieldErrors: Record<string, string | undefined>) {
   return Object.values(fieldErrors).find(Boolean) || "";
 }
 
-async function getSiteOrigin() {
-  const configuredOrigin =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+async function getRequestOrigin() {
+  const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(
+    /\/$/,
+    ""
+  );
 
   if (configuredOrigin) {
-    return configuredOrigin.replace(/\/$/, "");
+    return configuredOrigin;
   }
 
-  const headerStore = await headers();
-  const host =
-    headerStore.get("x-forwarded-host") ||
-    headerStore.get("host") ||
-    "localhost:3000";
+  const requestHeaders = await headers();
+  const forwardedHost = requestHeaders.get("x-forwarded-host");
+  const host = forwardedHost || requestHeaders.get("host");
   const protocol =
-    headerStore.get("x-forwarded-proto") ||
-    (host.includes("localhost") ? "http" : "https");
+    requestHeaders.get("x-forwarded-proto") ||
+    (host?.startsWith("localhost") ? "http" : "https");
 
-  return `${protocol}://${host}`;
-}
-
-async function getAuthConfirmRedirectUrl(nextPath: string) {
-  const url = new URL("/auth/confirm", await getSiteOrigin());
-  url.searchParams.set("next", nextPath);
-
-  return url.toString();
+  return host ? `${protocol}://${host}` : "";
 }
 
 export async function login(
@@ -100,6 +94,31 @@ export async function login(
     password: values.password,
   });
 
+  if (error && isEmailNotConfirmedError(error)) {
+    logSupabaseAuthError("login-email-not-confirmed", error);
+
+    // Gửi lại (hoặc gửi mới) mã OTP kích hoạt cho tài khoản này rồi đưa
+    // người dùng sang trang xác nhận OTP thay vì báo sai mật khẩu.
+    await supabase.auth.resend({
+      type: "signup",
+      email: validation.normalized.email,
+    });
+
+    const verifyUrl = new URL(
+      "/signup/verify",
+      "https://eatnow.local"
+    );
+    verifyUrl.searchParams.set("email", validation.normalized.email);
+
+    const nextPath = formString(formData, "next");
+    if (nextPath) {
+      verifyUrl.searchParams.set("next", nextPath);
+    }
+    verifyUrl.searchParams.set("reason", "chua-active");
+
+    redirect(`${verifyUrl.pathname}${verifyUrl.search}`);
+  }
+
   if (error || !data.user) {
     return {
       status: "error",
@@ -107,7 +126,26 @@ export async function login(
     };
   }
 
-  const user = toPublicUser(data.user);
+  const access = await getMyAccess(supabase);
+
+  if (!access) {
+    await supabase.auth.signOut();
+    return {
+      status: "error",
+      error:
+        "Không thể tải quyền tài khoản. Hãy kiểm tra SQL 13 đã được chạy đầy đủ.",
+    };
+  }
+
+  if (!access.isActive) {
+    await supabase.auth.signOut();
+    return {
+      status: "error",
+      error: "Tài khoản đã bị tạm khóa. Vui lòng liên hệ bộ phận hỗ trợ.",
+    };
+  }
+
+  const user = toPublicUser(data.user, access);
   const redirectPath = getPostLoginRedirectPath(
     user.roles,
     formString(formData, "next")
@@ -168,87 +206,12 @@ export async function signup(
   redirect(`/signup/verify?email=${encodeURIComponent(validation.normalized.email)}`);
 }
 
-export async function requestPasswordReset(
-  _prevState: AuthState,
-  formData: FormData
-): Promise<AuthState> {
-  const validation = validatePasswordResetRequestValues({
-    email: formString(formData, "email"),
-  });
-
-  if (!validation.isValid) {
-    return {
-      status: "error",
-      error: firstFieldError(validation.errors),
-      fieldErrors: validation.errors,
-    };
-  }
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(
-    validation.normalized.email,
-    {
-      redirectTo: await getAuthConfirmRedirectUrl("/reset-password"),
-    }
-  );
-
-  if (error) {
-    logSupabaseAuthError("requestPasswordReset", error);
-
-    return {
-      status: "error",
-      error: "Không thể gửi email đặt lại mật khẩu. Vui lòng thử lại sau ít phút.",
-    };
-  }
-
-  return {
-    status: "success",
-    message: PASSWORD_RESET_SUCCESS_MESSAGE,
-  };
-}
-
-export async function resetPassword(
-  _prevState: AuthState,
-  formData: FormData
-): Promise<AuthState> {
-  const values: ResetPasswordFormValues = {
-    password: formString(formData, "password"),
-    confirmPassword: formString(formData, "confirmPassword"),
-  };
-  const validation = validateResetPasswordValues(values);
-
-  if (!validation.isValid) {
-    return {
-      status: "error",
-      error: firstFieldError(validation.errors),
-      fieldErrors: validation.errors,
-    };
-  }
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.updateUser({
-    password: values.password,
-  });
-
-  if (error) {
-    logSupabaseAuthError("resetPassword", error);
-
-    return {
-      status: "error",
-      error:
-        "Phiên đặt lại mật khẩu đã hết hạn. Vui lòng mở lại liên kết trong email hoặc gửi yêu cầu mới.",
-    };
-  }
-
-  redirect("/login?reset=success");
-}
-
 export async function verifySignupOtp(
   _prevState: AuthState,
   formData: FormData
 ): Promise<AuthState> {
   const email = normalizeEmail(formString(formData, "email"));
-  const token = formString(formData, "token").trim();
+  const token = formString(formData, "token").replace(/\s/g, "");
   const emailError = validateEmail(email);
   const tokenError = !token
     ? SIGNUP_OTP_EMPTY_ERROR
@@ -268,20 +231,27 @@ export async function verifySignupOtp(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.verifyOtp({
+  const { data, error } = await supabase.auth.verifyOtp({
     email,
     token,
     type: "signup",
   });
 
-  if (error) {
+  if (error || !data.user) {
     return {
       status: "error",
       error: "Mã xác nhận không đúng hoặc đã hết hạn.",
     };
   }
 
-  redirect("/");
+  const nextPath = formString(formData, "next");
+  const access = await getMyAccess(supabase);
+
+  if (!access) {
+    redirect(nextPath ? getSafeRedirectPath(nextPath) : "/");
+  }
+
+  redirect(getPostLoginRedirectPath(access.roles, nextPath));
 }
 
 export async function resendSignupOtp(email: string): Promise<AuthState> {
@@ -311,8 +281,132 @@ export async function resendSignupOtp(email: string): Promise<AuthState> {
 
   return {
     status: "success",
-    message: "Đã gửi lại mã xác nhận.",
+    message: "Đã gửi lại mã xác nhận 6 số.",
   };
+}
+
+export async function requestPasswordReset(
+  _prevState: AuthState,
+  formData: FormData
+): Promise<AuthState> {
+  const values = { email: formString(formData, "email") };
+  const validation = validateForgotPasswordValues(values);
+
+  if (!validation.isValid) {
+    return {
+      status: "error",
+      error: firstFieldError(validation.errors),
+      fieldErrors: validation.errors,
+    };
+  }
+
+  const origin = await getRequestOrigin();
+
+  if (!origin) {
+    return {
+      status: "error",
+      error: "Chưa xác định được địa chỉ website để tạo liên kết đặt lại mật khẩu.",
+    };
+  }
+
+  let callbackUrl: URL;
+
+  try {
+    callbackUrl = new URL("/auth/confirm", origin);
+  } catch {
+    return {
+      status: "error",
+      error: "Địa chỉ website dùng cho khôi phục mật khẩu chưa hợp lệ.",
+    };
+  }
+
+  callbackUrl.searchParams.set("next", "/reset-password");
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    validation.normalized.email,
+    { redirectTo: callbackUrl.toString() }
+  );
+
+  if (error) {
+    logSupabaseAuthError("request-password-reset", error);
+
+    if (error.status === 429) {
+      return {
+        status: "error",
+        error: "Bạn yêu cầu quá nhanh. Vui lòng đợi một lúc rồi thử lại.",
+      };
+    }
+
+    return {
+      status: "error",
+      error: "Chưa thể gửi email đặt lại mật khẩu. Vui lòng thử lại sau.",
+    };
+  }
+
+  // Keep the response generic so the form does not reveal registered emails.
+  return {
+    status: "success",
+    message:
+      "Nếu email tồn tại trong hệ thống, EatNow đã gửi liên kết đặt lại mật khẩu.",
+  };
+}
+
+export async function resetPassword(
+  _prevState: AuthState,
+  formData: FormData
+): Promise<AuthState> {
+  const values: ResetPasswordFormValues = {
+    password: formString(formData, "password"),
+    confirmPassword: formString(formData, "confirmPassword"),
+  };
+  const validation = validateResetPasswordValues(values);
+
+  if (!validation.isValid) {
+    return {
+      status: "error",
+      error: firstFieldError(validation.errors),
+      fieldErrors: validation.errors,
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      status: "error",
+      error: "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: values.password,
+  });
+
+  if (error) {
+    logSupabaseAuthError("reset-password", error);
+
+    return {
+      status: "error",
+      error:
+        error.status === 422
+          ? "Mật khẩu mới chưa đáp ứng yêu cầu bảo mật."
+          : "Không thể cập nhật mật khẩu lúc này. Vui lòng thử lại.",
+    };
+  }
+
+  await supabase.auth.signOut();
+  redirect("/login?reset=success");
+}
+
+export async function updatePassword(
+  _prevState: AuthState,
+  formData: FormData
+): Promise<AuthState> {
+  return resetPassword(_prevState, formData);
 }
 
 export async function logout() {
