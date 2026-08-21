@@ -23,11 +23,15 @@ import OtpCodeInput, { OTP_LENGTH } from "./OtpCodeInput";
 
 type VerifyOtpFormProps = {
   email: string;
+  nextPath?: string;
 };
 
 const OTP_REGEX = /^\d{8}$/;
 
-export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
+export default function VerifyOtpForm({
+  email,
+  nextPath = "",
+}: VerifyOtpFormProps) {
   const [state, formAction, pending] = useActionState(verifySignupOtp, null);
   const [digits, setDigits] = useState<string[]>(
     Array.from({ length: OTP_LENGTH }, () => "")
@@ -116,6 +120,7 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
       >
         <input type="hidden" name="email" value={email} />
         <input type="hidden" name="token" value={token} />
+        <input type="hidden" name="next" value={nextPath} />
         <Stack spacing={2.5}>
           {state?.error ? <Alert severity="error">{state.error}</Alert> : null}
 

@@ -9,12 +9,16 @@ import type {
   ResetPasswordFormValues,
 } from "@/types/auth";
 import {
+  isEmailNotConfirmedError,
   logSupabaseAuthError,
   mapSignupAuthError,
 } from "@/utils/auth/errorMessages";
 import { getMyAccess } from "@/utils/auth/access";
 import { toPublicUser } from "@/utils/auth/publicUser";
-import { getPostLoginRedirectPath } from "@/utils/auth/redirects";
+import {
+  getPostLoginRedirectPath,
+  getSafeRedirectPath,
+} from "@/utils/auth/redirects";
 import { createClient } from "@/utils/supabase/server";
 import {
   normalizeEmail,
@@ -87,6 +91,31 @@ export async function login(
     email: validation.normalized.email,
     password: values.password,
   });
+
+  if (error && isEmailNotConfirmedError(error)) {
+    logSupabaseAuthError("login-email-not-confirmed", error);
+
+    // Gửi lại (hoặc gửi mới) mã OTP kích hoạt cho tài khoản này rồi đưa
+    // người dùng sang trang xác nhận OTP thay vì báo sai mật khẩu.
+    await supabase.auth.resend({
+      type: "signup",
+      email: validation.normalized.email,
+    });
+
+    const verifyUrl = new URL(
+      "/signup/verify",
+      "https://eatnow.local"
+    );
+    verifyUrl.searchParams.set("email", validation.normalized.email);
+
+    const nextPath = formString(formData, "next");
+    if (nextPath) {
+      verifyUrl.searchParams.set("next", nextPath);
+    }
+    verifyUrl.searchParams.set("reason", "chua-active");
+
+    redirect(`${verifyUrl.pathname}${verifyUrl.search}`);
+  }
 
   if (error || !data.user) {
     return {
@@ -198,20 +227,27 @@ export async function verifySignupOtp(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.verifyOtp({
+  const { data, error } = await supabase.auth.verifyOtp({
     email,
     token,
     type: "signup",
   });
 
-  if (error) {
+  if (error || !data.user) {
     return {
       status: "error",
       error: "Mã xác nhận không đúng hoặc đã hết hạn.",
     };
   }
 
-  redirect("/");
+  const nextPath = formString(formData, "next");
+  const access = await getMyAccess(supabase);
+
+  if (!access) {
+    redirect(nextPath ? getSafeRedirectPath(nextPath) : "/");
+  }
+
+  redirect(getPostLoginRedirectPath(access.roles, nextPath));
 }
 
 export async function resendSignupOtp(email: string): Promise<AuthState> {

@@ -11,6 +11,17 @@ function getErrorText(error: SupabaseAuthErrorLike) {
     .toLowerCase();
 }
 
+export function isEmailNotConfirmedError(error: SupabaseAuthErrorLike) {
+  const errorText = getErrorText(error);
+
+  return (
+    error.code === "email_not_confirmed" ||
+    errorText.includes("email_not_confirmed") ||
+    errorText.includes("email not confirmed") ||
+    errorText.includes("email chưa được xác nhận")
+  );
+}
+
 export function mapSignupAuthError(error: SupabaseAuthErrorLike) {
   const errorText = getErrorText(error);
 
