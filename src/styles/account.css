@@ -429,3 +429,38 @@
   color: #7a6255;
   font-weight: 600;
 }
+
+.seller-stack { display: grid; gap: 20px; }
+.seller-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.seller-section-heading h2, .account-card > h2 { margin: 0 0 12px; font-family: var(--font-baloo), sans-serif; }
+.seller-status { display: inline-flex; padding: 7px 12px; border-radius: 999px; background: #fff3df; color: #9a5700; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.seller-status--approved { background: #e5f8ed; color: #147a42; }
+.seller-status--rejected, .seller-status--withdrawn { background: #f5f6f8; color: #68707b; }
+.seller-status--needs_changes { background: #fff1ef; color: #c43b2b; }
+.seller-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.seller-form label { display: grid; gap: 7px; color: #3f4650; font-size: 13px; font-weight: 700; }
+.seller-form .full { grid-column: 1 / -1; }
+.seller-form input, .seller-form textarea { box-sizing: border-box; width: 100%; border: 1px solid #dfe3e8; border-radius: 12px; padding: 11px 13px; background: white; color: #20242a; font: inherit; }
+.seller-form input:disabled, .seller-form textarea:disabled { background: #f7f7f8; color: #6c737d; }
+.seller-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.seller-actions button { border: 0; border-radius: 10px; padding: 10px 15px; background: var(--color-primary, #ff6b35); color: white; font: inherit; font-weight: 700; cursor: pointer; }
+.seller-actions button.secondary { border: 1px solid #d9dde3; background: white; color: #505761; }
+.seller-actions button:disabled { cursor: wait; opacity: .6; }
+.account-inline-notice { padding: 12px 14px; border-radius: 12px; background: #eaf6ff; color: #175f8c; }
+.account-inline-notice--warning { margin-bottom: 18px; background: #fff4e5; color: #8d5300; }
+.seller-invitation-list, .seller-managed-list { display: grid; gap: 10px; }
+.seller-invitation { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px; border: 1px solid #eceef1; border-radius: 14px; }
+.seller-invitation p { margin: 4px 0 0; color: #707781; font-size: 13px; }
+.seller-managed-list a { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; border: 1px solid #eceef1; border-radius: 14px; color: inherit; text-decoration: none; }
+.seller-managed-list span { color: #707781; font-size: 13px; }
+.seller-timeline { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.seller-timeline li { position: relative; display: grid; gap: 3px; margin-left: 7px; padding: 0 0 18px 24px; border-left: 2px solid #eceef1; }
+.seller-timeline li::before { content: ""; position: absolute; top: 3px; left: -6px; width: 10px; height: 10px; border-radius: 50%; background: var(--color-primary, #ff6b35); }
+.seller-timeline span, .seller-timeline p { color: #707781; font-size: 13px; }
+.seller-timeline p { margin: 4px 0 0; }
+
+@media (max-width: 680px) {
+  .seller-form { grid-template-columns: 1fr; }
+  .seller-form .full { grid-column: auto; }
+  .seller-section-heading, .seller-invitation, .seller-managed-list a { align-items: stretch; flex-direction: column; }
+}

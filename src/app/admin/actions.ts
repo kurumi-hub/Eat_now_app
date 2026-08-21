@@ -938,3 +938,29 @@ export async function simulateFinancePayoutAction(
   }
   return { ok: true, message: "Đã tính khoản Owner dự kiến nhận.", data: simulation };
 }
+
+export async function reviewRestaurantApplicationAction(
+  applicationId: string,
+  decision: "start_review" | "request_changes" | "approve" | "reject",
+  reason: string
+): Promise<AdminActionResult> {
+  await requirePermission("restaurants.verify");
+  if (!validId(applicationId)) return { ok: false, message: "Mã hồ sơ không hợp lệ." };
+  if (!["start_review", "request_changes", "approve", "reject"].includes(decision)) {
+    return { ok: false, message: "Quyết định xét duyệt không hợp lệ." };
+  }
+  const note = reason.trim();
+  if (["request_changes", "reject"].includes(decision) && note.length < 5) {
+    return { ok: false, message: "Vui lòng nhập lý do ít nhất 5 ký tự." };
+  }
+  if (note.length > 1000) return { ok: false, message: "Ghi chú không được quá 1.000 ký tự." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("api_review_restaurant_application", {
+    p_application_id: applicationId, p_decision: decision, p_note: note || null,
+  });
+  if (error) return { ok: false, message: failure("Không thể xét duyệt hồ sơ.", error) };
+  revalidatePath("/admin");
+  revalidatePath("/account/seller");
+  revalidatePath("/owner");
+  return { ok: true, message: decision === "approve" ? "Đã duyệt và tạo nhà hàng." : "Đã cập nhật trạng thái hồ sơ." };
+}

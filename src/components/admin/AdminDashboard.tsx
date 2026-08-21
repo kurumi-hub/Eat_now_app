@@ -4,6 +4,7 @@ import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettin
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import AccountBalanceOutlinedIcon from "@mui/icons-material/AccountBalanceOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import CurrencyExchangeOutlinedIcon from "@mui/icons-material/CurrencyExchangeOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import GavelOutlinedIcon from "@mui/icons-material/GavelOutlined";
@@ -45,6 +46,7 @@ import {
 } from "@/app/admin/actions";
 import AdminCatalogPanel from "@/components/admin/AdminCatalogPanel";
 import AdminFinancePanel from "@/components/admin/AdminFinancePanel";
+import AdminRestaurantApplicationsPanel from "@/components/admin/AdminRestaurantApplicationsPanel";
 import type {
   AdminActionResult,
   AdminAuditList,
@@ -55,6 +57,7 @@ import type {
   AdminRefund,
   AdminRefundList,
   AdminRestaurant,
+  AdminRestaurantApplicationList,
   AdminRestaurantList,
   AdminSiteMedia,
   AdminTagList,
@@ -84,6 +87,7 @@ type AdminDashboardProps = {
   statusFilter: string;
   stats: AdminDashboardStats;
   users: AdminUserList;
+  applications: AdminRestaurantApplicationList;
   restaurants: AdminRestaurantList;
   refunds: AdminRefundList;
   catalogKind: AdminCatalogKind;
@@ -114,6 +118,7 @@ const TABS: Array<{
 }> = [
   { value: "overview", label: "Tổng quan", icon: DashboardOutlinedIcon },
   { value: "users", label: "Tài khoản & phân quyền", icon: PeopleOutlineOutlinedIcon },
+  { value: "applications", label: "Hồ sơ mở quán", icon: AssignmentOutlinedIcon },
   { value: "restaurants", label: "Nhà hàng", icon: StorefrontOutlinedIcon },
   { value: "refunds", label: "Hoàn tiền", icon: CurrencyExchangeOutlinedIcon },
   { value: "catalog", label: "Catalog", icon: CategoryOutlinedIcon },
@@ -194,8 +199,21 @@ function formatCurrency(value: number) {
 }
 
 function restaurantStatus(item: AdminRestaurant) {
-  if (!item.is_active) return { key: "suspended", label: "Tạm ngưng" };
-  if (!item.is_verified) return { key: "pending", label: "Chờ duyệt" };
+  if (item.approval_status === "REJECTED") {
+    return { key: "rejected", label: "Đã từ chối" };
+  }
+  if (item.approval_status === "PENDING") {
+    return { key: "pending", label: "Chờ duyệt" };
+  }
+  if (item.lifecycle_status === "SETUP") {
+    return { key: "pending", label: "Đang thiết lập" };
+  }
+  if (item.lifecycle_status === "SUSPENDED") {
+    return { key: "suspended", label: "Tạm ngưng" };
+  }
+  if (item.lifecycle_status === "CLOSED") {
+    return { key: "suspended", label: "Đã đóng" };
+  }
   return { key: "active", label: "Đang hoạt động" };
 }
 
@@ -206,6 +224,7 @@ export default function AdminDashboard({
   statusFilter,
   stats,
   users,
+  applications,
   restaurants,
   refunds,
   catalogKind,
@@ -224,11 +243,13 @@ export default function AdminDashboard({
   const canManageMedia = user.permissions.includes("site_media.manage");
   const canManageCatalog = user.permissions.includes("catalog.manage");
   const canManageFinance = user.permissions.includes("finance.settings.manage");
+  const canVerifyRestaurants = user.permissions.includes("restaurants.verify");
   const visibleTabs = TABS.filter(
     (item) =>
       (item.value !== "media" || canManageMedia) &&
       (item.value !== "catalog" || canManageCatalog) &&
-      (item.value !== "finance" || canManageFinance)
+      (item.value !== "finance" || canManageFinance) &&
+      (item.value !== "applications" || canVerifyRestaurants)
   );
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState(searchTerm);
@@ -394,6 +415,8 @@ export default function AdminDashboard({
   const pageData =
     tab === "users"
       ? users
+      : tab === "applications"
+        ? applications
       : tab === "restaurants"
         ? restaurants
         : tab === "refunds"
@@ -549,7 +572,9 @@ export default function AdminDashboard({
                 onSearchChange={setSearch}
                 onSubmit={submitSearch}
                 filters={[
-                  ["", "Tất cả"], ["pending", "Chờ duyệt"], ["active", "Hoạt động"], ["suspended", "Tạm ngưng"],
+                  ["", "Tất cả"], ["pending", "Chờ duyệt"], ["setup", "Đang thiết lập"],
+                  ["active", "Hoạt động"], ["suspended", "Tạm ngưng"],
+                  ["rejected", "Đã từ chối"], ["closed", "Đã đóng"],
                 ]}
                 activeFilter={statusFilter}
                 onFilter={setStatus}
@@ -566,17 +591,21 @@ export default function AdminDashboard({
                         <small>Chủ quán: {item.owners.map((owner) => owner.full_name).join(", ") || "Chưa xác định"} · {item.rating_average.toFixed(1)} ★ ({item.rating_count})</small>
                       </div>
                       <div className="admin-row-actions">
-                        {!item.is_verified && item.is_active ? (
+                        {item.approval_status === "PENDING" ? (
                           <><button className="is-primary" type="button" onClick={() => openDialog({ kind: "restaurant", target: item, decision: "approve" })}>Duyệt</button><button type="button" onClick={() => openDialog({ kind: "restaurant", target: item, decision: "reject" })}>Từ chối</button></>
                         ) : null}
-                        {item.is_verified && item.is_active ? <button type="button" onClick={() => openDialog({ kind: "restaurant", target: item, decision: "suspend" })}>Tạm ngưng</button> : null}
-                        {!item.is_active ? <button className="is-primary" type="button" onClick={() => openDialog({ kind: "restaurant", target: item, decision: "reactivate" })}>Mở lại</button> : null}
+                        {item.approval_status === "APPROVED" && item.lifecycle_status === "ACTIVE" ? <button type="button" onClick={() => openDialog({ kind: "restaurant", target: item, decision: "suspend" })}>Tạm ngưng</button> : null}
+                        {item.approval_status === "APPROVED" && item.lifecycle_status === "SUSPENDED" ? <button className="is-primary" type="button" onClick={() => openDialog({ kind: "restaurant", target: item, decision: "reactivate" })}>Mở lại</button> : null}
                       </div>
                     </article>
                   );
                 })}
               </div>
             </section>
+          ) : null}
+
+          {tab === "applications" ? (
+            <AdminRestaurantApplicationsPanel data={applications} />
           ) : null}
 
           {tab === "refunds" ? (

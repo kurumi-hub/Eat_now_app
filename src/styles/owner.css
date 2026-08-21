@@ -1,0 +1,32 @@
+.owner-page { width: min(1180px, calc(100% - 32px)); margin: 32px auto 72px; color: #25282d; }
+.owner-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 26px; border-radius: 22px; background: linear-gradient(135deg, #33251f, #1f2023); color: white; }
+.owner-heading p { margin: 0 0 5px; color: #ffc5a8; font-weight: 700; }
+.owner-heading h1 { margin: 0; font: 700 clamp(28px, 4vw, 42px)/1.1 var(--font-baloo), sans-serif; }
+.owner-heading span { display: block; margin-top: 8px; color: #e6e7e9; }
+.owner-heading__actions { display: flex; gap: 10px; }
+.owner-heading select, .owner-heading a { border: 1px solid #ffffff38; border-radius: 10px; padding: 10px 12px; background: #ffffff12; color: white; text-decoration: none; }
+.owner-heading select option { color: #222; }
+.owner-tabs { display: flex; gap: 7px; margin: 18px 0; padding: 6px; overflow-x: auto; border: 1px solid #ebecef; border-radius: 14px; background: white; }
+.owner-tabs button { border: 0; border-radius: 10px; padding: 10px 15px; background: transparent; color: #69707a; font: inherit; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.owner-tabs button.is-active { background: #fff0e8; color: #dd4f19; }
+.owner-notice { display: flex; justify-content: space-between; margin-top: 16px; padding: 12px 15px; border-radius: 12px; }
+.owner-notice.is-success { background: #e6f7ed; color: #137a41; }.owner-notice.is-error { background: #ffefed; color: #b63223; }.owner-notice button { border: 0; background: transparent; color: inherit; font-size: 20px; }
+.owner-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; }
+.owner-card { box-sizing: border-box; padding: 22px; border: 1px solid #e8eaed; border-radius: 18px; background: white; box-shadow: 0 8px 30px #25282d0a; }
+.owner-card h2 { margin: 0 0 14px; font: 700 22px var(--font-baloo), sans-serif; }
+.owner-card__heading p { margin: -8px 0 18px; color: #727984; }
+.owner-card--hero { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 20px; background: #fff7f2; border-color: #ffd9c6; }
+.owner-card--hero p, .owner-card--hero h2 { margin: 0 0 5px; }.owner-card--hero span { color: #737983; font-size: 13px; }
+.owner-card button, .owner-form button, .owner-hours > button { border: 0; border-radius: 10px; padding: 10px 14px; background: #f0642e; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+.owner-card button:disabled { cursor: wait; opacity: .55; }
+.owner-order-control { display: flex; gap: 8px; }.owner-order-control input { min-width: 190px; }
+.owner-metrics { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.owner-metrics article { display: grid; gap: 3px; padding: 20px; border-radius: 16px; background: #292c31; color: white; }.owner-metrics strong { font: 700 32px var(--font-baloo), sans-serif; }.owner-metrics span { color: #c9ccd1; }
+.owner-checklist { display: grid; gap: 11px; padding: 0; list-style: none; }.owner-checklist li::before { content: "○"; margin-right: 9px; color: #a2a7ae; }.owner-checklist li.done::before { content: "✓"; color: #1c9a57; font-weight: 800; }
+.owner-details { display: grid; gap: 13px; margin: 0; }.owner-details div { display: grid; gap: 3px; }.owner-details dt { color: #7b8189; font-size: 12px; font-weight: 700; text-transform: uppercase; }.owner-details dd { margin: 0; }
+.owner-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }.owner-form label { display: grid; gap: 7px; font-size: 13px; font-weight: 700; }.owner-form .full { grid-column: 1 / -1; }
+.owner-form input, .owner-form textarea, .owner-order-control input, .owner-invite input, .owner-upload input { box-sizing: border-box; width: 100%; border: 1px solid #dfe2e6; border-radius: 10px; padding: 10px 12px; color: inherit; font: inherit; }.owner-form input:disabled, .owner-form input:read-only { background: #f4f5f6; color: #737983; }
+.owner-hours { display: grid; gap: 10px; }.owner-hours__row { display: grid; grid-template-columns: 1fr 130px auto 130px; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f1f2; }.owner-hours__row label { font-weight: 700; }.owner-hours__row label input { margin-right: 9px; }.owner-hours__row > input { border: 1px solid #dfe2e6; border-radius: 9px; padding: 9px; }
+.owner-media-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }.owner-media-grid .owner-card:last-child { grid-column: 1 / -1; }.owner-media-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }.owner-media-list figure { position: relative; min-height: 130px; margin: 0; overflow: hidden; border-radius: 12px; background: #f2f3f4; }.owner-media-list img { width: 100%; height: 100%; min-height: 130px; object-fit: cover; }.owner-media-list button { position: absolute; right: 7px; bottom: 7px; padding: 6px 9px; background: #222b; }.owner-upload { display: grid; gap: 9px; margin-top: 14px; }
+.owner-invite { display: flex; gap: 8px; }.owner-staff-list { display: grid; gap: 9px; margin-top: 15px; }.owner-staff-list article { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #eceef0; border-radius: 12px; }.owner-staff-list article div:first-child { display: grid; gap: 3px; }.owner-staff-list span { color: #777e87; font-size: 13px; }.owner-staff-actions { display: flex !important; grid-auto-flow: column; gap: 7px; }.owner-staff-actions button.danger { background: #bd3a2c; }
+@media (max-width: 760px) { .owner-page { width: min(100% - 20px, 1180px); margin-top: 16px; }.owner-heading, .owner-card--hero { align-items: stretch; flex-direction: column; }.owner-heading__actions { flex-direction: column; }.owner-grid, .owner-media-grid { grid-template-columns: 1fr; }.owner-media-grid .owner-card:last-child, .owner-card--hero, .owner-metrics { grid-column: auto; }.owner-metrics { grid-template-columns: 1fr; }.owner-form { grid-template-columns: 1fr; }.owner-form .full { grid-column: auto; }.owner-hours__row { grid-template-columns: 1fr 1fr; }.owner-hours__row span { display: none; }.owner-invite, .owner-staff-list article { align-items: stretch; flex-direction: column; } }

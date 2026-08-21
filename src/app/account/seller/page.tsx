@@ -1,11 +1,23 @@
+import SellerApplicationPanel from "@/components/account/SellerApplicationPanel";
+import { parseSellerContext, parseStaffInvitations } from "@/lib/data/owner";
 import { requireAnyRole } from "@/utils/auth/guards";
+import { createClient } from "@/utils/supabase/server";
 
 export default async function AccountSellerPage() {
-  const user = await requireAnyRole([
+  await requireAnyRole([
     "CUSTOMER",
     "RESTAURANT_OWNER",
     "RESTAURANT_STAFF",
   ]);
+
+  const supabase = await createClient();
+  const [contextResult, invitationsResult] = await Promise.all([
+    supabase.rpc("api_get_my_seller_context"),
+    supabase.rpc("api_list_my_staff_invitations"),
+  ]);
+  if (contextResult.error || invitationsResult.error) {
+    console.error("[seller] Không thể tải dữ liệu", contextResult.error || invitationsResult.error);
+  }
 
   return (
     <>
@@ -17,20 +29,10 @@ export default async function AccountSellerPage() {
         </p>
       </header>
 
-      <section className="account-card">
-        <dl className="account-details">
-          <div className="account-details__item">
-            <dt className="account-details__label">Trạng thái người bán</dt>
-            <dd className="account-details__value">
-              {user.sellerStatus || "NOT_APPLIED"}
-            </dd>
-          </div>
-        </dl>
-        <p className="account-placeholder-note">
-          Frontend không tự cấp quyền người bán. Mọi thay đổi vai trò đều phải
-          được thực hiện bởi backend qua RPC có kiểm tra quyền.
-        </p>
-      </section>
+      <SellerApplicationPanel
+        context={parseSellerContext(contextResult.data)}
+        invitations={parseStaffInvitations(invitationsResult.data)}
+      />
     </>
   );
 }

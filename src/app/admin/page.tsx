@@ -6,6 +6,8 @@ import type {
   AdminFinanceSettings,
   AdminRefund,
   AdminRefundList,
+  AdminRestaurantApplication,
+  AdminRestaurantApplicationList,
   AdminRestaurant,
   AdminRestaurantList,
   AdminSiteMedia,
@@ -40,6 +42,7 @@ type UnknownRecord = Record<string, unknown>;
 const ADMIN_TABS: AdminTab[] = [
   "overview",
   "users",
+  "applications",
   "restaurants",
   "refunds",
   "catalog",
@@ -58,6 +61,9 @@ const EMPTY_STATS: AdminDashboardStats = {
 
 const EMPTY_USERS: AdminUserList = { items: [], total: 0, limit: 20, offset: 0 };
 const EMPTY_RESTAURANTS: AdminRestaurantList = {
+  items: [], total: 0, limit: 20, offset: 0,
+};
+const EMPTY_APPLICATIONS: AdminRestaurantApplicationList = {
   items: [], total: 0, limit: 20, offset: 0,
 };
 const EMPTY_REFUNDS: AdminRefundList = { items: [], total: 0, limit: 20, offset: 0 };
@@ -141,6 +147,19 @@ function parseRestaurants(value: unknown): AdminRestaurantList {
           phone: typeof item.phone === "string" ? item.phone : null,
           is_active: item.is_active !== false,
           is_verified: item.is_verified === true,
+          approval_status:
+            item.approval_status === "APPROVED" || item.approval_status === "REJECTED"
+              ? item.approval_status
+              : "PENDING",
+          lifecycle_status:
+            item.lifecycle_status === "SETUP" ||
+            item.lifecycle_status === "SUSPENDED" ||
+            item.lifecycle_status === "CLOSED"
+              ? item.lifecycle_status
+              : "ACTIVE",
+          published_at: typeof item.published_at === "string" ? item.published_at : null,
+          accepting_orders: item.accepting_orders === true,
+          order_state: typeof item.order_state === "string" ? item.order_state : "UNAVAILABLE",
           rating_average: numberValue(item.rating_average),
           rating_count: numberValue(item.rating_count),
           created_at: typeof item.created_at === "string" ? item.created_at : "",
@@ -154,6 +173,37 @@ function parseRestaurants(value: unknown): AdminRestaurantList {
     limit: numberValue(value.limit) || 20,
     offset: numberValue(value.offset),
   };
+}
+
+function parseApplications(value: unknown): AdminRestaurantApplicationList {
+  if (!isRecord(value)) return EMPTY_APPLICATIONS;
+  const items = Array.isArray(value.items) ? value.items.flatMap((raw): AdminRestaurantApplication[] => {
+    if (!isRecord(raw) || typeof raw.id !== "string") return [];
+    return [{
+      id: raw.id,
+      applicant_id: typeof raw.applicant_id === "string" ? raw.applicant_id : "",
+      applicant_name: typeof raw.applicant_name === "string" ? raw.applicant_name : "Người đăng ký",
+      applicant_email: typeof raw.applicant_email === "string" ? raw.applicant_email : "",
+      restaurant_id: typeof raw.restaurant_id === "string" ? raw.restaurant_id : null,
+      restaurant_name: typeof raw.restaurant_name === "string" ? raw.restaurant_name : "Nhà hàng",
+      description: typeof raw.description === "string" ? raw.description : null,
+      address: typeof raw.address === "string" ? raw.address : "",
+      phone: typeof raw.phone === "string" ? raw.phone : "",
+      lat: raw.lat == null ? null : numberValue(raw.lat),
+      lon: raw.lon == null ? null : numberValue(raw.lon),
+      timezone: typeof raw.timezone === "string" ? raw.timezone : "Asia/Ho_Chi_Minh",
+      business_license_number: typeof raw.business_license_number === "string" ? raw.business_license_number : null,
+      tax_code: typeof raw.tax_code === "string" ? raw.tax_code : null,
+      legal_representative_name: typeof raw.legal_representative_name === "string" ? raw.legal_representative_name : null,
+      status: typeof raw.status === "string" ? raw.status : "SUBMITTED",
+      revision: numberValue(raw.revision) || 1,
+      submitted_at: typeof raw.submitted_at === "string" ? raw.submitted_at : null,
+      review_started_at: typeof raw.review_started_at === "string" ? raw.review_started_at : null,
+      reviewed_at: typeof raw.reviewed_at === "string" ? raw.reviewed_at : null,
+      review_note: typeof raw.review_note === "string" ? raw.review_note : null,
+    }];
+  }) : [];
+  return { items, total: numberValue(value.total), limit: numberValue(value.limit) || 20, offset: numberValue(value.offset) };
 }
 
 function parseRefunds(value: unknown): AdminRefundList {
@@ -250,6 +300,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   if (tab === "finance" && !user.permissions.includes("finance.settings.manage")) {
     tab = "overview";
   }
+  if (tab === "applications" && !user.permissions.includes("restaurants.verify")) {
+    tab = "overview";
+  }
   const catalogKind: AdminCatalogKind =
     firstParam(params.catalog) === "tags" ? "tags" : "categories";
   const search = firstParam(params.q).slice(0, 80);
@@ -263,6 +316,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     if (tab === "users") {
       return supabase.rpc("api_list_admin_users", {
         p_search: search || null, p_limit: limit, p_offset: offset,
+      });
+    }
+    if (tab === "applications") {
+      return supabase.rpc("api_list_restaurant_applications", {
+        p_status: status || null, p_limit: limit, p_offset: offset,
       });
     }
     if (tab === "restaurants") {
@@ -316,6 +374,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       statusFilter={status}
       stats={parseStats(dashboardResult.data)}
       users={tab === "users" ? parseUsers(contentResult.data) : EMPTY_USERS}
+      applications={tab === "applications" ? parseApplications(contentResult.data) : EMPTY_APPLICATIONS}
       restaurants={tab === "restaurants" ? parseRestaurants(contentResult.data) : EMPTY_RESTAURANTS}
       refunds={tab === "refunds" ? parseRefunds(contentResult.data) : EMPTY_REFUNDS}
       catalogKind={catalogKind}
@@ -332,7 +391,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       media={tab === "media" ? parseSiteMedia(contentResult.data) : EMPTY_MEDIA}
       finance={tab === "finance" ? parseAdminFinance(contentResult.data) : EMPTY_FINANCE}
       audit={tab === "overview" || tab === "audit" ? parseAudit(contentResult.data) : EMPTY_AUDIT}
-      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra SQL 13–20." : undefined}
+      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra SQL 13–22." : undefined}
     />
   );
 }

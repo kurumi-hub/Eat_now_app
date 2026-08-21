@@ -4,6 +4,7 @@ import type { SiteMediaMap } from "./siteMedia";
 export type AdminTab =
   | "overview"
   | "users"
+  | "applications"
   | "restaurants"
   | "refunds"
   | "catalog"
@@ -58,6 +59,11 @@ export type AdminRestaurant = {
   phone?: string | null;
   is_active: boolean;
   is_verified: boolean;
+  approval_status: "PENDING" | "APPROVED" | "REJECTED";
+  lifecycle_status: "SETUP" | "ACTIVE" | "SUSPENDED" | "CLOSED";
+  published_at?: string | null;
+  accepting_orders: boolean;
+  order_state: string;
   rating_average: number;
   rating_count: number;
   created_at: string;
@@ -66,6 +72,37 @@ export type AdminRestaurant = {
 
 export type AdminRestaurantList = {
   items: AdminRestaurant[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export type AdminRestaurantApplication = {
+  id: string;
+  applicant_id: string;
+  applicant_name: string;
+  applicant_email: string;
+  restaurant_id?: string | null;
+  restaurant_name: string;
+  description?: string | null;
+  address: string;
+  phone: string;
+  lat?: number | null;
+  lon?: number | null;
+  timezone: string;
+  business_license_number?: string | null;
+  tax_code?: string | null;
+  legal_representative_name?: string | null;
+  status: string;
+  revision: number;
+  submitted_at?: string | null;
+  review_started_at?: string | null;
+  reviewed_at?: string | null;
+  review_note?: string | null;
+};
+
+export type AdminRestaurantApplicationList = {
+  items: AdminRestaurantApplication[];
   total: number;
   limit: number;
   offset: number;
