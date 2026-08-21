@@ -41,6 +41,15 @@ export type RegisterFormValues = {
   termsAccepted: boolean;
 };
 
+export type PasswordResetRequestFormValues = {
+  email: string;
+};
+
+export type ResetPasswordFormValues = {
+  password: string;
+  confirmPassword: string;
+};
+
 export type SignupOtpFormValues = {
   email: string;
   token: string;

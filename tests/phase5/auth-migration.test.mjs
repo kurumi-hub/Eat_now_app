@@ -72,7 +72,8 @@ test("Auth UI includes required validation and placeholder states", async () => 
   );
 
   assert.match(loginForm, /validateLoginValues/);
-  assert.match(loginForm, /Tính năng quên mật khẩu đang được hoàn thiện/);
+  assert.match(loginForm, /href="\/forgot-password"/);
+  assert.doesNotMatch(loginForm, /Tính năng quên mật khẩu đang được hoàn thiện/);
   assert.match(loginForm, /Đăng nhập mạng xã hội đang được hoàn thiện/);
   assert.match(registerForm, /validateRegisterValues/);
   assert.match(registerForm, /Đăng ký mạng xã hội đang được hoàn thiện/);
@@ -95,6 +96,70 @@ test("Supabase auth actions preserve safe login, customer signup, and OTP flow",
   assert.match(actions, /logSupabaseAuthError\("signup", error\)/);
   assert.match(actions, /mapSignupAuthError\(error\)/);
   assert.doesNotMatch(actions, /localStorage|sessionStorage|VITE_USE_MOCK_AUTH/);
+});
+
+test("Password recovery pages use Supabase reset password actions", async () => {
+  const forgotPage = await readProjectFile(
+    "src",
+    "app",
+    "forgot-password",
+    "page.tsx"
+  );
+  const resetPage = await readProjectFile(
+    "src",
+    "app",
+    "reset-password",
+    "page.tsx"
+  );
+  const forgotForm = await readProjectFile(
+    "src",
+    "components",
+    "auth",
+    "ForgotPasswordForm.tsx"
+  );
+  const resetForm = await readProjectFile(
+    "src",
+    "components",
+    "auth",
+    "ResetPasswordForm.tsx"
+  );
+  const actions = await readProjectFile("src", "app", "auth", "actions.ts");
+
+  assert.match(forgotPage, /@\/components\/auth\/ForgotPasswordForm/);
+  assert.match(resetPage, /@\/components\/auth\/ResetPasswordForm/);
+  assert.match(forgotForm, /requestPasswordReset/);
+  assert.match(forgotForm, /\/reset-password/);
+  assert.match(resetForm, /resetPassword/);
+  assert.match(resetForm, /confirmPassword/);
+  assert.match(actions, /export async function requestPasswordReset/);
+  assert.match(actions, /resetPasswordForEmail/);
+  assert.match(actions, /export async function resetPassword/);
+  assert.match(actions, /updateUser\(\{\s*password:/s);
+});
+
+test("Signup OTP verification accepts the current 6 digit email code format", async () => {
+  const verifyForm = await readProjectFile(
+    "src",
+    "components",
+    "auth",
+    "VerifyOtpForm.tsx"
+  );
+  const verifyPage = await readProjectFile(
+    "src",
+    "app",
+    "signup",
+    "verify",
+    "page.tsx"
+  );
+  const actions = await readProjectFile("src", "app", "auth", "actions.ts");
+
+  assert.match(verifyForm, /OTP_REGEX\s*=\s*\/\^\\d\{6\}\$\/;/);
+  assert.match(verifyForm, /maxLength:\s*6/);
+  assert.match(verifyForm, /placeholder="000000"/);
+  assert.doesNotMatch(verifyForm, /\\d\{8\}|maxLength:\s*8|placeholder="00000000"/);
+  assert.match(verifyPage, /mã 6 số|mÃ£ 6 sá»‘/);
+  assert.match(actions, /SIGNUP_OTP_REGEX\s*=\s*\/\^\\d\{6\}\$\/;/);
+  assert.match(actions, /SIGNUP_OTP_REGEX\.test\(token\)/);
 });
 
 test("Signup Supabase errors are mapped to clearer safe messages", async () => {

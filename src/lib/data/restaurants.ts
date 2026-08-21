@@ -2,7 +2,10 @@ import { createClient } from "@/utils/supabase/server";
 import type { HomeRestaurant } from "@/components/home/homeData";
 import type {
   RestaurantDetail,
+  RestaurantInfoItem,
   RestaurantMenuCategory,
+  RestaurantReview,
+  RestaurantVoucher,
 } from "@/components/restaurant/restaurantDetailData";
 
 /**
@@ -20,6 +23,86 @@ function formatReviewCount(count: number) {
 
 function firstRelation<T>(value: T | T[] | null | undefined): T | undefined {
   return Array.isArray(value) ? value[0] : value ?? undefined;
+}
+
+const runtimeRestaurantVouchers: RestaurantVoucher[] = [
+  {
+    id: "save-20k",
+    title: "GIẢM 20K",
+    subtitle: "Đơn từ 99K",
+    actionLabel: "Lưu mã",
+  },
+  {
+    id: "freeship",
+    title: "FREESHIP",
+    subtitle: "Đơn từ 50K",
+    actionLabel: "Lưu mã",
+  },
+  {
+    id: "save-10-percent",
+    title: "GIẢM 10%",
+    subtitle: "Tối đa 30K",
+    actionLabel: "Lưu mã",
+  },
+];
+
+const runtimeRestaurantReviews: RestaurantReview[] = [
+  {
+    id: "runtime-tuan-anh",
+    customerName: "Tuấn Anh",
+    initial: "T",
+    rating: 5,
+    timeAgo: "2 ngày trước",
+    content:
+      "Món lên nhanh, đóng gói gọn và vẫn còn nóng. Phần ăn đầy đặn, hợp để đặt bữa trưa văn phòng.",
+    tone: "primary",
+  },
+  {
+    id: "runtime-mai-lan",
+    customerName: "Mai Lan",
+    initial: "M",
+    rating: 4.5,
+    timeAgo: "1 tuần trước",
+    content:
+      "Quán chuẩn bị kỹ, món chính vừa miệng. Sẽ đặt lại khi cần một bữa ăn nhanh mà vẫn chỉn chu.",
+    tone: "secondary",
+  },
+  {
+    id: "runtime-hoang-nam",
+    customerName: "Hoàng Nam",
+    initial: "H",
+    rating: 5,
+    timeAgo: "2 tuần trước",
+    content:
+      "Giá hợp lý so với chất lượng, tài xế giao đúng giờ. Điểm cộng là món phụ cũng rất ổn.",
+    tone: "tertiary",
+  },
+];
+
+function buildRestaurantInfoItems(
+  address: string,
+  closeAt: string | null
+): RestaurantInfoItem[] {
+  return [
+    {
+      id: "address",
+      icon: "location_on",
+      title: "Địa chỉ",
+      description: address,
+    },
+    {
+      id: "hours",
+      icon: "schedule",
+      title: "Giờ hoạt động",
+      description: closeAt ? `Hôm nay đến ${closeAt}` : "Đang cập nhật giờ mở cửa",
+    },
+    {
+      id: "shipping",
+      icon: "two_wheeler",
+      title: "Giao hàng",
+      description: "Freeship cho đơn đủ điều kiện, thời gian dự kiến 25-35 phút.",
+    },
+  ];
 }
 
 // ---------------------------------------------------------------------
@@ -150,9 +233,16 @@ export async function getRestaurantDetailBySlug(
     reviewCount: formatReviewCount(restaurant.rating_count),
     address: restaurant.address,
     deliveryTime: "25-35 phút",
-    deliveryFee: "Miễn phí giao hàng",
+    deliveryFee: "Freeship",
+    minimumOrder: "Tối thiểu 30k",
     isOpen: restaurant.is_active,
     openUntil: restaurant.close_at ?? "",
+    restaurantVouchers: runtimeRestaurantVouchers,
+    restaurantReviews: runtimeRestaurantReviews,
+    restaurantInfoItems: buildRestaurantInfoItems(
+      restaurant.address,
+      restaurant.close_at
+    ),
     menuCategories: categoryOrder.map((id) => categoriesMap.get(id)!),
   };
 }

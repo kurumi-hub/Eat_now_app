@@ -10,7 +10,6 @@ import {
   Divider,
   FormControlLabel,
   InputAdornment,
-  Link as MuiLink,
   Snackbar,
   Stack,
   TextField,
@@ -34,6 +33,7 @@ import PasswordField from "./PasswordField";
 type LoginFormProps = {
   initialEmail?: string;
   nextPath?: string;
+  passwordResetSuccess?: boolean;
 };
 
 type SnackbarState = {
@@ -44,6 +44,7 @@ type SnackbarState = {
 export default function LoginForm({
   initialEmail = "",
   nextPath = "",
+  passwordResetSuccess = false,
 }: LoginFormProps) {
   const [state, formAction, pending] = useActionState(login, null);
   const [values, setValues] = useState({
@@ -92,13 +93,6 @@ export default function LoginForm({
     }
   };
 
-  const handleForgotPassword = () => {
-    setSnackbar({
-      open: true,
-      message: "Tính năng quên mật khẩu đang được hoàn thiện.",
-    });
-  };
-
   const handleOAuthPlaceholder = () => {
     setSnackbar({
       open: true,
@@ -138,6 +132,11 @@ export default function LoginForm({
           </Box>
 
           {state?.error ? <Alert severity="error">{state.error}</Alert> : null}
+          {passwordResetSuccess ? (
+            <Alert severity="success">
+              Mật khẩu đã được đặt lại. Vui lòng đăng nhập bằng mật khẩu mới.
+            </Alert>
+          ) : null}
 
           <TextField
             label="Email"
@@ -166,13 +165,9 @@ export default function LoginForm({
               <Typography component="span" className="auth-field-label">
                 Mật khẩu
               </Typography>
-              <MuiLink
-                component="button"
-                type="button"
-                onClick={handleForgotPassword}
-              >
+              <NextLink className="auth-text-link" href="/forgot-password">
                 Quên mật khẩu?
-              </MuiLink>
+              </NextLink>
             </Box>
             <PasswordField
               label=""

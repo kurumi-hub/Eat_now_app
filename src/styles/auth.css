@@ -130,6 +130,10 @@
   max-width: 430px;
 }
 
+.auth-form--recovery {
+  max-width: 420px;
+}
+
 .auth-title {
   margin: 0 0 8px;
   color: var(--eatnow-text-primary);
@@ -196,6 +200,13 @@
   color: var(--eatnow-primary);
 }
 
+.auth-icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
 .auth-button-link {
   min-height: 44px;
   width: 100%;
@@ -227,6 +238,23 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
+}
+
+.auth-recovery-note .MuiAlert-message {
+  color: var(--eatnow-text-secondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.auth-recovery-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-recovery-actions--center {
+  justify-content: center;
 }
 
 @media (max-width: 960px) {
@@ -285,9 +313,15 @@
 
   .auth-form-content,
   .auth-card--login .auth-form-content,
-  .auth-form--register {
+  .auth-form--register,
+  .auth-form--recovery {
     width: 100%;
     max-width: none;
+  }
+
+  .auth-recovery-actions {
+    align-items: center;
+    flex-direction: column;
   }
 
   .auth-mobile-brand {

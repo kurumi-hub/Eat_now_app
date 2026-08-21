@@ -99,3 +99,54 @@ test("Restaurant detail local images are available", async () => {
     ].map((assetName) => access(join(root, "public", "images", "home", assetName)))
   );
 });
+
+test("Restaurant detail follows Demo2 storefront layout", async () => {
+  const component = await readProjectFile(
+    "src",
+    "components",
+    "restaurant",
+    "RestaurantDetailPage.tsx"
+  );
+  const data = await readProjectFile(
+    "src",
+    "components",
+    "restaurant",
+    "restaurantDetailData.ts"
+  );
+  const css = await readProjectFile(
+    "src",
+    "styles",
+    "restaurant-detail.css"
+  );
+  const runtimeData = await readProjectFile(
+    "src",
+    "lib",
+    "data",
+    "restaurants.ts"
+  );
+
+  assert.match(component, /restaurant-detail-actions/);
+  assert.match(component, /restaurant-voucher-section/);
+  assert.match(component, /restaurant-voucher-strip/);
+  assert.match(component, /restaurant-menu-search/);
+  assert.match(component, /restaurant-category-pills/);
+  assert.match(component, /restaurant-menu-card--horizontal/);
+  assert.match(component, /restaurant-menu-card--compact/);
+  assert.match(component, /restaurant-review-grid/);
+  assert.match(component, /restaurant-info-card/);
+  assert.match(component, /FavoriteBorderOutlinedIcon/);
+  assert.match(component, /ShareOutlinedIcon/);
+  assert.match(component, /SearchOutlinedIcon/);
+  assert.match(data, /restaurantVouchers/);
+  assert.match(data, /restaurantReviews/);
+  assert.match(data, /restaurantInfoItems/);
+  assert.match(data, /id:\s*"rice-plates"/);
+  assert.match(runtimeData, /minimumOrder/);
+  assert.match(runtimeData, /restaurantVouchers/);
+  assert.match(runtimeData, /restaurantReviews/);
+  assert.match(runtimeData, /restaurantInfoItems/);
+  assert.match(css, /\.restaurant-voucher-section/);
+  assert.match(css, /\.restaurant-menu-card--compact/);
+  assert.match(css, /\.restaurant-review-grid/);
+  assert.doesNotMatch(component, /restaurant-side-panel/);
+});

@@ -9,11 +9,12 @@ type LoginPageProps = {
   searchParams: Promise<{
     email?: string;
     next?: string;
+    reset?: string;
   }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const [{ email = "", next = "" }, user] = await Promise.all([
+  const [{ email = "", next = "", reset = "" }, user] = await Promise.all([
     searchParams,
     getCurrentPublicUser(),
   ]);
@@ -24,7 +25,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <AuthLayout variant="login">
-      <LoginForm initialEmail={email} nextPath={next} />
+      <LoginForm
+        initialEmail={email}
+        nextPath={next}
+        passwordResetSuccess={reset === "success"}
+      />
     </AuthLayout>
   );
 }
