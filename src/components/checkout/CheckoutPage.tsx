@@ -1,64 +1,34 @@
 "use client";
 
+import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import AddLocationAltOutlinedIcon from "@mui/icons-material/AddLocationAltOutlined";
+import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
+import NotesOutlinedIcon from "@mui/icons-material/NotesOutlined";
+import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Divider,
-  FormControl,
-  FormControlLabel,
-  Paper,
-  Radio,
-  RadioGroup,
-  TextField,
-  Typography,
-} from "@mui/material";
+import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
+import { Alert, Button, CircularProgress } from "@mui/material";
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import type { ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import type { AccountAddress } from "@/types/account";
 import type { PublicUser } from "@/types/auth";
-import { useCartStore } from "@/store/cartStore";
+import { useCartStore, type CartLine } from "@/store/cartStore";
 import { useCartSession } from "@/store/useCartSession";
-import {
-  initializeCheckout,
-  placeOrder,
-  previewOrder,
-  type CheckoutVoucher,
-} from "@/app/checkout/actions";
+import { initializeCheckout, placeOrder, previewOrder, type CheckoutVoucher } from "@/app/checkout/actions";
 import { signalNavigationStart } from "@/utils/navigationFeedback";
 
-const CheckoutAddressDialog = dynamic(
-  () => import("@/components/checkout/CheckoutAddressDialog"),
-  { ssr: false }
-);
+const CheckoutAddressDialog = dynamic(() => import("@/components/checkout/CheckoutAddressDialog"), { ssr: false });
 
-type CheckoutPageProps = {
-  user: PublicUser;
-  addresses: AccountAddress[];
-};
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
+type CheckoutPageProps = { user: PublicUser; addresses: AccountAddress[] };
 type PreviewState = {
   subtotal: number;
   shipping_fee: number;
@@ -71,17 +41,21 @@ type PreviewState = {
   voucher?: { valid: boolean; reason?: string };
 } | null;
 
-function voucherBenefit(voucher: CheckoutVoucher) {
-  const target =
-    voucher.discountScope === "shipping" ? "phí giao hàng" : "món ăn";
-  if (voucher.discountType === "fixed") {
-    return `Giảm ${formatCurrency(voucher.discountValue)} ${target}`;
-  }
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(value);
+}
 
-  const maximum = voucher.maxDiscount
-    ? `, tối đa ${formatCurrency(voucher.maxDiscount)}`
-    : "";
-  return `Giảm ${voucher.discountValue}% ${target}${maximum}`;
+function voucherBenefit(voucher: CheckoutVoucher) {
+  const target = voucher.discountScope === "shipping" ? "phí giao hàng" : "món ăn";
+  if (voucher.discountType === "fixed") return `Giảm ${formatCurrency(voucher.discountValue)} ${target}`;
+  return `Giảm ${voucher.discountValue}% ${target}${voucher.maxDiscount ? `, tối đa ${formatCurrency(voucher.maxDiscount)}` : ""}`;
+}
+
+function lineDescription(line: CartLine) {
+  const parts: string[] = [];
+  if (line.size) parts.push(`Size ${line.size.name}`);
+  if (line.toppings.length) parts.push(line.toppings.map((t) => t.name).join(", "));
+  return parts.join(" · ");
 }
 
 export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
@@ -89,14 +63,8 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   const lines = useCartStore((state) => state.lines);
   const restaurantName = useCartStore((state) => state.restaurantName);
   const clearCart = useCartStore((state) => state.clearCart);
-
   const cartReady = useCartSession(user.id);
-
-  const defaultAddress = useMemo(
-    () => addresses.find((a) => a.isDefault) ?? addresses[0],
-    [addresses]
-  );
-
+  const defaultAddress = useMemo(() => addresses.find((a) => a.isDefault) ?? addresses[0], [addresses]);
   const [addressId, setAddressId] = useState(defaultAddress?.id ?? "");
   const [voucherCode, setVoucherCode] = useState("");
   const [vouchers, setVouchers] = useState<CheckoutVoucher[]>([]);
@@ -105,7 +73,6 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   const [addressDialogOpen, setAddressDialogOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "vnpay">("cod");
   const [note, setNote] = useState("");
-
   const [cartId, setCartId] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewState>(null);
   const [previewError, setPreviewError] = useState("");
@@ -115,40 +82,20 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   const initializedRef = useRef(false);
   const skipNextPreviewRef = useRef(false);
 
+  useEffect(() => { if (!addressId && defaultAddress) setAddressId(defaultAddress.id); }, [addressId, defaultAddress]);
+  const handleAddressCreated = useCallback((newAddressId: string) => setAddressId(newAddressId), []);
+  const handleCloseAddressDialog = useCallback(() => setAddressDialogOpen(false), []);
+
   useEffect(() => {
-    if (!addressId && defaultAddress) setAddressId(defaultAddress.id);
-  }, [addressId, defaultAddress]);
-
-  const handleAddressCreated = useCallback((newAddressId: string) => {
-    setAddressId(newAddressId);
-  }, []);
-
-  const handleCloseAddressDialog = useCallback(() => {
-    setAddressDialogOpen(false);
-  }, []);
-
-  // Đồng bộ giỏ hàng lên server 1 lần khi vào trang checkout, để lấy cart_id
-  // dùng cho preview_order/place_order.
-  useEffect(() => {
-    if (!cartReady) return;
-    if (lines.length === 0) return;
-    if (initializedRef.current) return;
+    if (!cartReady || lines.length === 0 || initializedRef.current) return;
     initializedRef.current = true;
     setVoucherError("");
     setPreviewError("");
     setIsLoadingVouchers(true);
-
     startSyncing(async () => {
-      const result = await initializeCheckout(
-        lines,
-        addressId || null,
-        paymentMethod
-      );
+      const result = await initializeCheckout(lines, addressId || null, paymentMethod);
       setIsLoadingVouchers(false);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
+      if (!result.ok) { setError(result.error); return; }
       skipNextPreviewRef.current = Boolean(addressId);
       setCartId(result.cartId);
       setVouchers(result.vouchers);
@@ -156,411 +103,159 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
       setPreview(result.preview as PreviewState);
       setPreviewError(result.previewError ?? "");
     });
-    // Chỉ chạy 1 lần khi vào trang, không refetch mỗi lần user gõ voucher.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartReady]);
 
-  // Tính lại preview mỗi khi đổi địa chỉ/voucher, sau khi đã có cartId.
   useEffect(() => {
-    if (!cartId || !addressId) {
-      setPreview(null);
-      return;
-    }
-
-    if (skipNextPreviewRef.current) {
-      skipNextPreviewRef.current = false;
-      return;
-    }
-
+    if (!cartId || !addressId) { setPreview(null); return; }
+    if (skipNextPreviewRef.current) { skipNextPreviewRef.current = false; return; }
     let cancelled = false;
     (async () => {
       setPreviewError("");
-      const result = await previewOrder(
-        cartId,
-        addressId,
-        paymentMethod,
-        voucherCode
-      );
+      const result = await previewOrder(cartId, addressId, paymentMethod, voucherCode);
       if (cancelled) return;
-      if (!result.ok) {
-        setPreviewError(result.error);
-        setPreview(null);
-        return;
-      }
+      if (!result.ok) { setPreviewError(result.error); setPreview(null); return; }
       setPreview(result.preview as PreviewState);
     })();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [cartId, addressId, paymentMethod, voucherCode]);
 
   const handlePlaceOrder = () => {
     if (!cartId || !addressId) return;
     setError("");
-
     startPlacing(async () => {
-      const result = await placeOrder(
-        cartId,
-        addressId,
-        paymentMethod,
-        note || undefined,
-        voucherCode || undefined
-      );
-
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-
+      const result = await placeOrder(cartId, addressId, paymentMethod, note || undefined, voucherCode || undefined);
+      if (!result.ok) { setError(result.error); return; }
       if (paymentMethod === "vnpay") {
-        const res = await fetch("/api/vnpay/create-payment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: result.orderId }),
-        });
+        const res = await fetch("/api/vnpay/create-payment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: result.orderId }) });
         const data = await res.json();
-
         if (!res.ok || !data.paymentUrl) {
-          setError(
-            "Đơn hàng đã được tạo nhưng không thể khởi tạo thanh toán VNPay. Vui lòng liên hệ hỗ trợ."
-          );
+          setError("Đơn hàng đã được tạo nhưng không thể khởi tạo thanh toán VNPay. Vui lòng liên hệ hỗ trợ.");
           return;
         }
-
-        // Chỉ xóa giỏ phía client sau khi đã có URL VNPay hợp lệ, tránh UI
-        // nhảy sang "Giỏ hàng đang trống" trong lúc endpoint còn đang xử lý.
         clearCart();
         window.location.href = data.paymentUrl;
         return;
       }
-
       clearCart();
       signalNavigationStart();
-      router.push(`/orders/${result.orderId}`);
+      router.push(`/orders/success?orderId=${result.orderId}`);
     });
   };
 
   if (cartReady && lines.length === 0) {
-    return (
-      <>
-        <Box sx={{ maxWidth: 640, mx: "auto", p: 4, textAlign: "center" }}>
-          <Typography variant="h6" gutterBottom>
-            Giỏ hàng đang trống
-          </Typography>
-          <Button variant="contained" onClick={() => {
-            signalNavigationStart();
-            router.push("/");
-          }}>
-            Quay lại trang chủ
-          </Button>
-        </Box>
-      </>
-    );
+    return <div className="order-checkout-page"><main className="order-checkout-main"><section className="order-empty-card"><ReceiptLongOutlinedIcon /><h2>Giỏ hàng đang trống</h2><p>Hãy chọn món trước khi chuyển sang bước xác nhận đơn hàng.</p><Button className="order-submit-button" variant="contained" component={Link} href="/">Khám phá nhà hàng</Button></section></main></div>;
   }
 
   return (
-    <>
-      <Box
-        sx={{
-          maxWidth: 720,
-          mx: "auto",
-          p: { xs: 2, md: 4 },
-          display: "flex",
-          flexDirection: "column",
-          gap: 3,
-        }}
-      >
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>
-          Xác nhận đơn hàng
-        </Typography>
+    <div className="order-checkout-page">
+      <main className="order-checkout-main">
+        <div className="order-checkout-title-row">
+          <Link className="order-back-button" href="/cart" aria-label="Quay lại giỏ hàng"><ArrowBackOutlinedIcon /></Link>
+          <div><span>Kiểm tra lần cuối</span><h1>Xác nhận đơn hàng</h1></div>
+        </div>
 
-        {restaurantName && (
-          <Typography variant="body2" color="text.secondary">
-            Nhà hàng: {restaurantName}
-          </Typography>
-        )}
+        {error && <Alert className="order-checkout-validation-summary" severity="error">{error}</Alert>}
 
-        {error && <Alert severity="error">{error}</Alert>}
+        <div className="order-checkout-layout">
+          <div>
+            <section className="order-checkout-panel">
+              <PanelHeading icon={<PlaceOutlinedIcon />} step="Bước 1" title="Địa chỉ giao hàng" />
+              <div className="order-section-toolbar"><p>Chọn địa chỉ đã lưu hoặc thêm địa chỉ bằng Google Maps.</p><Button startIcon={<AddLocationAltOutlinedIcon />} onClick={() => setAddressDialogOpen(true)}>Thêm địa chỉ</Button></div>
+              {addresses.length === 0 ? <Alert severity="warning">Bạn chưa có địa chỉ giao hàng. Hãy thêm địa chỉ để tiếp tục.</Alert> : (
+                <div className="order-address-list">
+                  {addresses.map((address) => (
+                    <label className={`order-select-card ${addressId === address.id ? "is-selected" : ""}`} key={address.id}>
+                      <input type="radio" name="address" value={address.id} checked={addressId === address.id} onChange={(e) => setAddressId(e.target.value)} />
+                      <PlaceOutlinedIcon className="order-select-card__icon" />
+                      <span><strong>{address.recipientName || "Người nhận"}{address.phone ? ` · ${address.phone}` : ""}</strong><small>{address.line1}</small></span>
+                      {address.isDefault && <em>Mặc định</em>}
+                      {addressId === address.id ? <CheckCircleRoundedIcon className="order-select-card__check" /> : <RadioButtonUncheckedRoundedIcon className="order-select-card__check" />}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </section>
 
-        <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 1,
-              mb: 1,
-            }}
-          >
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              Địa chỉ giao hàng
-            </Typography>
-            <Button
-              size="small"
-              startIcon={<AddLocationAltOutlinedIcon />}
-              onClick={() => setAddressDialogOpen(true)}
-            >
-              Thêm địa chỉ mới
-            </Button>
-          </Box>
+            <section className="order-checkout-panel">
+              <PanelHeading icon={<LocalOfferOutlinedIcon />} step="Bước 2" title="Voucher" />
+              {isLoadingVouchers && <div className="order-inline-loading"><CircularProgress size={18} /> Đang tải voucher phù hợp...</div>}
+              {voucherError && <Alert severity="error">{voucherError}</Alert>}
+              {!isLoadingVouchers && !voucherError && (
+                <div className="order-voucher-list">
+                  <label className={`order-voucher-card ${voucherCode === "" ? "is-selected" : ""}`}>
+                    <input type="radio" name="voucher" value="" checked={voucherCode === ""} onChange={() => setVoucherCode("")} />
+                    <span className="order-voucher-card__ticket"><LocalOfferOutlinedIcon /></span>
+                    <span><strong>Không dùng voucher</strong><small>Giữ nguyên giá trị đơn hàng</small></span>
+                    {voucherCode === "" ? <CheckCircleRoundedIcon /> : <RadioButtonUncheckedRoundedIcon />}
+                  </label>
+                  {vouchers.map((voucher) => (
+                    <label className={`order-voucher-card ${voucherCode === voucher.code ? "is-selected" : ""}`} key={voucher.id}>
+                      <input type="radio" name="voucher" value={voucher.code} checked={voucherCode === voucher.code} onChange={(e) => setVoucherCode(e.target.value)} />
+                      <span className="order-voucher-card__ticket"><LocalOfferOutlinedIcon /></span>
+                      <span><b>{voucher.code}</b><strong>{voucher.name}</strong><small>{voucherBenefit(voucher)}{voucher.minOrderValue > 0 ? ` · Đơn tối thiểu ${formatCurrency(voucher.minOrderValue)}` : ""}</small></span>
+                      {voucherCode === voucher.code ? <CheckCircleRoundedIcon /> : <RadioButtonUncheckedRoundedIcon />}
+                    </label>
+                  ))}
+                  {vouchers.length === 0 && <p className="order-muted-message">Hiện chưa có voucher phù hợp với nhà hàng này.</p>}
+                </div>
+              )}
+              {preview?.voucher && voucherCode && !preview.voucher.valid && <Alert severity="warning">{preview.voucher.reason || "Voucher không hợp lệ"}</Alert>}
+            </section>
 
-          {addresses.length === 0 ? (
-            <Alert severity="warning">
-              Bạn chưa có địa chỉ giao hàng. Hãy thêm địa chỉ mới để tiếp tục.
-            </Alert>
-          ) : (
-            <FormControl fullWidth>
-              <RadioGroup
-                value={addressId}
-                onChange={(e) => setAddressId(e.target.value)}
-              >
-                {addresses.map((address) => (
-                  <FormControlLabel
-                    key={address.id}
-                    value={address.id}
-                    control={<Radio />}
-                    label={
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <PlaceOutlinedIcon fontSize="small" color="action" />
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {address.recipientName || "Người nhận"}
-                            {address.phone ? ` · ${address.phone}` : ""}
-                            {address.isDefault && " (Mặc định)"}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {address.line1}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    }
-                  />
-                ))}
-              </RadioGroup>
-            </FormControl>
-          )}
-        </Paper>
+            <section className="order-checkout-panel">
+              <PanelHeading icon={<NotesOutlinedIcon />} step="Bước 3" title="Ghi chú cho nhà hàng" />
+              <div className="order-note-field"><textarea rows={4} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ví dụ: Ít cay, không lấy dụng cụ ăn uống..." /><small>{note.length}/500 · Không bắt buộc</small></div>
+            </section>
 
-        <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
-            Voucher
-          </Typography>
+            <section className="order-checkout-panel">
+              <PanelHeading icon={<AccountBalanceWalletOutlinedIcon />} step="Bước 4" title="Phương thức thanh toán" />
+              <div className="order-payment-options">
+                <PaymentOption value="cod" selected={paymentMethod === "cod"} title="Thanh toán khi nhận hàng" description="Thanh toán bằng tiền mặt cho tài xế" icon={<PaymentsOutlinedIcon />} onSelect={() => setPaymentMethod("cod")} />
+                <PaymentOption value="vnpay" selected={paymentMethod === "vnpay"} title="Thanh toán qua VNPay" description="Quét QR hoặc thanh toán bằng thẻ ngân hàng" icon={<AccountBalanceWalletOutlinedIcon />} onSelect={() => setPaymentMethod("vnpay")} />
+              </div>
+            </section>
+          </div>
 
-          {isLoadingVouchers && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
-              <CircularProgress size={16} />
-              <Typography variant="body2" color="text.secondary">
-                Đang tải voucher...
-              </Typography>
-            </Box>
-          )}
-
-          {voucherError && <Alert severity="error">{voucherError}</Alert>}
-
-          {!isLoadingVouchers && !voucherError && (
-            <RadioGroup
-              value={voucherCode}
-              onChange={(event) => setVoucherCode(event.target.value)}
-            >
-              <FormControlLabel
-                value=""
-                control={<Radio />}
-                label="Không sử dụng voucher"
-              />
-
-              {vouchers.map((voucher) => (
-                <FormControlLabel
-                  key={voucher.id}
-                  value={voucher.code}
-                  control={<Radio />}
-                  label={
-                    <Box sx={{ display: "flex", gap: 1.25, py: 0.75 }}>
-                      <LocalOfferOutlinedIcon color="primary" fontSize="small" />
-                      <Box>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1,
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <Chip
-                            label={voucher.code}
-                            color="primary"
-                            variant="outlined"
-                            size="small"
-                          />
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {voucher.name}
-                          </Typography>
-                        </Box>
-                        <Typography variant="caption" color="text.secondary">
-                          {voucherBenefit(voucher)}
-                          {voucher.minOrderValue > 0 &&
-                            ` · Đơn tối thiểu ${formatCurrency(
-                              voucher.minOrderValue
-                            )}`}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  }
-                />
+          <aside className="order-summary-card">
+            <div className="order-summary-heading"><ReceiptLongOutlinedIcon /><h2>Đơn hàng của bạn</h2></div>
+            <div className="order-summary-restaurant"><StorefrontOutlinedIcon fontSize="small" /> {restaurantName || "Nhà hàng"}</div>
+            <div className="order-summary-list">
+              {lines.map((line) => (
+                <div className="order-summary-item" key={line.lineId}>
+                  <div className="order-summary-item__media"><Image src={line.foodImage} alt={line.foodName} fill sizes="56px" /></div>
+                  <div><h3>{line.quantity} × {line.foodName}</h3>{lineDescription(line) && <span>{lineDescription(line)}</span>}</div>
+                  <strong>{formatCurrency(line.unitPrice * line.quantity)}</strong>
+                </div>
               ))}
+            </div>
+            {isSyncing && <div className="order-inline-loading"><CircularProgress size={18} /> Đang tính tổng tiền...</div>}
+            {previewError && <Alert severity="error">{previewError}</Alert>}
+            {preview && <OrderPricing preview={preview} />}
+            {!addressId && <p className="order-summary-hint"><PlaceOutlinedIcon fontSize="small" /> Chọn địa chỉ để tính phí giao hàng.</p>}
+            <Button className="order-submit-button" variant="contained" disabled={!cartId || !addressId || !preview || isSyncing || isPlacing} onClick={handlePlaceOrder} startIcon={isPlacing ? <CircularProgress color="inherit" size={18} /> : undefined}>{paymentMethod === "vnpay" ? "Thanh toán qua VNPay" : "Đặt hàng"}</Button>
+            <p className="order-summary-policy">Bằng việc đặt hàng, bạn xác nhận thông tin giao nhận và giá trị đơn ở trên.</p>
+          </aside>
+        </div>
+      </main>
 
-              {vouchers.length === 0 && (
-                <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
-                  Hiện chưa có voucher phù hợp với nhà hàng này.
-                </Typography>
-              )}
-            </RadioGroup>
-          )}
-
-          {preview?.voucher && voucherCode && !preview.voucher.valid && (
-            <Alert severity="warning" sx={{ mt: 1 }}>
-              {preview.voucher.reason || "Voucher không hợp lệ"}
-            </Alert>
-          )}
-        </Paper>
-
-        <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
-            Phương thức thanh toán
-          </Typography>
-          <RadioGroup
-            value={paymentMethod}
-            onChange={(e) =>
-              setPaymentMethod(e.target.value as "cod" | "vnpay")
-            }
-          >
-            <FormControlLabel
-              value="cod"
-              control={<Radio />}
-              label="Thanh toán khi nhận hàng (COD)"
-            />
-            <FormControlLabel
-              value="vnpay"
-              control={<Radio />}
-              label="Thanh toán qua VNPay (quét QR / thẻ)"
-            />
-          </RadioGroup>
-        </Paper>
-
-        <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <TextField
-            fullWidth
-            size="small"
-            label="Ghi chú cho đơn hàng (không bắt buộc)"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
-        </Paper>
-
-        <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
-            Tổng thanh toán
-          </Typography>
-
-          {isSyncing && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
-              <CircularProgress size={16} />
-              <Typography variant="body2" color="text.secondary">
-                Đang chuẩn bị giỏ hàng...
-              </Typography>
-            </Box>
-          )}
-
-          {previewError && <Alert severity="error">{previewError}</Alert>}
-
-          {preview && (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-              <Row label="Tạm tính" value={formatCurrency(preview.subtotal)} />
-              <Row
-                label="Phí giao hàng"
-                value={formatCurrency(preview.shipping_fee)}
-              />
-              {preview.discount_amount > 0 && (
-                <Row
-                  label="Giảm giá"
-                  value={`-${formatCurrency(preview.discount_amount)}`}
-                />
-              )}
-              {(preview.customer_fee_amount ?? 0) > 0 && (
-                <Row
-                  label="Phí dịch vụ và phụ phí"
-                  value={formatCurrency(preview.customer_fee_amount ?? 0)}
-                />
-              )}
-              {(preview.tax_amount ?? 0) > 0 && (
-                <Row
-                  label={
-                    (preview.tax_added_amount ?? 0) > 0
-                      ? "Thuế"
-                      : "Thuế đã bao gồm"
-                  }
-                  value={formatCurrency(preview.tax_amount ?? 0)}
-                />
-              )}
-              <Divider sx={{ my: 1 }} />
-              <Row
-                label="Tổng cộng"
-                value={formatCurrency(preview.total_price)}
-                bold
-              />
-            </Box>
-          )}
-        </Paper>
-
-        <Button
-          variant="contained"
-          size="large"
-          disabled={
-            !cartId ||
-            !addressId ||
-            !preview ||
-            isSyncing ||
-            isPlacing
-          }
-          onClick={handlePlaceOrder}
-          startIcon={isPlacing ? <CircularProgress size={18} /> : undefined}
-        >
-          {paymentMethod === "vnpay" ? "Thanh toán qua VNPay" : "Đặt hàng"}
-        </Button>
-      </Box>
-
-      <CheckoutAddressDialog
-        open={addressDialogOpen}
-        onClose={handleCloseAddressDialog}
-        onCreated={handleAddressCreated}
-      />
-    </>
+      <CheckoutAddressDialog open={addressDialogOpen} onClose={handleCloseAddressDialog} onCreated={handleAddressCreated} />
+    </div>
   );
 }
 
-function Row({
-  label,
-  value,
-  bold,
-}: {
-  label: string;
-  value: string;
-  bold?: boolean;
-}) {
-  return (
-    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-      <Typography
-        variant="body2"
-        color={bold ? "text.primary" : "text.secondary"}
-        sx={{ fontWeight: bold ? 700 : 400 }}
-      >
-        {label}
-      </Typography>
-      <Typography variant="body2" sx={{ fontWeight: bold ? 700 : 500 }}>
-        {value}
-      </Typography>
-    </Box>
-  );
+function PanelHeading({ icon, step, title }: { icon: ReactNode; step: string; title: string }) {
+  return <div className="order-panel-heading">{icon}<div><span>{step}</span><h2>{title}</h2></div></div>;
+}
+
+function PaymentOption({ value, selected, title, description, icon, onSelect }: { value: string; selected: boolean; title: string; description: string; icon: ReactNode; onSelect: () => void }) {
+  return <label className={`order-payment-option ${selected ? "is-selected" : ""}`}><input type="radio" name="payment" value={value} checked={selected} onChange={onSelect} /><span className="order-payment-option__icon">{icon}</span><span><strong>{title}</strong><small>{description}</small></span><span className="order-payment-option__radio">{selected ? <CheckCircleRoundedIcon /> : <RadioButtonUncheckedRoundedIcon />}</span></label>;
+}
+
+function OrderPricing({ preview }: { preview: NonNullable<PreviewState> }) {
+  return <><div className="order-summary-rows"><PriceRow label="Tạm tính" value={formatCurrency(preview.subtotal)} /><PriceRow label="Phí giao hàng" value={formatCurrency(preview.shipping_fee)} />{preview.discount_amount > 0 && <PriceRow label="Giảm giá" value={`-${formatCurrency(preview.discount_amount)}`} discount />}{(preview.customer_fee_amount ?? 0) > 0 && <PriceRow label="Phí dịch vụ và phụ phí" value={formatCurrency(preview.customer_fee_amount ?? 0)} />}{(preview.tax_amount ?? 0) > 0 && <PriceRow label={(preview.tax_added_amount ?? 0) > 0 ? "Thuế" : "Thuế đã bao gồm"} value={formatCurrency(preview.tax_amount ?? 0)} />}</div><div className="order-summary-total"><span>Tổng cộng</span><strong>{formatCurrency(preview.total_price)}</strong></div></>;
+}
+
+function PriceRow({ label, value, discount }: { label: string; value: string; discount?: boolean }) {
+  return <div><span>{label}</span><strong className={discount ? "is-discount" : ""}>{value}</strong></div>;
 }

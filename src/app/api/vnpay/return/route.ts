@@ -36,8 +36,13 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const status = rspCode === "00" ? "success" : "failed";
+  if (rspCode === "00") {
+    return NextResponse.redirect(
+      new URL(`/orders/success?orderId=${orderId}&payment=success`, req.url)
+    );
+  }
+
   return NextResponse.redirect(
-    new URL(`/orders/${orderId}?payment=${status}`, req.url)
+    new URL(`/orders/${orderId}?payment=failed`, req.url)
   );
 }
