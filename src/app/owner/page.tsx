@@ -25,5 +25,5 @@ export default async function OwnerPage({ searchParams }: Props) {
     return <RouteNotice eyebrow="Kênh người bán" title="Chưa thể tải nhà hàng" message="Hãy kiểm tra SQL 21–22 và thử lại." actions={[{ href: "/account/seller", label: "Về hồ sơ bán hàng", variant: "primary" }]} />;
   }
 
-  return <OwnerDashboard userId={user.id} restaurants={restaurants} data={dashboard} />;
+  return <OwnerDashboard key={selected.id} userId={user.id} restaurants={restaurants} data={dashboard} />;
 }

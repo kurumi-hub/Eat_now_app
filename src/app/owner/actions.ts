@@ -3,6 +3,7 @@
 import { revalidatePath, updateTag } from "next/cache";
 
 import type { OwnerActionResult, RestaurantHour } from "@/types/owner";
+import { verifyGoogleAddressSelection } from "@/lib/geocoding";
 import { requireAnyRole } from "@/utils/auth/guards";
 import { createClient } from "@/utils/supabase/server";
 
@@ -11,7 +12,7 @@ const BUCKET = "restaurant-media";
 
 export type RestaurantProfileInput = {
   id: string; name: string; description: string; address: string; phone: string;
-  lat: number; lon: number; timezone: string;
+  googlePlaceId: string; lat: number; lon: number; timezone: string;
 };
 
 function errorMessage(error: { code?: string; message?: string } | null, fallback: string) {
@@ -38,9 +39,44 @@ export async function updateRestaurantProfileAction(input: RestaurantProfileInpu
   if (input.name.trim().length < 2 || input.address.trim().length < 5) return { ok: false, message: "Tên hoặc địa chỉ chưa hợp lệ." };
   if (!Number.isFinite(input.lat) || !Number.isFinite(input.lon)) return { ok: false, message: "Tọa độ chưa hợp lệ." };
   const supabase = await authorized();
+  const { data: currentData } = await supabase.rpc("api_get_owner_restaurant_dashboard", {
+    p_restaurant_id: input.id,
+  });
+  const currentRestaurant = currentData && typeof currentData === "object" &&
+    !Array.isArray(currentData) && "restaurant" in currentData &&
+    currentData.restaurant && typeof currentData.restaurant === "object" &&
+    !Array.isArray(currentData.restaurant)
+      ? currentData.restaurant as Record<string, unknown>
+      : null;
+  const unchangedPublishedLocation = Boolean(
+    currentRestaurant?.published_at &&
+    currentRestaurant.address === input.address.trim() &&
+    Number(currentRestaurant.lat) === input.lat &&
+    Number(currentRestaurant.lon) === input.lon
+  );
+  let verifiedAddress = input.address.trim();
+  if (!unchangedPublishedLocation) {
+    try {
+      const verified = await verifyGoogleAddressSelection({
+        address: input.address,
+        placeId: input.googlePlaceId,
+        lat: input.lat,
+        lon: input.lon,
+      });
+      verifiedAddress = verified.formattedAddress || verifiedAddress;
+    } catch (error) {
+      console.error("[owner] Xác minh Google Maps thất bại", error);
+      return {
+        ok: false,
+        message: error instanceof Error && error.message.includes("GOOGLE_MAPS_SERVER_API_KEY")
+          ? "Máy chủ chưa cấu hình GOOGLE_MAPS_SERVER_API_KEY."
+          : error instanceof Error ? error.message : "Không thể xác minh địa chỉ Google Maps.",
+      };
+    }
+  }
   const { error } = await supabase.rpc("api_update_restaurant_profile", {
     p_restaurant_id: input.id, p_name: input.name.trim(),
-    p_description: input.description.trim() || null, p_address: input.address.trim(),
+    p_description: input.description.trim() || null, p_address: verifiedAddress,
     p_phone: input.phone.trim() || null, p_lat: input.lat, p_lon: input.lon,
     p_timezone: input.timezone || "Asia/Ho_Chi_Minh",
   });

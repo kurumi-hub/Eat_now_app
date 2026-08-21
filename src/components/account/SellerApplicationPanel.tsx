@@ -11,6 +11,9 @@ import {
   withdrawSellerApplicationAction,
 } from "@/app/account/seller/actions";
 import type { SellerContext, StaffInvitation } from "@/types/owner";
+import RestaurantAddressField, {
+  type RestaurantAddressSelection,
+} from "@/components/restaurant/RestaurantAddressField";
 
 const STATUS: Record<string, string> = {
   DRAFT: "Bản nháp", SUBMITTED: "Đã nộp", UNDER_REVIEW: "Đang xét duyệt",
@@ -34,6 +37,16 @@ export default function SellerApplicationPanel({
   const editable = !application || ["DRAFT", "NEEDS_CHANGES"].includes(application.status);
   const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState("");
+  const [location, setLocation] = useState<RestaurantAddressSelection | null>(() =>
+    application?.address && application.lat != null && application.lon != null
+      ? {
+          formattedAddress: application.address,
+          placeId: "",
+          lat: application.lat,
+          lon: application.lon,
+        }
+      : null
+  );
 
   const run = (task: () => Promise<{ ok: boolean; message: string }>) => {
     startTransition(async () => {
@@ -45,14 +58,19 @@ export default function SellerApplicationPanel({
 
   const save = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!location) {
+      setNotice("Hãy chọn và xác nhận vị trí nhà hàng trên Google Maps.");
+      return;
+    }
     const data = new FormData(event.currentTarget);
     run(() => saveSellerApplicationAction({
       applicationId: application?.id,
       restaurantName: String(data.get("restaurantName") || ""),
       description: String(data.get("description") || ""),
-      address: String(data.get("address") || ""),
+      address: location.formattedAddress,
+      googlePlaceId: location.placeId,
       phone: String(data.get("phone") || ""),
-      lat: Number(data.get("lat")), lon: Number(data.get("lon")),
+      lat: location.lat, lon: location.lon,
       timezone: String(data.get("timezone") || "Asia/Ho_Chi_Minh"),
       businessLicenseNumber: String(data.get("businessLicenseNumber") || ""),
       taxCode: String(data.get("taxCode") || ""),
@@ -95,9 +113,10 @@ export default function SellerApplicationPanel({
         <label>Tên nhà hàng<input name="restaurantName" required minLength={2} maxLength={160} defaultValue={application?.restaurantName} disabled={!editable} /></label>
         <label>Số điện thoại<input name="phone" required defaultValue={application?.phone} disabled={!editable} /></label>
         <label className="full">Mô tả<textarea name="description" rows={3} defaultValue={application?.description} disabled={!editable} /></label>
-        <label className="full">Địa chỉ<input name="address" required defaultValue={application?.address} disabled={!editable} /></label>
-        <label>Vĩ độ<input name="lat" type="number" step="any" required defaultValue={application?.lat} disabled={!editable} /></label>
-        <label>Kinh độ<input name="lon" type="number" step="any" required defaultValue={application?.lon} disabled={!editable} /></label>
+        <div className="full seller-address-field">
+          <span>Địa chỉ và vị trí nhà hàng</span>
+          <RestaurantAddressField value={location} onChange={setLocation} disabled={!editable} />
+        </div>
         <label>Múi giờ<input name="timezone" required defaultValue={application?.timezone || "Asia/Ho_Chi_Minh"} disabled={!editable} /></label>
         <label>Giấy phép kinh doanh<input name="businessLicenseNumber" defaultValue={application?.businessLicenseNumber} disabled={!editable} /></label>
         <label>Mã số thuế<input name="taxCode" defaultValue={application?.taxCode} disabled={!editable} /></label>

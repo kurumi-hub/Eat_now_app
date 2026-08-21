@@ -440,6 +440,7 @@
 .seller-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .seller-form label { display: grid; gap: 7px; color: #3f4650; font-size: 13px; font-weight: 700; }
 .seller-form .full { grid-column: 1 / -1; }
+.seller-address-field { display: grid; gap: 8px; color: #3f4650; font-size: 13px; font-weight: 700; }
 .seller-form input, .seller-form textarea { box-sizing: border-box; width: 100%; border: 1px solid #dfe3e8; border-radius: 12px; padding: 11px 13px; background: white; color: #20242a; font: inherit; }
 .seller-form input:disabled, .seller-form textarea:disabled { background: #f7f7f8; color: #6c737d; }
 .seller-actions { display: flex; flex-wrap: wrap; gap: 10px; }

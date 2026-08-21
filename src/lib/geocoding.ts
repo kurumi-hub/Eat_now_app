@@ -132,3 +132,25 @@ export function distanceKm(
       Math.sin(dLon / 2) ** 2;
   return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
+
+/** Xác minh lại lựa chọn Google Maps ở server trước khi dùng cho nghiệp vụ. */
+export async function verifyGoogleAddressSelection(input: {
+  address: string;
+  placeId?: string;
+  lat: number;
+  lon: number;
+}) {
+  if (!input.address.trim() || !isValidCoordinate(input.lat, input.lon)) {
+    throw new Error("Địa chỉ hoặc tọa độ Google Maps không hợp lệ.");
+  }
+  const geo = input.placeId?.trim()
+    ? await geocodePlaceId(input.placeId)
+    : await geocodeAddress(input.address);
+  if (!geo) {
+    throw new Error("Không tìm thấy địa chỉ nhà hàng trên Google Maps.");
+  }
+  if (distanceKm(geo.lat, geo.lon, input.lat, input.lon) > 1.5) {
+    throw new Error("Vị trí ghim cách địa chỉ Google quá xa. Hãy chọn lại vị trí.");
+  }
+  return geo;
+}

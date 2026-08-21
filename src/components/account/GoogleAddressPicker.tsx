@@ -55,6 +55,7 @@ type AddressComponent = {
 
 type GoogleAddressPickerProps = {
   onAddressSelect: (selection: GoogleAddressSelection) => void;
+  context?: "delivery" | "restaurant";
 };
 
 type PickerContentProps = GoogleAddressPickerProps & {
@@ -131,6 +132,7 @@ function parseAddress(
 function GoogleAddressPickerContent({
   onAddressSelect,
   providerError,
+  context = "delivery",
 }: PickerContentProps) {
   const map = useMap();
   const geocodingLibrary = useMapsLibrary("geocoding");
@@ -289,7 +291,7 @@ function GoogleAddressPickerContent({
         fields: ["id", "formattedAddress", "location", "addressComponents"],
       });
       if (!place.location || !place.formattedAddress) {
-        throw new Error("Địa chỉ này chưa có tọa độ giao hàng.");
+          throw new Error("Địa chỉ này chưa có tọa độ hợp lệ.");
       }
 
       const next = {
@@ -349,7 +351,9 @@ function GoogleAddressPickerContent({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
-      <Typography variant="subtitle2">Tìm vị trí giao hàng</Typography>
+      <Typography variant="subtitle2">
+        {context === "restaurant" ? "Tìm vị trí nhà hàng" : "Tìm vị trí giao hàng"}
+      </Typography>
 
       <ClickAwayListener onClickAway={() => setSuggestionsOpen(false)}>
         <Box sx={{ position: "relative" }}>
@@ -525,7 +529,7 @@ function GoogleAddressPickerContent({
         !blockingError && (
           <Typography variant="caption" color="text.secondary">
             Hãy chọn một gợi ý, dùng vị trí hiện tại hoặc bấm trên bản đồ. Kéo
-            bản đồ để đặt ghim giữa đúng cổng giao hàng.
+            bản đồ để đặt ghim tại vị trí chính xác.
           </Typography>
         )
       )}
@@ -535,6 +539,7 @@ function GoogleAddressPickerContent({
 
 export default function GoogleAddressPicker({
   onAddressSelect,
+  context = "delivery",
 }: GoogleAddressPickerProps) {
   const rawApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
   const apiKey = normalizePublicApiKey(rawApiKey);
@@ -565,6 +570,7 @@ export default function GoogleAddressPicker({
       <GoogleAddressPickerContent
         onAddressSelect={onAddressSelect}
         providerError={providerError}
+        context={context}
       />
     </APIProvider>
   );

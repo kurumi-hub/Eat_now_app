@@ -80,3 +80,11 @@ select {
     padding-inline: 16px;
   }
 }
+/* Shared Google Maps selector for restaurant application and Owner profile. */
+.restaurant-address-field { display: grid; gap: 10px; }
+.restaurant-address-field__selection { display: flex; align-items: flex-start; gap: 11px; padding: 13px; }
+.restaurant-address-field__selection > div { display: grid; gap: 3px; min-width: 0; }
+.restaurant-address-field__selection strong { color: #30343a; font-size: 13px; }
+.restaurant-address-field__selection span { color: #555d67; font-size: 13px; line-height: 1.5; }
+.restaurant-address-field__selection small { color: #8a9098; }
+.restaurant-address-field > .MuiButton-root { justify-self: start; }

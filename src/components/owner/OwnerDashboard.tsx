@@ -13,6 +13,9 @@ import {
 } from "@/app/owner/actions";
 import type { ManagedRestaurantSummary, OwnerActionResult, OwnerDashboardData, RestaurantHour, RestaurantMedia } from "@/types/owner";
 import { createClient } from "@/utils/supabase/client";
+import RestaurantAddressField, {
+  type RestaurantAddressSelection,
+} from "@/components/restaurant/RestaurantAddressField";
 
 const DAYS = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
 const STATE: Record<string, string> = {
@@ -92,11 +95,17 @@ function Overview({ data, pending, canOrders, canProfile, run }: { data: OwnerDa
 
 function Profile({ data, pending, run }: { data: OwnerDashboardData; pending: boolean; run: (task: () => Promise<OwnerActionResult>) => void }) {
   const r = data.restaurant; const locked = Boolean(r.publishedAt);
-  const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const form = new FormData(event.currentTarget); run(() => updateRestaurantProfileAction({ id: r.id, name: String(form.get("name") || ""), description: String(form.get("description") || ""), address: String(form.get("address") || ""), phone: String(form.get("phone") || ""), lat: Number(form.get("lat")), lon: Number(form.get("lon")), timezone: String(form.get("timezone") || "Asia/Ho_Chi_Minh") })); };
+  const [location, setLocation] = useState<RestaurantAddressSelection | null>(() =>
+    r.address && r.lat != null && r.lon != null
+      ? { formattedAddress: r.address, placeId: "", lat: r.lat, lon: r.lon }
+      : null
+  );
+  const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const form = new FormData(event.currentTarget); if (!location) { run(async () => ({ ok: false, message: "Hãy xác nhận vị trí nhà hàng trên Google Maps." })); return; } run(() => updateRestaurantProfileAction({ id: r.id, name: String(form.get("name") || ""), description: String(form.get("description") || ""), address: location.formattedAddress, googlePlaceId: location.placeId, phone: String(form.get("phone") || ""), lat: location.lat, lon: location.lon, timezone: String(form.get("timezone") || "Asia/Ho_Chi_Minh") })); };
   return <section className="owner-card"><div className="owner-card__heading"><div><h2>Hồ sơ nhà hàng</h2><p>{locked ? "Sau xuất bản, tên/địa chỉ/tọa độ được khóa để bảo toàn hồ sơ đã duyệt." : "Hoàn tất dữ liệu trước khi xuất bản."}</p></div></div><form className="owner-form" onSubmit={submit}>
     <label>Tên nhà hàng<input name="name" defaultValue={r.name} readOnly={locked} required /></label><label>Số điện thoại<input name="phone" defaultValue={r.phone} /></label>
-    <label className="full">Mô tả<textarea name="description" rows={4} defaultValue={r.description} /></label><label className="full">Địa chỉ<input name="address" defaultValue={r.address} readOnly={locked} required /></label>
-    <label>Vĩ độ<input name="lat" type="number" step="any" defaultValue={r.lat} readOnly={locked} required /></label><label>Kinh độ<input name="lon" type="number" step="any" defaultValue={r.lon} readOnly={locked} required /></label><label>Múi giờ<input name="timezone" defaultValue={r.timezone} readOnly={locked} required /></label>
+    <label className="full">Mô tả<textarea name="description" rows={4} defaultValue={r.description} /></label>
+    <div className="full owner-address-field"><span>Địa chỉ và vị trí nhà hàng</span><RestaurantAddressField value={location} onChange={setLocation} disabled={locked} /></div>
+    <label>Múi giờ<input name="timezone" defaultValue={r.timezone} readOnly={locked} required /></label>
     <div className="full"><button disabled={pending}>Lưu thay đổi</button></div>
   </form></section>;
 }

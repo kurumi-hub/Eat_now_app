@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import type { OwnerActionResult } from "@/types/owner";
+import { verifyGoogleAddressSelection } from "@/lib/geocoding";
 import { requireAnyRole } from "@/utils/auth/guards";
 import { createClient } from "@/utils/supabase/server";
 
@@ -13,6 +14,7 @@ export type SellerApplicationInput = {
   restaurantName: string;
   description: string;
   address: string;
+  googlePlaceId: string;
   phone: string;
   lat: number;
   lon: number;
@@ -55,11 +57,25 @@ export async function saveSellerApplicationAction(
   if (input.applicationId && !UUID.test(input.applicationId)) {
     return { ok: false, message: "Mã hồ sơ không hợp lệ." };
   }
+  let verifiedAddress;
+  try {
+    verifiedAddress = await verifyGoogleAddressSelection({
+      address, placeId: input.googlePlaceId, lat: input.lat, lon: input.lon,
+    });
+  } catch (error) {
+    console.error("[seller] Xác minh Google Maps thất bại", error);
+    return {
+      ok: false,
+      message: error instanceof Error && error.message.includes("GOOGLE_MAPS_SERVER_API_KEY")
+        ? "Máy chủ chưa cấu hình GOOGLE_MAPS_SERVER_API_KEY."
+        : error instanceof Error ? error.message : "Không thể xác minh địa chỉ Google Maps.",
+    };
+  }
   const supabase = await createClient();
   const { error } = await supabase.rpc("api_save_restaurant_application", {
     p_restaurant_name: name,
     p_description: input.description.trim() || null,
-    p_address: address,
+    p_address: verifiedAddress.formattedAddress || address,
     p_phone: phone,
     p_lat: input.lat,
     p_lon: input.lon,
