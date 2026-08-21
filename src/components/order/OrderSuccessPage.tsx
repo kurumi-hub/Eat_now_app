@@ -12,7 +12,18 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { useCart } from "@/contexts/CartContext";
+import type { OrderReceipt } from "@/contexts/CartContext";
 import { formatOrderCurrency } from "./orderData";
+
+function getReceiptRestaurantLabel(lastOrder: OrderReceipt) {
+  const restaurantNames = Array.from(
+    new Set(lastOrder.items.map((item) => item.restaurantName))
+  );
+
+  return restaurantNames.length > 0
+    ? restaurantNames.join(", ")
+    : lastOrder.restaurant.restaurantName;
+}
 
 export default function OrderSuccessPage() {
   const router = useRouter();
@@ -47,7 +58,7 @@ export default function OrderSuccessPage() {
 
             <div className="order-receipt-row">
               <span>Nhà hàng</span>
-              <strong>{lastOrder.restaurant.restaurantName}</strong>
+              <strong>{getReceiptRestaurantLabel(lastOrder)}</strong>
             </div>
             {lastOrder.discount > 0 ? (
               <div className="order-receipt-row">

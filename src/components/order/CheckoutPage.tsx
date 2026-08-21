@@ -32,7 +32,7 @@ import {
   calculateVoucherDiscount,
   type VoucherItem,
 } from "@/components/voucher/voucherData";
-import { useCart } from "@/contexts/CartContext";
+import { getCartItemKey, useCart } from "@/contexts/CartContext";
 import type { CartItem, CartRestaurant } from "@/contexts/CartContext";
 import type { PublicUser } from "@/types/auth";
 import VoucherPickerModal from "./VoucherPickerModal";
@@ -71,21 +71,53 @@ type CheckoutCart = {
   restaurantNote: string;
 };
 
+type CheckoutRestaurantGroup = CartRestaurant & {
+  items: CartItem[];
+};
+
+const temporaryCheckoutRestaurant: CartRestaurant = {
+  restaurantId: temporaryCartRestaurant.id,
+  restaurantSlug: temporaryCartRestaurant.slug,
+  restaurantName: temporaryCartRestaurant.name,
+};
+
 const temporaryCheckoutCart: CheckoutCart = {
-  restaurant: {
-    restaurantId: temporaryCartRestaurant.id,
-    restaurantSlug: temporaryCartRestaurant.slug,
-    restaurantName: temporaryCartRestaurant.name,
-  },
+  restaurant: temporaryCheckoutRestaurant,
   items: mockCartItems.map(({ foodId, image, name, price, quantity }) => ({
     foodId,
     image,
     name,
     price,
     quantity,
+    restaurantId: temporaryCheckoutRestaurant.restaurantId,
+    restaurantSlug: temporaryCheckoutRestaurant.restaurantSlug,
+    restaurantName: temporaryCheckoutRestaurant.restaurantName,
   })),
   restaurantNote: mockRestaurantNote,
 };
+
+function groupCartItemsByRestaurant(items: CartItem[]) {
+  return items.reduce<CheckoutRestaurantGroup[]>((groups, item) => {
+    const group = groups.find(
+      (currentGroup) => currentGroup.restaurantId === item.restaurantId
+    );
+
+    if (group) {
+      group.items.push(item);
+      return groups;
+    }
+
+    return [
+      ...groups,
+      {
+        restaurantId: item.restaurantId,
+        restaurantSlug: item.restaurantSlug,
+        restaurantName: item.restaurantName,
+        items: [item],
+      },
+    ];
+  }, []);
+}
 
 function getInitialValues(user: PublicUser | null): DeliveryFormValues {
   return {
@@ -168,6 +200,10 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
   );
   const itemCount = useMemo(
     () => getCheckoutItemCount(checkoutCart.items),
+    [checkoutCart.items]
+  );
+  const checkoutRestaurantGroups = useMemo(
+    () => groupCartItemsByRestaurant(checkoutCart.items),
     [checkoutCart.items]
   );
   const deliveryFee = checkoutCart.items.length > 0 ? mockDeliveryFee : 0;
@@ -558,35 +594,58 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
                 <h2>Tóm tắt đơn hàng</h2>
               </div>
 
-              {checkoutCart.restaurant ? (
-                <Link
-                  className="order-summary-restaurant"
-                  href={`/restaurants/${checkoutCart.restaurant.restaurantSlug}`}
-                >
-                  <StorefrontOutlinedIcon fontSize="small" />
-                  {checkoutCart.restaurant.restaurantName}
-                </Link>
-              ) : null}
-
               <div className="order-summary-list">
-                {checkoutCart.items.map((item) => (
-                  <article className="order-summary-item" key={item.foodId}>
-                    <div className="order-summary-item__media">
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        sizes="56px"
-                      />
+                {checkoutRestaurantGroups.map((group) => (
+                  <section
+                    className="order-summary-group"
+                    key={group.restaurantId}
+                    aria-label={group.restaurantName}
+                  >
+                    <Link
+                      className="order-summary-restaurant"
+                      href={`/restaurants/${group.restaurantSlug}`}
+                    >
+                      <StorefrontOutlinedIcon fontSize="small" />
+                      {group.restaurantName}
+                    </Link>
+
+                    <div className="order-summary-group-items">
+                      {group.items.map((item) => (
+                        <article
+                          className="order-summary-item"
+                          key={getCartItemKey(item)}
+                        >
+                          <div className="order-summary-item__media">
+                            <Image
+                              src={item.image}
+                              alt={item.name}
+                              fill
+                              sizes="56px"
+                            />
+                          </div>
+                          <div>
+                            <h3>{item.name}</h3>
+                            <span>
+                              {item.restaurantName} - x{item.quantity}
+                            </span>
+                            {item.optionSummary?.length ? (
+                              <small className="order-summary-item__options">
+                                {item.optionSummary.join(", ")}
+                              </small>
+                            ) : null}
+                            {item.note ? (
+                              <small className="order-summary-item__note">
+                                Ghi chú: {item.note}
+                              </small>
+                            ) : null}
+                          </div>
+                          <strong>
+                            {formatOrderCurrency(item.price * item.quantity)}
+                          </strong>
+                        </article>
+                      ))}
                     </div>
-                    <div>
-                      <h3>{item.name}</h3>
-                      <span>x{item.quantity}</span>
-                    </div>
-                    <strong>
-                      {formatOrderCurrency(item.price * item.quantity)}
-                    </strong>
-                  </article>
+                  </section>
                 ))}
               </div>
 

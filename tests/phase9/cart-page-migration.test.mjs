@@ -38,8 +38,68 @@ test("Cart state is centralized in CartContext with reducer and localStorage per
   assert.match(context, /decrementQuantity/);
   assert.match(context, /removeItem/);
   assert.match(context, /clearCart/);
-  assert.match(context, /RESTAURANT_CONFLICT/);
+  assert.doesNotMatch(context, /RESTAURANT_CONFLICT/);
   assert.match(layout, /CartProvider/);
+});
+
+test("Cart supports ordering items from multiple restaurants together", async () => {
+  const context = await readProjectFile(
+    "src",
+    "contexts",
+    "CartContext.tsx"
+  );
+  const cartComponent = await readProjectFile(
+    "src",
+    "components",
+    "cart",
+    "CartPage.tsx"
+  );
+  const checkoutComponent = await readProjectFile(
+    "src",
+    "components",
+    "order",
+    "CheckoutPage.tsx"
+  );
+
+  assert.match(context, /restaurantId: restaurant\.restaurantId/);
+  assert.match(context, /restaurantSlug: restaurant\.restaurantSlug/);
+  assert.match(context, /restaurantName: restaurant\.restaurantName/);
+  assert.match(context, /getCartItemKey/);
+  assert.match(context, /restaurantId\?: string/);
+  assert.doesNotMatch(context, /cart\.restaurant\s*&&[\s\S]*return "RESTAURANT_CONFLICT"/);
+  assert.match(cartComponent, /cartRestaurantGroups/);
+  assert.match(cartComponent, /item\.restaurantName/);
+  assert.match(checkoutComponent, /checkoutRestaurantGroups/);
+  assert.match(checkoutComponent, /item\.restaurantName/);
+});
+
+test("Cart keeps customized menu variants separate and visible", async () => {
+  const context = await readProjectFile(
+    "src",
+    "contexts",
+    "CartContext.tsx"
+  );
+  const cartComponent = await readProjectFile(
+    "src",
+    "components",
+    "cart",
+    "CartPage.tsx"
+  );
+  const checkoutComponent = await readProjectFile(
+    "src",
+    "components",
+    "order",
+    "CheckoutPage.tsx"
+  );
+
+  assert.match(context, /customizationKey\?: string/);
+  assert.match(context, /optionSummary\?: string\[\]/);
+  assert.match(context, /note\?: string/);
+  assert.match(context, /customizationKey \|\| "default"/);
+  assert.match(cartComponent, /item\.optionSummary/);
+  assert.match(cartComponent, /item\.note/);
+  assert.match(checkoutComponent, /item\.optionSummary/);
+  assert.match(checkoutComponent, /item\.note/);
 });
 
 test("Cart Page uses CartContext, MUI, Next assets, and context controls", async () => {
@@ -60,7 +120,7 @@ test("Cart Page uses CartContext, MUI, Next assets, and context controls", async
   assert.match(component, /handleIncreaseQuantity/);
   assert.match(component, /handleDecreaseQuantity/);
   assert.match(component, /handleRemoveItem/);
-  assert.match(component, /cart\.restaurant/);
+  assert.match(component, /cartRestaurantGroups/);
   assert.doesNotMatch(component, /mockCartItems|useState<CartItem\[\]>/);
   assert.doesNotMatch(component, /react-router-dom|localStorage|supabase|fetch\(/);
   assert.doesNotMatch(
@@ -82,9 +142,9 @@ test("Restaurant detail add button writes available items into CartContext", asy
   assert.match(component, /restaurantId: restaurant\.slug/);
   assert.match(component, /restaurantName: restaurant\.name/);
   assert.match(component, /foodId: item\.id/);
-  assert.match(component, /price: item\.price/);
+  assert.match(component, /price: unitPrice/);
   assert.match(component, /Đã thêm/);
-  assert.match(component, /RESTAURANT_CONFLICT/);
+  assert.doesNotMatch(component, /RESTAURANT_CONFLICT/);
   assert.doesNotMatch(component, /Tính năng thêm .* sprint tiếp theo/);
 });
 

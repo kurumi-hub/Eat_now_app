@@ -111,3 +111,40 @@ test("Home page renders Flash Sale between featured categories and restaurants",
   assert.match(homeCss, /\.home-flash-sale-grid/);
   assert.match(homeCss, /\.home-flash-progress/);
 });
+
+test("Home Flash Sale items are synced from restaurant menu data", async () => {
+  const homePage = await readFile(
+    join(root, "src", "components", "home", "HomePage.tsx"),
+    "utf8"
+  );
+  const homeData = await readFile(
+    join(root, "src", "components", "home", "homeData.ts"),
+    "utf8"
+  );
+  const restaurantData = await readFile(
+    join(root, "src", "components", "restaurant", "restaurantDetailData.ts"),
+    "utf8"
+  );
+  const restaurantDetailPage = await readFile(
+    join(root, "src", "components", "restaurant", "RestaurantDetailPage.tsx"),
+    "utf8"
+  );
+
+  assert.match(homeData, /@\/components\/restaurant\/restaurantDetailData/);
+  assert.match(homeData, /restaurantDetails\.flatMap/);
+  assert.match(homeData, /foodId/);
+  assert.match(homeData, /restaurantSlug/);
+  assert.match(homeData, /buildFlashSaleItems/);
+  assert.match(homeData, /restaurantFlashSaleCampaigns/);
+  assert.match(homeData, /getRestaurantMenuSaleForItem/);
+  assert.doesNotMatch(homeData, /name:\s*"Gỏi cuốn tôm thịt"/);
+  assert.match(restaurantData, /restaurantFlashSaleCampaigns/);
+  assert.match(restaurantData, /com-tam-dac-biet/);
+  assert.match(restaurantData, /pho-bo-dac-biet/);
+  assert.match(restaurantData, /banh-mi-thit-nuong/);
+  assert.match(restaurantData, /id:\s*"com-tam-dac-biet"/);
+  assert.match(restaurantData, /id:\s*"pho-bo-dac-biet"/);
+  assert.match(restaurantData, /id:\s*"banh-mi-thit-nuong"/);
+  assert.match(homePage, /\/restaurants\/\$\{item\.restaurantSlug\}#\$\{item\.foodId\}/);
+  assert.match(restaurantDetailPage, /id=\{item\.id\}/);
+});

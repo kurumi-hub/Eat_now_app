@@ -293,13 +293,6 @@ export default function SearchFilterPage({
       }
     );
 
-    if (addResult === "RESTAURANT_CONFLICT") {
-      showPlaceholder(
-        "Giỏ hàng hiện chỉ hỗ trợ món từ một nhà hàng. Vui lòng xóa giỏ hiện tại trước khi thêm món mới."
-      );
-      return;
-    }
-
     showPlaceholder(
       addResult === "UPDATED"
         ? `Đã cập nhật số lượng ${item.name} trong giỏ hàng.`

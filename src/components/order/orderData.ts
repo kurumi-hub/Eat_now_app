@@ -94,6 +94,10 @@ export type OrderDisplayItem = {
   quantity: number;
   price: number;
   image: string;
+  restaurantName?: string;
+  restaurantSlug?: string;
+  customizationKey?: string;
+  optionSummary?: string[];
   note?: string;
 };
 
@@ -333,12 +337,47 @@ export function getOrderStatusClass(status: OrderStatus) {
   return `is-${status}`;
 }
 
+export function getOrderRestaurantLabel(
+  items: OrderDisplayItem[],
+  fallbackRestaurantName: string
+) {
+  const restaurantNames = Array.from(
+    new Set(
+      items
+        .map((item) => item.restaurantName)
+        .filter((name): name is string => Boolean(name))
+    )
+  );
+
+  if (restaurantNames.length === 0) return fallbackRestaurantName;
+
+  return restaurantNames.join(", ");
+}
+
 function mapReceiptToOrderRecord(receipt: OrderReceipt): OrderDisplayRecord {
+  const items: OrderDisplayItem[] = receipt.items.map((item) => ({
+    foodId: item.foodId,
+    name: item.name,
+    quantity: item.quantity,
+    price: item.price,
+    image: item.image,
+    restaurantName: item.restaurantName,
+    restaurantSlug: item.restaurantSlug,
+    customizationKey: item.customizationKey,
+    optionSummary: item.optionSummary,
+    note: [item.optionSummary?.join(", "), item.note]
+      .filter(Boolean)
+      .join(" - "),
+  }));
+
   return {
     id: receipt.id,
     status: receipt.status,
-    restaurantName: receipt.restaurant.restaurantName,
-    restaurantSlug: receipt.restaurant.restaurantSlug,
+    restaurantName: getOrderRestaurantLabel(
+      items,
+      receipt.restaurant.restaurantName
+    ),
+    restaurantSlug: items[0]?.restaurantSlug || receipt.restaurant.restaurantSlug,
     restaurantAddress: defaultRestaurantAddress,
     restaurantImage: receipt.items[0]?.image || "/images/home/restaurant-com-tam.png",
     recipientName: receipt.recipientName,
@@ -361,13 +400,7 @@ function mapReceiptToOrderRecord(receipt: OrderReceipt): OrderDisplayRecord {
       typeof receipt.appliedVoucherCode === "string"
         ? receipt.appliedVoucherCode
         : null,
-    items: receipt.items.map((item) => ({
-      foodId: item.foodId,
-      name: item.name,
-      quantity: item.quantity,
-      price: item.price,
-      image: item.image,
-    })),
+    items,
   };
 }
 

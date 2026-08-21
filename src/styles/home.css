@@ -1036,6 +1036,14 @@
   line-height: 22px;
 }
 
+.home-flash-restaurant-name {
+  margin: -2px 0 0;
+  color: #5a4136;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
 .home-flash-price-row {
   display: flex;
   align-items: baseline;

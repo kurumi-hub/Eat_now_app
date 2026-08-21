@@ -62,6 +62,29 @@ test("Order data exposes local and mock order records for pending detail, tracki
   assert.match(data, /formatOrderDateTime/);
 });
 
+test("Local multi-restaurant orders keep restaurant labels across receipt and reorder", async () => {
+  const data = await readProjectFile("src", "components", "order", "orderData.ts");
+  const success = await readProjectFile(
+    "src",
+    "components",
+    "order",
+    "OrderSuccessPage.tsx"
+  );
+  const history = await readProjectFile(
+    "src",
+    "components",
+    "order",
+    "OrderHistoryPage.tsx"
+  );
+
+  assert.match(data, /getOrderRestaurantLabel/);
+  assert.match(data, /item\.restaurantName/);
+  assert.match(success, /getReceiptRestaurantLabel/);
+  assert.match(success, /lastOrder\.items/);
+  assert.match(history, /item\.restaurantSlug \|\| order\.restaurantSlug/);
+  assert.doesNotMatch(history, /if \(index === 0\)/);
+});
+
 test("Order history page includes filters, status chips, detail links, and reorder actions", async () => {
   const component = await readProjectFile(
     "src",

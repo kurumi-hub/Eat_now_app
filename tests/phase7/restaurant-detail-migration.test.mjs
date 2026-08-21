@@ -150,3 +150,131 @@ test("Restaurant detail follows Demo2 storefront layout", async () => {
   assert.match(css, /\.restaurant-review-grid/);
   assert.doesNotMatch(component, /restaurant-side-panel/);
 });
+
+test("Restaurant detail add flow opens a Size and Topping customization modal", async () => {
+  const component = await readProjectFile(
+    "src",
+    "components",
+    "restaurant",
+    "RestaurantDetailPage.tsx"
+  );
+  const data = await readProjectFile(
+    "src",
+    "components",
+    "restaurant",
+    "restaurantDetailData.ts"
+  );
+  const css = await readProjectFile(
+    "src",
+    "styles",
+    "restaurant-detail.css"
+  );
+
+  assert.match(data, /customization/);
+  assert.match(data, /sizeOptions/);
+  assert.match(data, /toppingOptions/);
+  assert.match(data, /preferenceOptions/);
+  assert.match(data, /label:\s*"S"/);
+  assert.match(data, /label:\s*"M"/);
+  assert.match(data, /label:\s*"L"/);
+  assert.match(data, /Trứng ốp la/);
+  assert.match(data, /Bì/);
+  assert.match(data, /Chả trứng/);
+  assert.match(data, /Lạp xưởng/);
+  assert.match(data, /Ít cơm/);
+  assert.match(data, /Không hành/);
+  assert.match(data, /Thêm đồ chua/);
+  assert.match(data, /Nước mắm riêng/);
+  assert.match(component, /selectedCustomizationItem/);
+  assert.match(component, /RestaurantCustomizationModal/);
+  assert.match(component, /handleConfirmCustomizedItem/);
+  assert.match(component, /selectedPreferenceIds/);
+  assert.match(component, /customizationKey/);
+  assert.match(component, /optionSummary/);
+  assert.match(component, /Chọn kích cỡ/);
+  assert.match(component, /Món thêm/);
+  assert.match(component, /Tùy chọn món/);
+  assert.match(component, /Ghi chú cho quán/);
+  assert.match(component, /Thêm vào giỏ/);
+  assert.match(css, /\.restaurant-customization-overlay/);
+  assert.match(css, /\.restaurant-customization-modal/);
+});
+
+test("Runtime restaurant detail keeps customization for Supabase menu foods", async () => {
+  const runtimeData = await readProjectFile(
+    "src",
+    "lib",
+    "data",
+    "restaurants.ts"
+  );
+
+  assert.match(runtimeData, /getRestaurantMenuCustomizationForItem/);
+  assert.match(runtimeData, /customization:\s*getRestaurantMenuCustomizationForItem\(/);
+  assert.match(runtimeData, /categoryName/);
+});
+
+test("Customization modal keeps lower options reachable without image panel", async () => {
+  const component = await readProjectFile(
+    "src",
+    "components",
+    "restaurant",
+    "RestaurantDetailPage.tsx"
+  );
+  const css = await readProjectFile(
+    "src",
+    "styles",
+    "restaurant-detail.css"
+  );
+
+  assert.doesNotMatch(component, /restaurant-customization-media/);
+  assert.doesNotMatch(css, /\.restaurant-customization-media/);
+  assert.match(css, /max-height:\s*calc\(100dvh - 32px\)/);
+  assert.match(css, /\.restaurant-customization-body\s*\{[\s\S]*min-height:\s*0/);
+  assert.match(css, /\.restaurant-customization-body\s*\{[\s\S]*overflow-y:\s*auto/);
+  assert.match(css, /\.restaurant-customization-footer\s*\{[\s\S]*bottom:\s*0/);
+});
+
+test("Restaurant detail shows Flash Sale metadata on sale menu items", async () => {
+  const component = await readProjectFile(
+    "src",
+    "components",
+    "restaurant",
+    "RestaurantDetailPage.tsx"
+  );
+  const data = await readProjectFile(
+    "src",
+    "components",
+    "restaurant",
+    "restaurantDetailData.ts"
+  );
+  const runtimeData = await readProjectFile(
+    "src",
+    "lib",
+    "data",
+    "restaurants.ts"
+  );
+  const css = await readProjectFile(
+    "src",
+    "styles",
+    "restaurant-detail.css"
+  );
+
+  assert.match(data, /RestaurantMenuSale/);
+  assert.match(data, /restaurantFlashSaleCampaigns/);
+  assert.match(data, /getRestaurantMenuSaleForItem/);
+  assert.match(data, /name\?:\s*string \| null/);
+  assert.match(data, /normalizeMenuText\(`\$\{foodId\} \$\{name \?\? ""\}/);
+  assert.match(data, /sale:\s*getRestaurantMenuSaleForItem\(/);
+  assert.match(runtimeData, /getRestaurantMenuSaleForItem/);
+  assert.match(runtimeData, /sale:\s*getRestaurantMenuSaleForItem\(/);
+  assert.match(runtimeData, /name:\s*food\.name/);
+  assert.match(component, /RestaurantMenuPrice/);
+  assert.match(component, /RestaurantSaleMeter/);
+  assert.match(component, /restaurant-menu-card__sale-badge/);
+  assert.match(component, /restaurant-customization-price-row/);
+  assert.match(css, /\.restaurant-menu-sale-meter/);
+  assert.match(css, /\.restaurant-menu-card__sale-badge/);
+  assert.match(css, /\.restaurant-customization-sale-meter/);
+  assert.match(css, /\.restaurant-menu-price-row strong\s*\{[\s\S]*font-size:\s*18px/);
+  assert.match(css, /\.restaurant-menu-price-row del\s*\{[\s\S]*text-decoration:\s*line-through/);
+});

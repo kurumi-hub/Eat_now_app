@@ -6,7 +6,31 @@ export type RestaurantMenuItem = {
   image: string;
   isAvailable: boolean;
   isPopular?: boolean;
+  sale?: RestaurantMenuSale;
+  customization?: RestaurantMenuCustomization;
   placeholderIcon?: "local_drink" | "local_bar" | "water_drop" | "coffee";
+};
+
+export type RestaurantMenuSale = {
+  discountLabel: string;
+  discountPercent: number;
+  originalPrice: number;
+  sold: number;
+  total: number;
+};
+
+export type RestaurantMenuOption = {
+  id: string;
+  label: string;
+  priceDelta: number;
+};
+
+export type RestaurantMenuCustomization = {
+  defaultSizeId: string;
+  sizeOptions: RestaurantMenuOption[];
+  toppingOptions: RestaurantMenuOption[];
+  preferenceOptions: RestaurantMenuOption[];
+  notePlaceholder: string;
 };
 
 export type RestaurantMenuCategory = {
@@ -135,6 +159,201 @@ const defaultVouchers: RestaurantVoucher[] = [
   },
 ];
 
+export type RestaurantFlashSaleCampaign = {
+  foodId: string;
+  discountPercent: number;
+  sold: number;
+  total: number;
+};
+
+export const restaurantFlashSaleCampaigns: RestaurantFlashSaleCampaign[] = [
+  {
+    foodId: "pho-bo-dac-biet",
+    discountPercent: 30,
+    sold: 12,
+    total: 20,
+  },
+  {
+    foodId: "com-tam-dac-biet",
+    discountPercent: 25,
+    sold: 15,
+    total: 20,
+  },
+  {
+    foodId: "banh-mi-thit-nuong",
+    discountPercent: 40,
+    sold: 18,
+    total: 20,
+  },
+];
+
+function getOriginalFlashPrice(price: number, discountPercent: number) {
+  const originalPrice = price / (1 - discountPercent / 100);
+
+  return Math.ceil(originalPrice / 1000) * 1000;
+}
+
+export function getRestaurantMenuSaleForItem({
+  foodId,
+  name = "",
+  categoryName = "",
+  price,
+  campaigns = restaurantFlashSaleCampaigns,
+}: {
+  foodId: string;
+  name?: string | null;
+  categoryName?: string | null;
+  price: number;
+  campaigns?: RestaurantFlashSaleCampaign[];
+}): RestaurantMenuSale | undefined {
+  const searchable = normalizeMenuText(`${foodId} ${name ?? ""} ${categoryName ?? ""}`);
+  const campaign = campaigns.find((item) => {
+    const campaignKey = normalizeMenuText(item.foodId);
+
+    return item.foodId === foodId || searchable.includes(campaignKey);
+  });
+
+  if (!campaign) return undefined;
+
+  return {
+    discountLabel: `-${campaign.discountPercent}%`,
+    discountPercent: campaign.discountPercent,
+    originalPrice: getOriginalFlashPrice(price, campaign.discountPercent),
+    sold: campaign.sold,
+    total: campaign.total,
+  };
+}
+
+const ricePreferenceOptions: RestaurantMenuOption[] = [
+  { id: "it-com", label: "Ít cơm", priceDelta: 0 },
+  { id: "khong-hanh", label: "Không hành", priceDelta: 0 },
+  { id: "them-do-chua", label: "Thêm đồ chua", priceDelta: 0 },
+  { id: "nuoc-mam-rieng", label: "Nước mắm riêng", priceDelta: 0 },
+];
+
+const riceCustomization: RestaurantMenuCustomization = {
+  defaultSizeId: "m",
+  sizeOptions: [
+    { id: "s", label: "S", priceDelta: 0 },
+    { id: "m", label: "M", priceDelta: 10000 },
+    { id: "l", label: "L", priceDelta: 20000 },
+  ],
+  toppingOptions: [
+    { id: "trung-op-la", label: "Trứng ốp la", priceDelta: 10000 },
+    { id: "bi", label: "Bì", priceDelta: 12000 },
+    { id: "cha-trung", label: "Chả trứng", priceDelta: 15000 },
+    { id: "lap-xuong", label: "Lạp xưởng", priceDelta: 20000 },
+  ],
+  preferenceOptions: ricePreferenceOptions,
+  notePlaceholder: "Ít cơm, không hành, thêm nước mắm...",
+};
+
+const noodleCustomization: RestaurantMenuCustomization = {
+  defaultSizeId: "regular",
+  sizeOptions: [
+    { id: "regular", label: "Thường", priceDelta: 0 },
+    { id: "large", label: "Lớn", priceDelta: 15000 },
+    { id: "special", label: "Đặc biệt", priceDelta: 25000 },
+  ],
+  toppingOptions: [
+    { id: "them-bo", label: "Thêm bò", priceDelta: 20000 },
+    { id: "them-cha", label: "Thêm chả", priceDelta: 12000 },
+    { id: "them-rau", label: "Thêm rau", priceDelta: 5000 },
+  ],
+  preferenceOptions: ricePreferenceOptions,
+  notePlaceholder: "Ít hành, thêm sa tế, để riêng rau...",
+};
+
+const banhMiCustomization: RestaurantMenuCustomization = {
+  defaultSizeId: "regular",
+  sizeOptions: [
+    { id: "regular", label: "Ổ thường", priceDelta: 0 },
+    { id: "double", label: "Gấp đôi nhân", priceDelta: 12000 },
+    { id: "combo", label: "Combo no", priceDelta: 25000 },
+  ],
+  toppingOptions: [
+    { id: "them-thit", label: "Thêm thịt", priceDelta: 10000 },
+    { id: "them-pate", label: "Thêm pate", priceDelta: 7000 },
+    { id: "them-trung", label: "Thêm trứng", priceDelta: 8000 },
+  ],
+  preferenceOptions: ricePreferenceOptions,
+  notePlaceholder: "Ít cay, không ngò, để riêng sốt...",
+};
+
+const simpleCustomization: RestaurantMenuCustomization = {
+  defaultSizeId: "standard",
+  sizeOptions: [{ id: "standard", label: "Phần tiêu chuẩn", priceDelta: 0 }],
+  toppingOptions: [],
+  preferenceOptions: [],
+  notePlaceholder: "Ghi chú thêm cho quán...",
+};
+
+const drinkCustomization: RestaurantMenuCustomization = {
+  defaultSizeId: "m",
+  sizeOptions: [
+    { id: "s", label: "S", priceDelta: 0 },
+    { id: "m", label: "M", priceDelta: 5000 },
+    { id: "l", label: "L", priceDelta: 10000 },
+  ],
+  toppingOptions: [
+    { id: "it-da", label: "Ít đá", priceDelta: 0 },
+    { id: "them-dao", label: "Thêm đào", priceDelta: 7000 },
+  ],
+  preferenceOptions: [
+    { id: "it-da", label: "Ít đá", priceDelta: 0 },
+    { id: "it-ngot", label: "Ít ngọt", priceDelta: 0 },
+    { id: "khong-da", label: "Không đá", priceDelta: 0 },
+  ],
+  notePlaceholder: "Ít đá, ít ngọt...",
+};
+
+function normalizeMenuText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, "d")
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLocaleLowerCase("vi-VN");
+}
+
+export function getRestaurantMenuCustomizationForItem({
+  id,
+  name,
+  categoryName = "",
+}: {
+  id: string;
+  name: string;
+  categoryName?: string | null;
+}) {
+  const searchable = normalizeMenuText(`${id} ${name} ${categoryName ?? ""}`);
+
+  if (
+    searchable.includes("tra") ||
+    searchable.includes("coca") ||
+    searchable.includes("nuoc") ||
+    searchable.includes("coffee") ||
+    searchable.includes("ca phe")
+  ) {
+    return drinkCustomization;
+  }
+
+  if (searchable.includes("pho") || searchable.includes("bun")) {
+    return noodleCustomization;
+  }
+
+  if (searchable.includes("banh mi")) {
+    return banhMiCustomization;
+  }
+
+  if (searchable.includes("com tam")) {
+    return riceCustomization;
+  }
+
+  return simpleCustomization;
+}
+
 export const restaurantDetails: RestaurantDetail[] = [
   {
     slug: "com-tam-sau-hieu",
@@ -166,6 +385,11 @@ export const restaurantDetails: RestaurantDetail[] = [
             image: "/images/home/food-com-tam.png",
             isAvailable: true,
             isPopular: true,
+            sale: getRestaurantMenuSaleForItem({
+              foodId: "com-tam-dac-biet",
+              price: 79000,
+            }),
+            customization: riceCustomization,
           },
           {
             id: "com-tam-suon-bi-cha",
@@ -176,6 +400,7 @@ export const restaurantDetails: RestaurantDetail[] = [
             image: "/images/home/restaurant-com-tam.png",
             isAvailable: true,
             isPopular: true,
+            customization: riceCustomization,
           },
         ],
       },
@@ -192,6 +417,7 @@ export const restaurantDetails: RestaurantDetail[] = [
             price: 55000,
             image: "/images/home/food-com-tam.png",
             isAvailable: true,
+            customization: riceCustomization,
           },
           {
             id: "com-tam-suon-nuong",
@@ -201,6 +427,7 @@ export const restaurantDetails: RestaurantDetail[] = [
             price: 49000,
             image: "/images/home/recipe-com-tam.png",
             isAvailable: true,
+            customization: riceCustomization,
           },
         ],
       },
@@ -216,6 +443,7 @@ export const restaurantDetails: RestaurantDetail[] = [
             price: 8000,
             image: "/images/home/food-com-tam.png",
             isAvailable: true,
+            customization: simpleCustomization,
           },
           {
             id: "bi",
@@ -224,6 +452,7 @@ export const restaurantDetails: RestaurantDetail[] = [
             price: 12000,
             image: "/images/home/restaurant-com-tam.png",
             isAvailable: true,
+            customization: simpleCustomization,
           },
           {
             id: "cha-trung",
@@ -232,6 +461,7 @@ export const restaurantDetails: RestaurantDetail[] = [
             price: 15000,
             image: "/images/home/recipe-com-tam.png",
             isAvailable: true,
+            customization: simpleCustomization,
           },
           {
             id: "lap-xuong",
@@ -240,6 +470,7 @@ export const restaurantDetails: RestaurantDetail[] = [
             price: 15000,
             image: "/images/home/food-com-tam.png",
             isAvailable: true,
+            customization: simpleCustomization,
           },
         ],
       },
@@ -255,6 +486,7 @@ export const restaurantDetails: RestaurantDetail[] = [
             price: 12000,
             image: "/images/home/food-tra-dao.png",
             isAvailable: true,
+            customization: drinkCustomization,
             placeholderIcon: "local_drink",
           },
           {
@@ -264,6 +496,7 @@ export const restaurantDetails: RestaurantDetail[] = [
             price: 15000,
             image: "/images/home/food-tra-dao.png",
             isAvailable: true,
+            customization: drinkCustomization,
             placeholderIcon: "local_bar",
           },
           {
@@ -273,6 +506,7 @@ export const restaurantDetails: RestaurantDetail[] = [
             price: 10000,
             image: "/images/home/food-tra-dao.png",
             isAvailable: true,
+            customization: drinkCustomization,
             placeholderIcon: "water_drop",
           },
           {
@@ -282,6 +516,7 @@ export const restaurantDetails: RestaurantDetail[] = [
             price: 20000,
             image: "/images/home/food-tra-dao.png",
             isAvailable: true,
+            customization: drinkCustomization,
             placeholderIcon: "coffee",
           },
         ],
@@ -318,6 +553,11 @@ export const restaurantDetails: RestaurantDetail[] = [
             image: "/images/home/food-pho.png",
             isAvailable: true,
             isPopular: true,
+            sale: getRestaurantMenuSaleForItem({
+              foodId: "pho-bo-dac-biet",
+              price: 69000,
+            }),
+            customization: noodleCustomization,
           },
         ],
       },
@@ -353,6 +593,7 @@ export const restaurantDetails: RestaurantDetail[] = [
             image: "/images/home/food-bun-bo.png",
             isAvailable: true,
             isPopular: true,
+            customization: noodleCustomization,
           },
         ],
       },
@@ -388,6 +629,11 @@ export const restaurantDetails: RestaurantDetail[] = [
             image: "/images/home/food-banh-mi.png",
             isAvailable: true,
             isPopular: true,
+            sale: getRestaurantMenuSaleForItem({
+              foodId: "banh-mi-thit-nuong",
+              price: 32000,
+            }),
+            customization: banhMiCustomization,
           },
         ],
       },

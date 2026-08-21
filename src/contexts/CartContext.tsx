@@ -34,13 +34,22 @@ export type CartItem = {
   price: number;
   image: string;
   quantity: number;
+  restaurantId: string;
+  restaurantSlug: string;
+  restaurantName: string;
+  customizationKey?: string;
+  optionSummary?: string[];
+  note?: string;
 };
 
-export type AddCartItemInput = Omit<CartItem, "quantity"> & {
+export type AddCartItemInput = Omit<
+  CartItem,
+  "quantity" | "restaurantId" | "restaurantSlug" | "restaurantName"
+> & {
   quantity?: number;
 };
 
-export type AddCartItemResult = "ADDED" | "UPDATED" | "RESTAURANT_CONFLICT";
+export type AddCartItemResult = "ADDED" | "UPDATED";
 
 export type OrderStatus =
   | "pending"
@@ -107,18 +116,24 @@ type CartAction =
       type: "INCREMENT_QUANTITY";
       payload: {
         foodId: string;
+        restaurantId?: string;
+        customizationKey?: string;
       };
     }
   | {
       type: "DECREMENT_QUANTITY";
       payload: {
         foodId: string;
+        restaurantId?: string;
+        customizationKey?: string;
       };
     }
   | {
       type: "REMOVE_ITEM";
       payload: {
         foodId: string;
+        restaurantId?: string;
+        customizationKey?: string;
       };
     }
   | {
@@ -147,9 +162,21 @@ type CartContextValue = {
     restaurant: CartRestaurant,
     item: AddCartItemInput
   ) => AddCartItemResult;
-  incrementQuantity: (foodId: string) => void;
-  decrementQuantity: (foodId: string) => void;
-  removeItem: (foodId: string) => void;
+  incrementQuantity: (
+    foodId: string,
+    restaurantId?: string,
+    customizationKey?: string
+  ) => void;
+  decrementQuantity: (
+    foodId: string,
+    restaurantId?: string,
+    customizationKey?: string
+  ) => void;
+  removeItem: (
+    foodId: string,
+    restaurantId?: string,
+    customizationKey?: string
+  ) => void;
   updateRestaurantNote: (restaurantNote: string) => void;
   prepareCheckout: (restaurantNote?: string) => CheckoutSnapshot | null;
   createOrder: (input: CreateOrderInput) => OrderReceipt;
@@ -199,11 +226,64 @@ function getCartItemCount(items: CartItem[]) {
   return items.reduce((sum, item) => sum + item.quantity, 0);
 }
 
+export function getCartItemKey({
+  foodId,
+  restaurantId,
+  customizationKey,
+}: {
+  foodId: string;
+  restaurantId?: string;
+  customizationKey?: string;
+}) {
+  return `${restaurantId || "unknown-restaurant"}::${foodId}::${
+    customizationKey || "default"
+  }`;
+}
+
+function isMatchingCartItem(
+  item: CartItem,
+  identity: { foodId: string; restaurantId?: string; customizationKey?: string }
+) {
+  if (!identity.restaurantId) {
+    return (
+      item.foodId === identity.foodId &&
+      (!identity.customizationKey ||
+        (item.customizationKey || "default") === identity.customizationKey)
+    );
+  }
+
+  return (
+    getCartItemKey(item) ===
+    getCartItemKey({
+      foodId: identity.foodId,
+      restaurantId: identity.restaurantId,
+      customizationKey: identity.customizationKey,
+    })
+  );
+}
+
+function getCartRestaurantFromItem(item: CartItem): CartRestaurant {
+  return {
+    restaurantId: item.restaurantId,
+    restaurantSlug: item.restaurantSlug,
+    restaurantName: item.restaurantName,
+  };
+}
+
+function getPrimaryCartRestaurant(
+  items: CartItem[],
+  fallbackRestaurant: CartRestaurant | null = null
+) {
+  return items[0] ? getCartRestaurantFromItem(items[0]) : fallbackRestaurant;
+}
+
 function buildCheckoutSnapshot(
   cart: CartState,
   restaurantNote = cart.restaurantNote
 ): CheckoutSnapshot | null {
-  if (!cart.restaurant || cart.items.length === 0) {
+  const restaurant = cart.restaurant || getPrimaryCartRestaurant(cart.items);
+
+  if (!restaurant || cart.items.length === 0) {
     return null;
   }
 
@@ -211,7 +291,7 @@ function buildCheckoutSnapshot(
   const deliveryFee = CART_DELIVERY_FEE;
 
   return {
-    restaurant: cart.restaurant,
+    restaurant,
     items: cart.items.map((item) => ({ ...item })),
     restaurantNote,
     subtotal,
@@ -227,6 +307,11 @@ function buildCheckoutSnapshot(
 function buildTemporaryCheckoutSnapshot(
   restaurantNote = mockRestaurantNote
 ): CheckoutSnapshot {
+  const restaurant: CartRestaurant = {
+    restaurantId: temporaryCartRestaurant.id,
+    restaurantSlug: temporaryCartRestaurant.slug,
+    restaurantName: temporaryCartRestaurant.name,
+  };
   const items: CartItem[] = mockCartItems.map(
     ({ foodId, image, name, price, quantity }) => ({
       foodId,
@@ -234,16 +319,15 @@ function buildTemporaryCheckoutSnapshot(
       name,
       price,
       quantity,
+      restaurantId: restaurant.restaurantId,
+      restaurantSlug: restaurant.restaurantSlug,
+      restaurantName: restaurant.restaurantName,
     })
   );
   const subtotal = getCartSubtotal(items);
 
   return {
-    restaurant: {
-      restaurantId: temporaryCartRestaurant.id,
-      restaurantSlug: temporaryCartRestaurant.slug,
-      restaurantName: temporaryCartRestaurant.name,
-    },
+    restaurant,
     items,
     restaurantNote,
     subtotal,
@@ -275,38 +359,96 @@ function isCartRestaurant(value: unknown): value is CartRestaurant {
 }
 
 function isCartItem(value: unknown): value is CartItem {
-  if (!value || typeof value !== "object") return false;
+  return normalizeStoredCartItem(value, null) !== null;
+}
+
+function normalizeStoredCartItem(
+  value: unknown,
+  fallbackRestaurant: CartRestaurant | null
+): CartItem | null {
+  if (!value || typeof value !== "object") return null;
 
   const item = value as CartItem;
+  const restaurant =
+    typeof item.restaurantId === "string" &&
+    typeof item.restaurantSlug === "string" &&
+    typeof item.restaurantName === "string"
+      ? {
+          restaurantId: item.restaurantId,
+          restaurantSlug: item.restaurantSlug,
+          restaurantName: item.restaurantName,
+        }
+      : fallbackRestaurant;
 
-  return (
-    typeof item.foodId === "string" &&
-    typeof item.name === "string" &&
-    typeof item.price === "number" &&
-    typeof item.image === "string" &&
-    typeof item.quantity === "number"
-  );
+  if (
+    !restaurant ||
+    typeof item.foodId !== "string" ||
+    typeof item.name !== "string" ||
+    typeof item.price !== "number" ||
+    typeof item.image !== "string" ||
+    typeof item.quantity !== "number"
+  ) {
+    return null;
+  }
+
+  return {
+    foodId: item.foodId,
+    name: item.name,
+    price: item.price,
+    image: item.image,
+    quantity: item.quantity,
+    restaurantId: restaurant.restaurantId,
+    restaurantSlug: restaurant.restaurantSlug,
+    restaurantName: restaurant.restaurantName,
+    customizationKey:
+      typeof item.customizationKey === "string"
+        ? item.customizationKey
+        : undefined,
+    optionSummary: Array.isArray(item.optionSummary)
+      ? item.optionSummary.filter(
+          (option): option is string => typeof option === "string"
+        )
+      : undefined,
+    note: typeof item.note === "string" ? item.note : undefined,
+  };
 }
 
 function normalizeCartState(value: unknown): CartState | null {
   if (!value || typeof value !== "object") return null;
 
-  const candidate = value as CartState;
+  const candidate = value as Partial<CartState>;
 
   if (
+    candidate.restaurant !== undefined &&
     candidate.restaurant !== null &&
     !isCartRestaurant(candidate.restaurant)
   ) {
     return null;
   }
 
-  if (!Array.isArray(candidate.items) || !candidate.items.every(isCartItem)) {
+  const fallbackRestaurant =
+    candidate.restaurant && isCartRestaurant(candidate.restaurant)
+      ? candidate.restaurant
+      : null;
+
+  if (!Array.isArray(candidate.items)) {
+    return null;
+  }
+
+  const items = candidate.items.map((item) =>
+    normalizeStoredCartItem(item, fallbackRestaurant)
+  );
+
+  if (items.some((item) => item === null)) {
     return null;
   }
 
   return {
-    restaurant: candidate.restaurant,
-    items: candidate.items,
+    restaurant: getPrimaryCartRestaurant(
+      items as CartItem[],
+      fallbackRestaurant
+    ),
+    items: items as CartItem[],
     restaurantNote:
       typeof candidate.restaurantNote === "string"
         ? candidate.restaurantNote
@@ -432,28 +574,25 @@ function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case "ADD_ITEM": {
       const existingItem = state.items.find(
-        (item) => item.foodId === action.payload.item.foodId
+        (item) =>
+          getCartItemKey(item) === getCartItemKey(action.payload.item)
       );
 
-      if (existingItem) {
-        return {
-          ...state,
-          restaurant: action.payload.restaurant,
-          items: state.items.map((item) =>
-            item.foodId === action.payload.item.foodId
+      const items = existingItem
+        ? state.items.map((item) =>
+            getCartItemKey(item) === getCartItemKey(action.payload.item)
               ? {
                   ...item,
                   quantity: item.quantity + action.payload.item.quantity,
                 }
               : item
-          ),
-        };
-      }
+          )
+        : [...state.items, action.payload.item];
 
       return {
         ...state,
-        restaurant: action.payload.restaurant,
-        items: [...state.items, action.payload.item],
+        restaurant: getPrimaryCartRestaurant(items, action.payload.restaurant),
+        items,
       };
     }
 
@@ -461,7 +600,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       return {
         ...state,
         items: state.items.map((item) =>
-          item.foodId === action.payload.foodId
+          isMatchingCartItem(item, action.payload)
             ? { ...item, quantity: item.quantity + 1 }
             : item
         ),
@@ -470,24 +609,32 @@ function cartReducer(state: CartState, action: CartAction): CartState {
     case "DECREMENT_QUANTITY": {
       const nextItems = state.items
         .map((item) =>
-          item.foodId === action.payload.foodId
+          isMatchingCartItem(item, action.payload)
             ? { ...item, quantity: Math.max(item.quantity - 1, 0) }
             : item
         )
         .filter((item) => item.quantity > 0);
 
       return nextItems.length > 0
-        ? { ...state, items: nextItems }
+        ? {
+            ...state,
+            restaurant: getPrimaryCartRestaurant(nextItems),
+            items: nextItems,
+          }
         : emptyCart;
     }
 
     case "REMOVE_ITEM": {
       const nextItems = state.items.filter(
-        (item) => item.foodId !== action.payload.foodId
+        (item) => !isMatchingCartItem(item, action.payload)
       );
 
       return nextItems.length > 0
-        ? { ...state, items: nextItems }
+        ? {
+            ...state,
+            restaurant: getPrimaryCartRestaurant(nextItems),
+            items: nextItems,
+          }
         : emptyCart;
     }
 
@@ -606,36 +753,43 @@ export function CartProvider({ children }: { children: ReactNode }) {
       orderHistory,
       itemCount,
       addItem: (restaurant, item) => {
-        if (
-          cart.restaurant &&
-          cart.restaurant.restaurantId !== restaurant.restaurantId
-        ) {
-          return "RESTAURANT_CONFLICT";
-        }
+        const cartItem: CartItem = {
+          ...item,
+          quantity: normalizeQuantity(item.quantity),
+          restaurantId: restaurant.restaurantId,
+          restaurantSlug: restaurant.restaurantSlug,
+          restaurantName: restaurant.restaurantName,
+        };
 
         const existingItem = cart.items.find(
-          (cartItem) => cartItem.foodId === item.foodId
+          (currentItem) => getCartItemKey(currentItem) === getCartItemKey(cartItem)
         );
 
         dispatch({
           type: "ADD_ITEM",
           payload: {
             restaurant,
-            item: {
-              ...item,
-              quantity: normalizeQuantity(item.quantity),
-            },
+            item: cartItem,
           },
         });
 
         return existingItem ? "UPDATED" : "ADDED";
       },
-      incrementQuantity: (foodId) =>
-        dispatch({ type: "INCREMENT_QUANTITY", payload: { foodId } }),
-      decrementQuantity: (foodId) =>
-        dispatch({ type: "DECREMENT_QUANTITY", payload: { foodId } }),
-      removeItem: (foodId) =>
-        dispatch({ type: "REMOVE_ITEM", payload: { foodId } }),
+      incrementQuantity: (foodId, restaurantId, customizationKey) =>
+        dispatch({
+          type: "INCREMENT_QUANTITY",
+          payload: { foodId, restaurantId, customizationKey },
+        }),
+      decrementQuantity: (foodId, restaurantId, customizationKey) =>
+        dispatch({
+          type: "DECREMENT_QUANTITY",
+          payload: { foodId, restaurantId, customizationKey },
+        }),
+      removeItem: (foodId, restaurantId, customizationKey) =>
+        dispatch({
+          type: "REMOVE_ITEM",
+          payload: { foodId, restaurantId, customizationKey },
+        }),
       updateRestaurantNote: (restaurantNote) =>
         dispatch({
           type: "SET_RESTAURANT_NOTE",

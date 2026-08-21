@@ -1,5 +1,9 @@
 import { createClient } from "@/utils/supabase/server";
 import type { HomeRestaurant } from "@/components/home/homeData";
+import {
+  getRestaurantMenuCustomizationForItem,
+  getRestaurantMenuSaleForItem,
+} from "@/components/restaurant/restaurantDetailData";
 import type {
   RestaurantDetail,
   RestaurantInfoItem,
@@ -222,6 +226,17 @@ export async function getRestaurantDetailBySlug(
       image: primaryFoodImage,
       isAvailable: food.is_available,
       isPopular,
+      sale: getRestaurantMenuSaleForItem({
+        foodId: food.id,
+        name: food.name,
+        categoryName,
+        price: Number(food.base_price),
+      }),
+      customization: getRestaurantMenuCustomizationForItem({
+        id: food.id,
+        name: food.name,
+        categoryName,
+      }),
     });
   }
 

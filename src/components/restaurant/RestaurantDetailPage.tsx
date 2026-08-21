@@ -3,6 +3,7 @@
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import CoffeeOutlinedIcon from "@mui/icons-material/CoffeeOutlined";
 import ExploreOutlinedIcon from "@mui/icons-material/ExploreOutlined";
 import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
@@ -12,6 +13,7 @@ import LocalDrinkOutlinedIcon from "@mui/icons-material/LocalDrinkOutlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+import RemoveOutlinedIcon from "@mui/icons-material/RemoveOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
@@ -29,8 +31,11 @@ import CustomerHeader from "@/components/home/CustomerHeader";
 import type {
   RestaurantDetail,
   RestaurantInfoItem,
+  RestaurantMenuCustomization,
   RestaurantMenuCategory,
   RestaurantMenuItem,
+  RestaurantMenuOption,
+  RestaurantMenuSale,
 } from "./restaurantDetailData";
 
 type RestaurantDetailPageProps = {
@@ -41,6 +46,15 @@ type RestaurantDetailPageProps = {
 type SnackbarState = {
   open: boolean;
   message: string;
+};
+
+type CustomizedCartItemInput = {
+  item: RestaurantMenuItem;
+  quantity: number;
+  unitPrice: number;
+  customizationKey: string;
+  optionSummary: string[];
+  note?: string;
 };
 
 const placeholderIcons = {
@@ -56,8 +70,67 @@ const infoIcons = {
   two_wheeler: LocalShippingOutlinedIcon,
 };
 
+const fallbackCustomization: RestaurantMenuCustomization = {
+  defaultSizeId: "standard",
+  sizeOptions: [{ id: "standard", label: "Phần tiêu chuẩn", priceDelta: 0 }],
+  toppingOptions: [],
+  preferenceOptions: [],
+  notePlaceholder: "Ghi chú thêm cho quán...",
+};
+
 function formatCurrency(value: number) {
   return `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
+}
+
+function formatPriceDelta(value: number) {
+  return value === 0 ? "+0đ" : `+${formatCurrency(value)}`;
+}
+
+function getItemCustomization(item: RestaurantMenuItem) {
+  return item.customization || fallbackCustomization;
+}
+
+function getOptionSummary(
+  selectedSize: RestaurantMenuOption,
+  selectedToppings: RestaurantMenuOption[],
+  selectedPreferences: RestaurantMenuOption[]
+) {
+  return [
+    `Size ${selectedSize.label} (${formatPriceDelta(selectedSize.priceDelta)})`,
+    ...selectedToppings.map(
+      (topping) => `${topping.label} (${formatPriceDelta(topping.priceDelta)})`
+    ),
+    ...selectedPreferences.map((preference) => preference.label),
+  ];
+}
+
+function getCustomizationKey(
+  selectedSize: RestaurantMenuOption,
+  selectedToppings: RestaurantMenuOption[],
+  selectedPreferences: RestaurantMenuOption[],
+  note: string
+) {
+  const toppingKey =
+    selectedToppings
+      .map((topping) => topping.id)
+      .sort()
+      .join(".") || "no-topping";
+  const preferenceKey =
+    selectedPreferences
+      .map((preference) => preference.id)
+      .sort()
+      .join(".") || "no-preference";
+  const noteKey = note.trim().toLocaleLowerCase("vi-VN") || "no-note";
+
+  return `${selectedSize.id}|${toppingKey}|${preferenceKey}|${noteKey}`;
+}
+
+function getSaleProgress(sale: RestaurantMenuSale) {
+  return Math.min(100, (sale.sold / sale.total) * 100);
+}
+
+function getSaleRemaining(sale: RestaurantMenuSale) {
+  return Math.max(0, sale.total - sale.sold);
 }
 
 function isCompactCategory(category: RestaurantMenuCategory) {
@@ -86,6 +159,8 @@ export default function RestaurantDetailPage({
     restaurant.menuCategories[0]?.id || ""
   );
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCustomizationItem, setSelectedCustomizationItem] =
+    useState<RestaurantMenuItem | null>(null);
   const [snackbar, setSnackbar] = useState<SnackbarState>({
     open: false,
     message: "",
@@ -132,6 +207,17 @@ export default function RestaurantDetailPage({
       return;
     }
 
+    setSelectedCustomizationItem(item);
+  };
+
+  const handleConfirmCustomizedItem = ({
+    item,
+    quantity,
+    unitPrice,
+    customizationKey,
+    optionSummary,
+    note,
+  }: CustomizedCartItemInput) => {
     const addResult = addItem(
       {
         restaurantId: restaurant.slug,
@@ -141,18 +227,16 @@ export default function RestaurantDetailPage({
       {
         foodId: item.id,
         name: item.name,
-        price: item.price,
+        price: unitPrice,
         image: item.image,
+        quantity,
+        customizationKey,
+        optionSummary,
+        note,
       }
     );
 
-    if (addResult === "RESTAURANT_CONFLICT") {
-      showPlaceholder(
-        "Giỏ hàng hiện chỉ hỗ trợ món từ một nhà hàng. Vui lòng xóa giỏ hiện tại trước khi thêm món mới."
-      );
-      return;
-    }
-
+    setSelectedCustomizationItem(null);
     showPlaceholder(
       addResult === "UPDATED"
         ? `Đã cập nhật số lượng ${item.name} trong giỏ hàng.`
@@ -358,6 +442,14 @@ export default function RestaurantDetailPage({
 
       <CustomerFooter onPlaceholder={showPlaceholder} />
 
+      {selectedCustomizationItem ? (
+        <RestaurantCustomizationModal
+          item={selectedCustomizationItem}
+          onClose={() => setSelectedCustomizationItem(null)}
+          onConfirm={handleConfirmCustomizedItem}
+        />
+      ) : null}
+
       <nav className="restaurant-bottom-nav" aria-label="Điều hướng nhanh">
         <button type="button" onClick={() => router.push("/")}>
           <HomeOutlinedIcon />
@@ -403,6 +495,279 @@ export default function RestaurantDetailPage({
   );
 }
 
+function RestaurantCustomizationModal({
+  item,
+  onClose,
+  onConfirm,
+}: {
+  item: RestaurantMenuItem;
+  onClose: () => void;
+  onConfirm: (input: CustomizedCartItemInput) => void;
+}) {
+  const customization = getItemCustomization(item);
+  const [selectedSizeId, setSelectedSizeId] = useState(
+    customization.defaultSizeId
+  );
+  const [selectedToppingIds, setSelectedToppingIds] = useState<string[]>([]);
+  const [selectedPreferenceIds, setSelectedPreferenceIds] = useState<string[]>(
+    []
+  );
+  const [note, setNote] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  const selectedSize =
+    customization.sizeOptions.find((option) => option.id === selectedSizeId) ||
+    customization.sizeOptions[0] ||
+    fallbackCustomization.sizeOptions[0];
+  const selectedToppings = customization.toppingOptions.filter((option) =>
+    selectedToppingIds.includes(option.id)
+  );
+  const selectedPreferences = customization.preferenceOptions.filter((option) =>
+    selectedPreferenceIds.includes(option.id)
+  );
+  const unitPrice =
+    item.price +
+    selectedSize.priceDelta +
+    selectedToppings.reduce((sum, option) => sum + option.priceDelta, 0) +
+    selectedPreferences.reduce((sum, option) => sum + option.priceDelta, 0);
+  const totalPrice = unitPrice * quantity;
+
+  const toggleTopping = (optionId: string) => {
+    setSelectedToppingIds((current) =>
+      current.includes(optionId)
+        ? current.filter((itemId) => itemId !== optionId)
+        : [...current, optionId]
+    );
+  };
+
+  const togglePreference = (optionId: string) => {
+    setSelectedPreferenceIds((current) =>
+      current.includes(optionId)
+        ? current.filter((itemId) => itemId !== optionId)
+        : [...current, optionId]
+    );
+  };
+
+  const handleConfirm = () => {
+    const normalizedNote = note.trim();
+
+    onConfirm({
+      item,
+      quantity,
+      unitPrice,
+      customizationKey: getCustomizationKey(
+        selectedSize,
+        selectedToppings,
+        selectedPreferences,
+        normalizedNote
+      ),
+      optionSummary: getOptionSummary(
+        selectedSize,
+        selectedToppings,
+        selectedPreferences
+      ),
+      note: normalizedNote || undefined,
+    });
+  };
+
+  return (
+    <div className="restaurant-customization-overlay">
+      <section
+        className="restaurant-customization-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="restaurant-customization-title"
+      >
+        <button
+          type="button"
+          className="restaurant-customization-close"
+          aria-label="Đóng tùy chọn món"
+          onClick={onClose}
+        >
+          <CloseOutlinedIcon />
+        </button>
+
+        <div className="restaurant-customization-body">
+          <header className="restaurant-customization-header">
+            <div>
+              <h2 id="restaurant-customization-title">{item.name}</h2>
+              <p>{item.description}</p>
+            </div>
+            <RestaurantMenuPrice
+              item={item}
+              className="restaurant-customization-price-row"
+              showDiscountBadge
+            />
+            {item.sale ? (
+              <RestaurantSaleMeter
+                sale={item.sale}
+                className="restaurant-customization-sale-meter"
+              />
+            ) : null}
+          </header>
+
+          <div className="restaurant-customization-section">
+            <h3>Chọn kích cỡ *</h3>
+            <div className="restaurant-customization-options">
+              {customization.sizeOptions.map((option) => (
+                <label
+                  className="restaurant-customization-option"
+                  key={option.id}
+                >
+                  <input
+                    type="radio"
+                    name={`${item.id}-size`}
+                    checked={selectedSizeId === option.id}
+                    onChange={() => setSelectedSizeId(option.id)}
+                  />
+                  <span>Size {option.label}</span>
+                  <strong>{formatPriceDelta(option.priceDelta)}</strong>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="restaurant-customization-section">
+            <h3>Món thêm</h3>
+            {customization.toppingOptions.length > 0 ? (
+              <div className="restaurant-customization-options">
+                {customization.toppingOptions.map((option) => (
+                  <label
+                    className="restaurant-customization-option"
+                    key={option.id}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedToppingIds.includes(option.id)}
+                      onChange={() => toggleTopping(option.id)}
+                    />
+                    <span>{option.label}</span>
+                    <strong>{formatPriceDelta(option.priceDelta)}</strong>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <p className="restaurant-customization-empty">
+                Món này không có topping tùy chọn.
+              </p>
+            )}
+          </div>
+
+          {customization.preferenceOptions.length > 0 ? (
+            <div className="restaurant-customization-section restaurant-customization-section--preferences">
+              <h3>Tùy chọn món</h3>
+              <div className="restaurant-customization-preferences">
+                {customization.preferenceOptions.map((option) => (
+                  <label
+                    className="restaurant-customization-preference"
+                    key={option.id}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedPreferenceIds.includes(option.id)}
+                      onChange={() => togglePreference(option.id)}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <label className="restaurant-customization-note">
+            <span>Ghi chú cho quán</span>
+            <textarea
+              value={note}
+              rows={3}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder={customization.notePlaceholder}
+            />
+          </label>
+
+          <div className="restaurant-customization-footer">
+            <div className="restaurant-customization-quantity">
+              <button
+                type="button"
+                aria-label="Giảm số lượng"
+                disabled={quantity === 1}
+                onClick={() =>
+                  setQuantity((currentQuantity) =>
+                    Math.max(1, currentQuantity - 1)
+                  )
+                }
+              >
+                <RemoveOutlinedIcon fontSize="small" />
+              </button>
+              <span>{quantity}</span>
+              <button
+                type="button"
+                aria-label="Tăng số lượng"
+                onClick={() =>
+                  setQuantity((currentQuantity) => currentQuantity + 1)
+                }
+              >
+                <AddOutlinedIcon fontSize="small" />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className="restaurant-customization-submit"
+              onClick={handleConfirm}
+            >
+              Thêm vào giỏ • {formatCurrency(totalPrice)}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function RestaurantMenuPrice({
+  item,
+  className = "restaurant-menu-price-row",
+  showDiscountBadge = false,
+}: {
+  item: RestaurantMenuItem;
+  className?: string;
+  showDiscountBadge?: boolean;
+}) {
+  return (
+    <div className={className}>
+      <strong>{formatCurrency(item.price)}</strong>
+      {item.sale ? <del>{formatCurrency(item.sale.originalPrice)}</del> : null}
+      {item.sale && showDiscountBadge ? (
+        <span>{item.sale.discountLabel}</span>
+      ) : null}
+    </div>
+  );
+}
+
+function RestaurantSaleMeter({
+  sale,
+  className = "restaurant-menu-sale-meter",
+}: {
+  sale: RestaurantMenuSale;
+  className?: string;
+}) {
+  const progress = getSaleProgress(sale);
+  const remaining = getSaleRemaining(sale);
+
+  return (
+    <div className={className}>
+      <div className="restaurant-menu-sale-meter__text">
+        <span>
+          Đã bán {sale.sold}/{sale.total}
+        </span>
+        <span>Còn lại {remaining}</span>
+      </div>
+      <div className="restaurant-menu-sale-progress" aria-hidden="true">
+        <span style={{ width: `${progress}%` }} />
+      </div>
+    </div>
+  );
+}
+
 function RestaurantMenuCard({
   compact,
   item,
@@ -416,6 +781,7 @@ function RestaurantMenuCard({
 }) {
   return (
     <article
+      id={item.id}
       className={`restaurant-menu-card ${
         compact
           ? "restaurant-menu-card--compact"
@@ -429,10 +795,15 @@ function RestaurantMenuCard({
           {item.isPopular ? (
             <span className="restaurant-menu-card__badge">🔥 Bán chạy</span>
           ) : null}
+          {item.sale ? (
+            <span className="restaurant-menu-card__sale-badge">
+              {item.sale.discountLabel}
+            </span>
+          ) : null}
         </div>
         {!compact ? <p>{item.description}</p> : null}
         <div className="restaurant-menu-card__footer">
-          <strong>{formatCurrency(item.price)}</strong>
+          <RestaurantMenuPrice item={item} />
           <button
             type="button"
             className="restaurant-add-button"
@@ -444,6 +815,7 @@ function RestaurantMenuCard({
             Thêm
           </button>
         </div>
+        {item.sale ? <RestaurantSaleMeter sale={item.sale} /> : null}
         {!item.isAvailable ? (
           <span className="restaurant-menu-card__unavailable">Tạm hết món</span>
         ) : null}

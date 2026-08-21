@@ -155,7 +155,9 @@ export default function HomePage({
                     type="button"
                     className="home-flash-card__hitarea"
                     onClick={() =>
-                      router.push(`/search?q=${encodeURIComponent(item.name)}`)
+                      router.push(
+                        `/restaurants/${item.restaurantSlug}#${item.foodId}`
+                      )
                     }
                     aria-label={`Mua ngay ${item.name}`}
                   >
@@ -172,6 +174,9 @@ export default function HomePage({
                     </div>
                     <div className="home-flash-card__body">
                       <h3>{item.name}</h3>
+                      <p className="home-flash-restaurant-name">
+                        {item.restaurantName}
+                      </p>
                       <div className="home-flash-price-row">
                         <strong>{formatHomeCurrency(item.price)}</strong>
                         <span>{formatHomeCurrency(item.originalPrice)}</span>

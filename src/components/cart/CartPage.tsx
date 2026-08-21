@@ -15,7 +15,8 @@ import { useMemo, useState } from "react";
 
 import CustomerFooter from "@/components/home/CustomerFooter";
 import CustomerHeader from "@/components/home/CustomerHeader";
-import { useCart } from "@/contexts/CartContext";
+import { getCartItemKey, useCart } from "@/contexts/CartContext";
+import type { CartItem, CartRestaurant } from "@/contexts/CartContext";
 import type { PublicUser } from "@/types/auth";
 import { mockDeliveryFee } from "./cartData";
 
@@ -29,8 +30,35 @@ type SnackbarState = {
   severity: "info" | "success";
 };
 
+type CartRestaurantGroup = CartRestaurant & {
+  items: CartItem[];
+};
+
 function formatCurrency(value: number) {
   return `${new Intl.NumberFormat("vi-VN").format(value)} đ`;
+}
+
+function groupCartItemsByRestaurant(items: CartItem[]) {
+  return items.reduce<CartRestaurantGroup[]>((groups, item) => {
+    const group = groups.find(
+      (currentGroup) => currentGroup.restaurantId === item.restaurantId
+    );
+
+    if (group) {
+      group.items.push(item);
+      return groups;
+    }
+
+    return [
+      ...groups,
+      {
+        restaurantId: item.restaurantId,
+        restaurantSlug: item.restaurantSlug,
+        restaurantName: item.restaurantName,
+        items: [item],
+      },
+    ];
+  }, []);
 }
 
 export default function CartPage({ user }: CartPageProps) {
@@ -57,6 +85,10 @@ export default function CartPage({ user }: CartPageProps) {
     () => cart.items.reduce((sum, item) => sum + item.quantity, 0),
     [cart.items]
   );
+  const cartRestaurantGroups = useMemo(
+    () => groupCartItemsByRestaurant(cart.items),
+    [cart.items]
+  );
   const deliveryFee = cart.items.length > 0 ? mockDeliveryFee : 0;
   const cartTotal = cartSubtotal + deliveryFee;
 
@@ -75,16 +107,16 @@ export default function CartPage({ user }: CartPageProps) {
     router.push(`/#${sectionId}`);
   };
 
-  const handleIncreaseQuantity = (itemId: string) => {
-    incrementQuantity(itemId);
+  const handleIncreaseQuantity = (item: CartItem) => {
+    incrementQuantity(item.foodId, item.restaurantId, item.customizationKey);
   };
 
-  const handleDecreaseQuantity = (itemId: string) => {
-    decrementQuantity(itemId);
+  const handleDecreaseQuantity = (item: CartItem) => {
+    decrementQuantity(item.foodId, item.restaurantId, item.customizationKey);
   };
 
-  const handleRemoveItem = (itemId: string) => {
-    removeItem(itemId);
+  const handleRemoveItem = (item: CartItem) => {
+    removeItem(item.foodId, item.restaurantId, item.customizationKey);
     showSnackbar("Đã xóa món khỏi giỏ hàng.", "success");
   };
 
@@ -127,67 +159,105 @@ export default function CartPage({ user }: CartPageProps) {
 
         <div className="cart-layout">
           <section className="cart-items-card" aria-labelledby="cart-items-title">
-            {cart.restaurant ? (
-              <div className="cart-restaurant-row">
-                <StorefrontOutlinedIcon aria-hidden="true" />
-                <Link href={`/restaurants/${cart.restaurant.restaurantSlug}`}>
-                  <h2 id="cart-items-title">
-                    {cart.restaurant.restaurantName}
-                  </h2>
-                </Link>
-              </div>
-            ) : null}
-
             {cart.items.length > 0 ? (
               <>
-                <div className="cart-item-list">
-                  {cart.items.map((item) => (
-                    <article className="cart-item-row" key={item.foodId}>
-                      <div className="cart-item-row__media">
-                        <Image
-                          src={item.image}
-                          alt={item.name}
-                          fill
-                          sizes="80px"
-                        />
+                <div className="cart-section-heading">
+                  <h2 id="cart-items-title">Món đã chọn</h2>
+                  <span>{cartRestaurantGroups.length} nhà hàng</span>
+                </div>
+
+                <div className="cart-restaurant-group-list">
+                  {cartRestaurantGroups.map((group) => (
+                    <section
+                      className="cart-restaurant-group"
+                      key={group.restaurantId}
+                      aria-label={group.restaurantName}
+                    >
+                      <div className="cart-restaurant-row">
+                        <StorefrontOutlinedIcon aria-hidden="true" />
+                        <Link href={`/restaurants/${group.restaurantSlug}`}>
+                          <h3>{group.restaurantName}</h3>
+                        </Link>
+                        <span>
+                          {group.items.reduce(
+                            (sum, item) => sum + item.quantity,
+                            0
+                          )}{" "}
+                          món
+                        </span>
                       </div>
 
-                      <div className="cart-item-row__body">
-                        <div className="cart-item-row__top">
-                          <h3>{item.name}</h3>
-                          <strong>{formatCurrency(item.price)}</strong>
-                        </div>
-
-                        <div className="cart-item-row__actions">
-                          <IconButton
-                            aria-label={`Xóa ${item.name}`}
-                            className="cart-remove-item-button"
-                            onClick={() => handleRemoveItem(item.foodId)}
+                      <div className="cart-item-list">
+                        {group.items.map((item) => (
+                          <article
+                            className="cart-item-row"
+                            key={getCartItemKey(item)}
                           >
-                            <DeleteOutlineOutlinedIcon fontSize="small" />
-                          </IconButton>
+                            <div className="cart-item-row__media">
+                              <Image
+                                src={item.image}
+                                alt={item.name}
+                                fill
+                                sizes="80px"
+                              />
+                            </div>
 
-                          <div
-                            className="cart-quantity-control"
-                            aria-label={`Số lượng ${item.name}`}
-                          >
-                            <IconButton
-                              aria-label={`Giảm số lượng ${item.name}`}
-                              onClick={() => handleDecreaseQuantity(item.foodId)}
-                            >
-                              <RemoveOutlinedIcon fontSize="small" />
-                            </IconButton>
-                            <span>{item.quantity}</span>
-                            <IconButton
-                              aria-label={`Tăng số lượng ${item.name}`}
-                              onClick={() => handleIncreaseQuantity(item.foodId)}
-                            >
-                              <AddOutlinedIcon fontSize="small" />
-                            </IconButton>
-                          </div>
-                        </div>
+                            <div className="cart-item-row__body">
+                              <div className="cart-item-row__top">
+                                <div>
+                                  <h3>{item.name}</h3>
+                                  <span className="cart-item-row__restaurant">
+                                    {item.restaurantName}
+                                  </span>
+                                  {item.optionSummary?.length ? (
+                                    <ul className="cart-item-row__options">
+                                      {item.optionSummary.map((option) => (
+                                        <li key={option}>{option}</li>
+                                      ))}
+                                    </ul>
+                                  ) : null}
+                                  {item.note ? (
+                                    <p className="cart-item-row__note">
+                                      Ghi chú: {item.note}
+                                    </p>
+                                  ) : null}
+                                </div>
+                                <strong>{formatCurrency(item.price)}</strong>
+                              </div>
+
+                              <div className="cart-item-row__actions">
+                                <IconButton
+                                  aria-label={`Xóa ${item.name}`}
+                                  className="cart-remove-item-button"
+                                  onClick={() => handleRemoveItem(item)}
+                                >
+                                  <DeleteOutlineOutlinedIcon fontSize="small" />
+                                </IconButton>
+
+                                <div
+                                  className="cart-quantity-control"
+                                  aria-label={`Số lượng ${item.name}`}
+                                >
+                                  <IconButton
+                                    aria-label={`Giảm số lượng ${item.name}`}
+                                    onClick={() => handleDecreaseQuantity(item)}
+                                  >
+                                    <RemoveOutlinedIcon fontSize="small" />
+                                  </IconButton>
+                                  <span>{item.quantity}</span>
+                                  <IconButton
+                                    aria-label={`Tăng số lượng ${item.name}`}
+                                    onClick={() => handleIncreaseQuantity(item)}
+                                  >
+                                    <AddOutlinedIcon fontSize="small" />
+                                  </IconButton>
+                                </div>
+                              </div>
+                            </div>
+                          </article>
+                        ))}
                       </div>
-                    </article>
+                    </section>
                   ))}
                 </div>
 

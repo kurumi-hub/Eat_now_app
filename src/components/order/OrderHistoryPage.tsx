@@ -90,22 +90,27 @@ export default function OrderHistoryPage({ user }: OrderHistoryPageProps) {
   };
 
   const handleConfirmReorder = (order: OrderDisplayRecord) => {
-    const restaurant = {
-      restaurantId: order.restaurantSlug || "com-tam-sau-hieu",
-      restaurantSlug: order.restaurantSlug || "com-tam-sau-hieu",
-      restaurantName: order.restaurantName,
-    };
+    order.items.forEach((item) => {
+      const restaurantSlug =
+        item.restaurantSlug || order.restaurantSlug || "com-tam-sau-hieu";
 
-    order.items.forEach((item, index) => {
-      if (index === 0) {
-        addItem(restaurant, {
+      addItem(
+        {
+          restaurantId: restaurantSlug,
+          restaurantSlug,
+          restaurantName: item.restaurantName || order.restaurantName,
+        },
+        {
           foodId: item.foodId,
           name: item.name,
           price: item.price,
           image: item.image,
           quantity: item.quantity,
-        });
-      }
+          customizationKey: item.customizationKey,
+          optionSummary: item.optionSummary,
+          note: item.note,
+        }
+      );
     });
 
     setReorderingOrder(null);

@@ -167,7 +167,7 @@ test("Food search results add available items into CartContext", async () => {
   assert.match(component, /foodId: item\.id/);
   assert.match(component, /price: item\.price/);
   assert.match(component, /Đã thêm/);
-  assert.match(component, /RESTAURANT_CONFLICT/);
+  assert.doesNotMatch(component, /RESTAURANT_CONFLICT/);
   assert.doesNotMatch(
     component,
     /Tính năng thêm vào giỏ sẽ được triển khai ở sprint tiếp theo/

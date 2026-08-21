@@ -4,6 +4,13 @@ import RiceBowlOutlinedIcon from "@mui/icons-material/RiceBowlOutlined";
 import SoupKitchenOutlinedIcon from "@mui/icons-material/SoupKitchenOutlined";
 import type { SvgIconComponent } from "@mui/icons-material";
 
+import {
+  getRestaurantMenuSaleForItem,
+  restaurantDetails,
+  restaurantFlashSaleCampaigns,
+  type RestaurantFlashSaleCampaign,
+} from "@/components/restaurant/restaurantDetailData";
+
 export type HomeCategory = {
   label: string;
   icon: SvgIconComponent;
@@ -23,6 +30,9 @@ export type HomeFood = {
 };
 
 export type HomeFlashSaleItem = {
+  foodId: string;
+  restaurantSlug: string;
+  restaurantName: string;
   name: string;
   image: string;
   discountLabel: string;
@@ -47,35 +57,54 @@ export const homeCategories: HomeCategory[] = [
   { label: "Bánh mì", icon: BakeryDiningOutlinedIcon },
 ];
 
-export const flashSaleItems: HomeFlashSaleItem[] = [
-  {
-    name: "Phở đặc biệt",
-    image: "/images/home/food-pho.png",
-    discountLabel: "-30%",
-    price: 45000,
-    originalPrice: 65000,
-    sold: 12,
-    total: 20,
-  },
-  {
-    name: "Gỏi cuốn tôm thịt",
-    image: "/images/home/food-goi-cuon.png",
-    discountLabel: "-25%",
-    price: 30000,
-    originalPrice: 40000,
-    sold: 15,
-    total: 20,
-  },
-  {
-    name: "Bánh mì thịt nướng",
-    image: "/images/home/food-banh-mi.png",
-    discountLabel: "-40%",
-    price: 15000,
-    originalPrice: 25000,
-    sold: 18,
-    total: 20,
-  },
-];
+export function buildFlashSaleItems(
+  campaigns: RestaurantFlashSaleCampaign[] = restaurantFlashSaleCampaigns
+): HomeFlashSaleItem[] {
+  const menuItems = restaurantDetails.flatMap((restaurant) =>
+    restaurant.menuCategories.flatMap((category) =>
+      category.items.map((item) => ({
+        item,
+        restaurant,
+      }))
+    )
+  );
+
+  return campaigns.flatMap((campaign) => {
+    const match = menuItems.find(({ item }) => item.id === campaign.foodId);
+
+    if (!match) {
+      return [];
+    }
+
+    const { item, restaurant } = match;
+    const sale = getRestaurantMenuSaleForItem({
+      foodId: item.id,
+      price: item.price,
+      campaigns,
+    });
+
+    if (!sale) {
+      return [];
+    }
+
+    return [
+      {
+        foodId: item.id,
+        restaurantSlug: restaurant.slug,
+        restaurantName: restaurant.name,
+        name: item.name,
+        image: item.image,
+        discountLabel: sale.discountLabel,
+        price: item.price,
+        originalPrice: sale.originalPrice,
+        sold: sale.sold,
+        total: sale.total,
+      },
+    ];
+  });
+}
+
+export const flashSaleItems: HomeFlashSaleItem[] = buildFlashSaleItems();
 
 export const featuredRestaurants: HomeRestaurant[] = [
   {
