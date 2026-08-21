@@ -1064,11 +1064,97 @@ button.admin-metric { font: inherit; cursor: pointer; }
   .admin-finance-dialog-actions > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .admin-finance-dialog-actions > div > .admin-button:only-child { grid-column: 1 / -1; }
 }
-/* Owner application review details */
-.admin-application-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 16px; margin: 12px 0 0; }
-.admin-application-details div { display: grid; grid-template-columns: 92px 1fr; gap: 7px; }
-.admin-application-details dt { color: #8a9098; font-size: 12px; }
-.admin-application-details dd { margin: 0; color: #4a5058; font-size: 12px; font-weight: 700; }
-.admin-application-note { margin-top: 9px !important; padding: 8px 10px; border-radius: 9px; background: #fff4e5; color: #8a5200 !important; }
+/* Restaurant application review */
+.admin-application-panel { padding-bottom: 24px; }
+.admin-application-heading { align-items: flex-start; }
+.admin-application-heading__eyebrow { margin: 0 0 4px !important; color: #a34a13 !important; font-size: 10px !important; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.admin-application-filters { padding-bottom: 20px; }
+.admin-application-list { display: grid; gap: 16px; padding: 0 24px; }
 
-@media (max-width: 720px) { .admin-application-details { grid-template-columns: 1fr; } }
+.admin-application-card { overflow: hidden; border: 1px solid #eadfd8; border-radius: 18px; background: #fff; box-shadow: 0 7px 24px rgba(58, 34, 21, .045); }
+.admin-application-card__header { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 13px; padding: 18px 20px; border-bottom: 1px solid #f0e7e2; background: linear-gradient(135deg, #fffaf7, #fff); }
+.admin-application-card__icon { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 13px; color: #a6440a; background: #ffede2; }
+.admin-application-card__icon svg { width: 23px; height: 23px; }
+.admin-application-card__title { min-width: 0; }
+.admin-application-card__title > div { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.admin-application-card__title h3 { margin: 0; color: #251d18; font-family: var(--font-baloo), sans-serif; font-size: 20px; line-height: 1.2; }
+.admin-application-card__title p { margin: 4px 0 0; color: #8e817a; font-size: 10px; }
+.admin-application-card__time { display: grid; justify-items: end; gap: 3px; text-align: right; }
+.admin-application-card__time span { color: #948880; font-size: 9px; }
+.admin-application-card__time strong { color: #5a4136; font-size: 10px; }
+
+.admin-application-status { display: inline-flex; align-items: center; min-height: 23px; padding: 3px 9px; border-radius: 999px; color: #9b6412; background: #fff2d5; font-size: 9px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; }
+.admin-application-status--submitted { color: #9b6412; background: #fff2d5; }
+.admin-application-status--under_review { color: #17658f; background: #e5f4fc; }
+.admin-application-status--needs_changes { color: #9b5212; background: #fff0e5; }
+.admin-application-status--approved { color: #18794b; background: #e3f6eb; }
+.admin-application-status--rejected { color: #ad2424; background: #ffeaed; }
+.admin-application-status--draft,
+.admin-application-status--withdrawn { color: #70645d; background: #f0edeb; }
+
+.admin-application-card__content { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(270px, .75fr); }
+.admin-application-summary { min-width: 0; padding: 20px; }
+.admin-application-summary h4,
+.admin-application-legal h4 { margin: 0; color: #3a2a22; font-size: 12px; font-weight: 800; }
+.admin-application-contact-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; margin-top: 15px; }
+.admin-application-info-row { min-width: 0; display: flex; align-items: flex-start; gap: 9px; }
+.admin-application-info-row--address { margin-top: 14px; padding: 12px; border-radius: 11px; background: #faf7f5; }
+.admin-application-info-row > svg { width: 18px; height: 18px; flex: 0 0 auto; color: #a85b31; }
+.admin-application-info-row > div { min-width: 0; display: grid; gap: 3px; }
+.admin-application-info-row span { color: #948880; font-size: 9px; }
+.admin-application-info-row strong { overflow-wrap: anywhere; color: #4a3930; font-size: 11px; line-height: 1.45; }
+.admin-application-description { margin-top: 16px; padding-top: 14px; border-top: 1px dashed #e6d9d1; }
+.admin-application-description span { color: #948880; font-size: 9px; }
+.admin-application-description p { margin: 5px 0 0; color: #5a4c45; font-size: 11px; line-height: 1.65; }
+
+.admin-application-legal { padding: 20px; border-left: 1px solid #f0e7e2; background: #fcfaf9; }
+.admin-application-legal__heading { display: flex; align-items: center; gap: 8px; }
+.admin-application-legal__heading svg { width: 19px; color: #a85b31; }
+.admin-application-legal dl { display: grid; gap: 12px; margin: 16px 0 0; }
+.admin-application-legal dl > div { display: grid; gap: 4px; padding-bottom: 11px; border-bottom: 1px solid #eee5e0; }
+.admin-application-legal dl > div:last-child { padding-bottom: 0; border-bottom: 0; }
+.admin-application-legal dt { color: #948880; font-size: 9px; }
+.admin-application-legal dd { margin: 0; overflow-wrap: anywhere; color: #3f332d; font-size: 11px; font-weight: 750; line-height: 1.45; }
+
+.admin-application-note { margin: 0 20px 16px; padding: 12px 14px; border: 1px solid #f0d6a8; border-radius: 11px; color: #7d500d; background: #fff8e9; }
+.admin-application-note strong { font-size: 10px; }
+.admin-application-note p { margin: 4px 0 0; font-size: 10px; line-height: 1.55; }
+.admin-application-card__footer { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 20px; border-top: 1px solid #f0e7e2; background: #fff; }
+.admin-application-card__footer > span { color: #8e817a; font-size: 10px; line-height: 1.5; }
+.admin-application-actions { display: flex; justify-content: flex-end; gap: 7px; flex-wrap: wrap; }
+.admin-application-actions button { min-height: 36px; padding: 8px 13px; border: 1px solid #d9c9c1; border-radius: 10px; color: #5a4136; background: #fff; font-size: 10px; font-weight: 750; cursor: pointer; }
+.admin-application-actions button:hover { border-color: #a98270; background: #fff8f4; }
+.admin-application-actions button.is-primary { border-color: #7a3000; color: #fff; background: #7a3000; }
+.admin-application-actions button.is-danger-outline { border-color: #e8b5b5; color: #ad2424; background: #fff; }
+.admin-application-actions button.is-danger-outline:hover { border-color: #ba1a1a; background: #fff1f1; }
+
+.admin-application-dialog__title.MuiDialogTitle-root { display: grid; gap: 2px; padding: 21px 23px 12px; }
+.admin-application-dialog__title > span { color: #251d18; font-family: var(--font-baloo), sans-serif; font-size: 23px; font-weight: 700; }
+.admin-application-dialog__title > small { color: #8e817a; font-size: 11px; font-weight: 500; }
+.admin-application-dialog__actions .admin-button { border-radius: 10px; }
+
+@media (max-width: 900px) {
+  .admin-application-card__content { grid-template-columns: 1fr; }
+  .admin-application-legal { border-top: 1px solid #f0e7e2; border-left: 0; }
+  .admin-application-legal dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .admin-application-list { padding-inline: 16px; }
+  .admin-application-card__header { grid-template-columns: 44px minmax(0, 1fr); padding: 16px; }
+  .admin-application-card__icon { width: 42px; height: 42px; }
+  .admin-application-card__time { grid-column: 2; justify-items: start; text-align: left; }
+  .admin-application-summary,
+  .admin-application-legal { padding: 16px; }
+  .admin-application-card__footer { align-items: flex-start; flex-direction: column; padding: 14px 16px 16px; }
+  .admin-application-actions { width: 100%; justify-content: flex-start; }
+}
+
+@media (max-width: 520px) {
+  .admin-application-contact-grid,
+  .admin-application-legal dl { grid-template-columns: 1fr; }
+  .admin-application-actions { display: grid; grid-template-columns: 1fr; }
+  .admin-application-actions button { width: 100%; }
+  .admin-application-dialog__actions.MuiDialogActions-root { display: grid; grid-template-columns: 1fr; }
+  .admin-application-dialog__actions .admin-button { width: 100%; }
+}

@@ -605,7 +605,10 @@ export default function AdminDashboard({
           ) : null}
 
           {tab === "applications" ? (
-            <AdminRestaurantApplicationsPanel data={applications} />
+            <AdminRestaurantApplicationsPanel
+              data={applications}
+              statusFilter={statusFilter}
+            />
           ) : null}
 
           {tab === "refunds" ? (
