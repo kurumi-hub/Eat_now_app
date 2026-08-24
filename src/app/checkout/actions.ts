@@ -61,20 +61,28 @@ export type PreviewOrderResult =
   | { ok: true; preview: Record<string, unknown> }
   | { ok: false; error: string };
 
+export type VoucherSelection = {
+  restaurant?: string;
+  platform?: string;
+  shipping?: string;
+};
+
 export async function previewOrder(
   cartId: string,
   addressId: string,
   paymentMethod: "cod" | "vnpay",
-  voucherCode?: string
+  voucherCodes: VoucherSelection = {}
 ): Promise<PreviewOrderResult> {
   await requireCurrentUser();
   const supabase = await createClient();
 
-  const { data, error } = await supabase.rpc("preview_order_v2", {
+  const { data, error } = await supabase.rpc("preview_order_v3", {
     p_cart_id: cartId,
     p_address_id: addressId,
     p_payment_method: paymentMethod,
-    p_voucher_code: voucherCode || null,
+    p_restaurant_voucher_code: voucherCodes.restaurant || null,
+    p_platform_voucher_code: voucherCodes.platform || null,
+    p_shipping_voucher_code: voucherCodes.shipping || null,
   });
 
   if (error) {
@@ -95,6 +103,7 @@ export type CheckoutVoucher = {
   minOrderValue: number;
   discountScope: "items" | "shipping";
   issuerType: "platform" | "restaurant";
+  slot: "restaurant" | "platform" | "shipping";
   targetScope: "system" | "restaurant" | "category" | "food";
   expiredAt: string;
 };
@@ -109,6 +118,7 @@ type CheckoutVoucherRow = {
   min_order_value: number;
   discount_scope: "items" | "shipping";
   issuer_type: "platform" | "restaurant";
+  slot: "restaurant" | "platform" | "shipping";
   target_scope: "system" | "restaurant" | "category" | "food";
   expired_at: string;
 };
@@ -125,6 +135,7 @@ function mapVoucherRows(data: unknown): CheckoutVoucher[] {
     minOrderValue: Number(row.min_order_value),
     discountScope: row.discount_scope,
     issuerType: row.issuer_type,
+    slot: row.slot,
     targetScope: row.target_scope,
     expiredAt: row.expired_at,
   }));
@@ -202,11 +213,13 @@ export async function initializeCheckout(
   const [voucherResult, previewResult] = await Promise.all([
     supabase.rpc("api_list_checkout_vouchers", { p_cart_id: cartId }),
     addressId
-      ? supabase.rpc("preview_order_v2", {
+      ? supabase.rpc("preview_order_v3", {
           p_cart_id: cartId,
           p_address_id: addressId,
           p_payment_method: paymentMethod,
-          p_voucher_code: null,
+          p_restaurant_voucher_code: null,
+          p_platform_voucher_code: null,
+          p_shipping_voucher_code: null,
         })
       : Promise.resolve({ data: null, error: null }),
   ]);
@@ -249,7 +262,7 @@ export async function placeOrder(
   addressId: string,
   paymentMethod: "cod" | "vnpay",
   note?: string,
-  voucherCode?: string,
+  voucherCodes: VoucherSelection = {},
   idempotencyKey?: string
 ): Promise<PlaceOrderResult> {
   await requireCurrentUser();
@@ -258,13 +271,15 @@ export async function placeOrder(
   }
   const supabase = await createClient();
 
-  const { data, error } = await supabase.rpc("api_place_order_idempotent", {
+  const { data, error } = await supabase.rpc("api_place_order_idempotent_v3", {
     p_idempotency_key: idempotencyKey,
     p_cart_id: cartId,
     p_address_id: addressId,
     p_payment_method: paymentMethod,
     p_note: note || null,
-    p_voucher_code: voucherCode || null,
+    p_restaurant_voucher_code: voucherCodes.restaurant || null,
+    p_platform_voucher_code: voucherCodes.platform || null,
+    p_shipping_voucher_code: voucherCodes.shipping || null,
   });
 
   if (error) {

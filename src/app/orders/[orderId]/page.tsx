@@ -103,6 +103,12 @@ type OrderDetail = {
     discount: number;
     total: number;
   };
+  charges?: {
+    type: string;
+    code: string;
+    name: string;
+    amount: number;
+  }[];
   timeline: {
     status: string;
     at: string;
@@ -140,6 +146,10 @@ export default async function OrderDetailRoute({
   if (!order) {
     notFound();
   }
+
+  const voucherCharges = (order.charges ?? []).filter(
+    (charge) => charge.type === "voucher_discount" && charge.amount < 0
+  );
 
   const { data: deliveryRaw, error: deliveryError } = await supabase.rpc("api_get_customer_delivery", {
     p_order_id: orderId,
@@ -280,7 +290,13 @@ export default async function OrderDetailRoute({
             <span>Phí giao hàng</span>
             <span>{formatCurrency(order.pricing.shipping_fee)}</span>
           </div>
-          {order.pricing.discount > 0 && (
+          {voucherCharges.map((charge) => (
+            <div key={`${charge.code}-${charge.name}`} style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>{charge.name} · {charge.code}</span>
+              <span>-{formatCurrency(Math.abs(charge.amount))}</span>
+            </div>
+          ))}
+          {order.pricing.discount > 0 && voucherCharges.length === 0 && (
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span>Giảm giá</span>
               <span>-{formatCurrency(order.pricing.discount)}</span>

@@ -18,6 +18,14 @@
 .order-section-toolbar p { margin: 0; color: #765b50; font-size: 14px; }
 .order-section-toolbar .MuiButton-root { flex: 0 0 auto; border-radius: 10px; color: #8a3b09; font-weight: 700; text-transform: none; }
 .order-address-list, .order-voucher-list { display: grid; gap: 12px; }
+.order-voucher-groups { display: grid; gap: 18px; }
+.order-voucher-group { display: grid; gap: 11px; border: 1px solid #eadbd4; border-radius: 18px; background: #fffaf7; padding: 15px; }
+.order-voucher-group__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.order-voucher-group__heading > div { min-width: 0; }
+.order-voucher-group__heading strong, .order-voucher-group__heading small { display: block; }
+.order-voucher-group__heading strong { color: #4e2e20; font-size: 15px; }
+.order-voucher-group__heading small { margin-top: 3px; color: #765b50; line-height: 18px; }
+.order-voucher-group__heading > span { flex: 0 0 auto; border-radius: 999px; background: #ffdbcc; color: #7a3000; padding: 5px 9px; font-size: 11px; font-weight: 800; }
 .order-select-card, .order-voucher-card { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 14px; border: 1.5px solid #ddc1b4; border-radius: 16px; background: #f9f9fc; padding: 16px; cursor: pointer; transition: .18s ease; }
 .order-select-card:hover, .order-voucher-card:hover { border-color: #a04100; background: #fffaf7; }
 .order-select-card.is-selected, .order-voucher-card.is-selected { border: 2px solid #a04100; background: rgba(255, 211, 198, .28); box-shadow: 0 5px 16px rgba(122, 48, 0, .08); }
@@ -106,6 +114,8 @@
   .order-checkout-title-row h1, .order-success-card h1 { font-size: 28px; line-height: 35px; }
   .order-checkout-panel, .order-summary-card, .order-success-card { border-radius: 18px; padding: 18px; }
   .order-section-toolbar { align-items: flex-start; flex-direction: column; }
+  .order-voucher-group { padding: 12px; }
+  .order-voucher-group__heading { flex-direction: column; }
   .order-select-card { grid-template-columns: auto minmax(0, 1fr) auto; }
   .order-select-card em { grid-column: 2; width: fit-content; }
   .order-select-card__check { grid-column: 3; grid-row: 1 / span 2; }

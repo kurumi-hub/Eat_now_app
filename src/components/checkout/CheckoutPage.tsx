@@ -23,12 +23,26 @@ import type { AccountAddress } from "@/types/account";
 import type { PublicUser } from "@/types/auth";
 import { useCartStore, type CartLine } from "@/store/cartStore";
 import { useCartSession } from "@/store/useCartSession";
-import { initializeCheckout, placeOrder, previewOrder, type CheckoutVoucher } from "@/app/checkout/actions";
+import {
+  initializeCheckout,
+  placeOrder,
+  previewOrder,
+  type CheckoutVoucher,
+  type VoucherSelection,
+} from "@/app/checkout/actions";
 import { signalNavigationStart } from "@/utils/navigationFeedback";
 
 const CheckoutAddressDialog = dynamic(() => import("@/components/checkout/CheckoutAddressDialog"), { ssr: false });
 
 type CheckoutPageProps = { user: PublicUser; addresses: AccountAddress[] };
+type VoucherSlot = keyof VoucherSelection;
+type VoucherPreview = {
+  selected: boolean;
+  valid: boolean;
+  code?: string;
+  reason?: string;
+  discount_amount?: number;
+};
 type PreviewState = {
   subtotal: number;
   shipping_fee: number;
@@ -38,7 +52,10 @@ type PreviewState = {
   tax_amount?: number;
   tax_added_amount?: number;
   customer_fee_amount?: number;
-  voucher?: { valid: boolean; reason?: string };
+  restaurant_discount_amount?: number;
+  platform_discount_amount?: number;
+  shipping_discount_amount?: number;
+  vouchers?: Record<VoucherSlot, VoucherPreview>;
 } | null;
 
 function formatCurrency(value: number) {
@@ -73,7 +90,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   const cartReady = useCartSession(user.id);
   const defaultAddress = useMemo(() => addresses.find((a) => a.isDefault) ?? addresses[0], [addresses]);
   const [addressId, setAddressId] = useState(defaultAddress?.id ?? "");
-  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherCodes, setVoucherCodes] = useState<VoucherSelection>({});
   const [vouchers, setVouchers] = useState<CheckoutVoucher[]>([]);
   const [voucherError, setVoucherError] = useState("");
   const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
@@ -89,6 +106,16 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   const initializedRef = useRef(false);
   const skipNextPreviewRef = useRef(false);
   const checkoutAttemptRef = useRef("");
+
+  const vouchersBySlot = useMemo(() => ({
+    restaurant: vouchers.filter((voucher) => voucher.slot === "restaurant"),
+    platform: vouchers.filter((voucher) => voucher.slot === "platform"),
+    shipping: vouchers.filter((voucher) => voucher.slot === "shipping"),
+  }), [vouchers]);
+
+  const selectVoucher = useCallback((slot: VoucherSlot, code: string) => {
+    setVoucherCodes((current) => ({ ...current, [slot]: code || undefined }));
+  }, []);
 
   useEffect(() => { if (!addressId && defaultAddress) setAddressId(defaultAddress.id); }, [addressId, defaultAddress]);
   const handleAddressCreated = useCallback((newAddressId: string) => setAddressId(newAddressId), []);
@@ -120,20 +147,31 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
     let cancelled = false;
     (async () => {
       setPreviewError("");
-      const result = await previewOrder(cartId, addressId, paymentMethod, voucherCode);
+      const result = await previewOrder(cartId, addressId, paymentMethod, voucherCodes);
       if (cancelled) return;
       if (!result.ok) { setPreviewError(result.error); setPreview(null); return; }
       setPreview(result.preview as PreviewState);
     })();
     return () => { cancelled = true; };
-  }, [cartId, addressId, paymentMethod, voucherCode]);
+  }, [cartId, addressId, paymentMethod, voucherCodes.restaurant, voucherCodes.platform, voucherCodes.shipping]);
+
+  useEffect(() => {
+    checkoutAttemptRef.current = "";
+  }, [addressId, paymentMethod, note, voucherCodes.restaurant, voucherCodes.platform, voucherCodes.shipping]);
 
   const handlePlaceOrder = () => {
     if (!cartId || !addressId) return;
     if (!checkoutAttemptRef.current) checkoutAttemptRef.current = crypto.randomUUID();
     setError("");
     startPlacing(async () => {
-      const result = await placeOrder(cartId, addressId, paymentMethod, note || undefined, voucherCode || undefined, checkoutAttemptRef.current);
+      const result = await placeOrder(
+        cartId,
+        addressId,
+        paymentMethod,
+        note || undefined,
+        voucherCodes,
+        checkoutAttemptRef.current
+      );
       if (!result.ok) { setError(result.error); return; }
       if (paymentMethod === "vnpay") {
         const res = await fetch("/api/vnpay/create-payment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: result.orderId }) });
@@ -191,25 +229,12 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
               {isLoadingVouchers && <div className="order-inline-loading"><CircularProgress size={18} /> Đang tải voucher phù hợp...</div>}
               {voucherError && <Alert severity="error">{voucherError}</Alert>}
               {!isLoadingVouchers && !voucherError && (
-                <div className="order-voucher-list">
-                  <label className={`order-voucher-card ${voucherCode === "" ? "is-selected" : ""}`}>
-                    <input type="radio" name="voucher" value="" checked={voucherCode === ""} onChange={() => setVoucherCode("")} />
-                    <span className="order-voucher-card__ticket"><LocalOfferOutlinedIcon /></span>
-                    <span><strong>Không dùng voucher</strong><small>Giữ nguyên giá trị đơn hàng</small></span>
-                    {voucherCode === "" ? <CheckCircleRoundedIcon /> : <RadioButtonUncheckedRoundedIcon />}
-                  </label>
-                  {vouchers.map((voucher) => (
-                    <label className={`order-voucher-card ${voucherCode === voucher.code ? "is-selected" : ""}`} key={voucher.id}>
-                      <input type="radio" name="voucher" value={voucher.code} checked={voucherCode === voucher.code} onChange={(e) => setVoucherCode(e.target.value)} />
-                      <span className="order-voucher-card__ticket"><LocalOfferOutlinedIcon /></span>
-                      <span><b>{voucher.code}</b><strong>{voucher.name}</strong><small>{voucherBenefit(voucher)} · {voucherScope(voucher)}{voucher.minOrderValue > 0 ? ` · Đơn tối thiểu ${formatCurrency(voucher.minOrderValue)}` : ""}</small></span>
-                      {voucherCode === voucher.code ? <CheckCircleRoundedIcon /> : <RadioButtonUncheckedRoundedIcon />}
-                    </label>
-                  ))}
-                  {vouchers.length === 0 && <p className="order-muted-message">Hiện chưa có voucher phù hợp với nhà hàng này.</p>}
+                <div className="order-voucher-groups">
+                  <VoucherGroup slot="restaurant" title="Ưu đãi của nhà hàng" description="Giảm trên tiền món, ngân sách do nhà hàng chịu." vouchers={vouchersBySlot.restaurant} selectedCode={voucherCodes.restaurant ?? ""} preview={preview?.vouchers?.restaurant} onSelect={selectVoucher} />
+                  <VoucherGroup slot="platform" title="Ưu đãi EatNow" description="Mã giảm tiền món do nền tảng phát hành." vouchers={vouchersBySlot.platform} selectedCode={voucherCodes.platform ?? ""} preview={preview?.vouchers?.platform} onSelect={selectVoucher} />
+                  <VoucherGroup slot="shipping" title="Ưu đãi vận chuyển" description="Giảm riêng trên phí giao hàng thực tế." vouchers={vouchersBySlot.shipping} selectedCode={voucherCodes.shipping ?? ""} preview={preview?.vouchers?.shipping} onSelect={selectVoucher} />
                 </div>
               )}
-              {preview?.voucher && voucherCode && !preview.voucher.valid && <Alert severity="warning">{preview.voucher.reason || "Voucher không hợp lệ"}</Alert>}
             </section>
 
             <section className="order-checkout-panel">
@@ -253,6 +278,68 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   );
 }
 
+function VoucherGroup({
+  slot,
+  title,
+  description,
+  vouchers,
+  selectedCode,
+  preview,
+  onSelect,
+}: {
+  slot: VoucherSlot;
+  title: string;
+  description: string;
+  vouchers: CheckoutVoucher[];
+  selectedCode: string;
+  preview?: VoucherPreview;
+  onSelect: (slot: VoucherSlot, code: string) => void;
+}) {
+  return (
+    <section className="order-voucher-group">
+      <div className="order-voucher-group__heading">
+        <div><strong>{title}</strong><small>{description}</small></div>
+        <span>{selectedCode ? "Đã chọn 1 mã" : "Không áp dụng"}</span>
+      </div>
+      <div className="order-voucher-list">
+        <label className={`order-voucher-card ${selectedCode === "" ? "is-selected" : ""}`}>
+          <input
+            type="radio"
+            name={`voucher-${slot}`}
+            value=""
+            checked={selectedCode === ""}
+            onChange={() => onSelect(slot, "")}
+          />
+          <span className="order-voucher-card__ticket"><LocalOfferOutlinedIcon /></span>
+          <span><strong>Không dùng mã nhóm này</strong><small>Bạn vẫn có thể chọn mã ở hai nhóm còn lại.</small></span>
+          {selectedCode === "" ? <CheckCircleRoundedIcon /> : <RadioButtonUncheckedRoundedIcon />}
+        </label>
+        {vouchers.map((voucher) => (
+          <label className={`order-voucher-card ${selectedCode === voucher.code ? "is-selected" : ""}`} key={voucher.id}>
+            <input
+              type="radio"
+              name={`voucher-${slot}`}
+              value={voucher.code}
+              checked={selectedCode === voucher.code}
+              onChange={(event) => onSelect(slot, event.target.value)}
+            />
+            <span className="order-voucher-card__ticket"><LocalOfferOutlinedIcon /></span>
+            <span>
+              <b>{voucher.code}</b><strong>{voucher.name}</strong>
+              <small>{voucherBenefit(voucher)} · {voucherScope(voucher)}{voucher.minOrderValue > 0 ? ` · Đơn tối thiểu ${formatCurrency(voucher.minOrderValue)}` : ""}</small>
+            </span>
+            {selectedCode === voucher.code ? <CheckCircleRoundedIcon /> : <RadioButtonUncheckedRoundedIcon />}
+          </label>
+        ))}
+        {vouchers.length === 0 && <p className="order-muted-message">Hiện chưa có mã phù hợp trong nhóm này.</p>}
+      </div>
+      {selectedCode && preview && !preview.valid && (
+        <Alert severity="warning">{preview.reason || "Voucher không hợp lệ"}</Alert>
+      )}
+    </section>
+  );
+}
+
 function PanelHeading({ icon, step, title }: { icon: ReactNode; step: string; title: string }) {
   return <div className="order-panel-heading">{icon}<div><span>{step}</span><h2>{title}</h2></div></div>;
 }
@@ -262,7 +349,7 @@ function PaymentOption({ value, selected, title, description, icon, onSelect }: 
 }
 
 function OrderPricing({ preview }: { preview: NonNullable<PreviewState> }) {
-  return <><div className="order-summary-rows"><PriceRow label="Tạm tính" value={formatCurrency(preview.subtotal)} /><PriceRow label="Phí giao hàng" value={formatCurrency(preview.shipping_fee)} />{preview.discount_amount > 0 && <PriceRow label="Giảm giá" value={`-${formatCurrency(preview.discount_amount)}`} discount />}{(preview.customer_fee_amount ?? 0) > 0 && <PriceRow label="Phí dịch vụ và phụ phí" value={formatCurrency(preview.customer_fee_amount ?? 0)} />}{(preview.tax_amount ?? 0) > 0 && <PriceRow label={(preview.tax_added_amount ?? 0) > 0 ? "Thuế" : "Thuế đã bao gồm"} value={formatCurrency(preview.tax_amount ?? 0)} />}</div><div className="order-summary-total"><span>Tổng cộng</span><strong>{formatCurrency(preview.total_price)}</strong></div></>;
+  return <><div className="order-summary-rows"><PriceRow label="Tạm tính" value={formatCurrency(preview.subtotal)} /><PriceRow label="Phí giao hàng" value={formatCurrency(preview.shipping_fee)} />{(preview.restaurant_discount_amount ?? 0) > 0 && <PriceRow label="Voucher nhà hàng" value={`-${formatCurrency(preview.restaurant_discount_amount ?? 0)}`} discount />}{(preview.platform_discount_amount ?? 0) > 0 && <PriceRow label="Voucher EatNow" value={`-${formatCurrency(preview.platform_discount_amount ?? 0)}`} discount />}{(preview.shipping_discount_amount ?? 0) > 0 && <PriceRow label="Voucher vận chuyển" value={`-${formatCurrency(preview.shipping_discount_amount ?? 0)}`} discount />}{preview.discount_amount > 0 && preview.restaurant_discount_amount === undefined && <PriceRow label="Giảm giá" value={`-${formatCurrency(preview.discount_amount)}`} discount />}{(preview.customer_fee_amount ?? 0) > 0 && <PriceRow label="Phí dịch vụ và phụ phí" value={formatCurrency(preview.customer_fee_amount ?? 0)} />}{(preview.tax_amount ?? 0) > 0 && <PriceRow label={(preview.tax_added_amount ?? 0) > 0 ? "Thuế" : "Thuế đã bao gồm"} value={formatCurrency(preview.tax_amount ?? 0)} />}</div><div className="order-summary-total"><span>Tổng cộng</span><strong>{formatCurrency(preview.total_price)}</strong></div></>;
 }
 
 function PriceRow({ label, value, discount }: { label: string; value: string; discount?: boolean }) {
