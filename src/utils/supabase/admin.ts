@@ -3,9 +3,9 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 /**
  * Client dùng service_role key -- BYPASS RLS hoàn toàn.
  *
- * CHỈ dùng trong các route server-to-server không gắn với session của user
- * cụ thể nào (vd: webhook/IPN từ VNPay). KHÔNG import file này vào bất kỳ
- * Server Component / Server Action nào chạy trong request của người dùng.
+ * Chỉ dùng ở server. Với request của người dùng, bắt buộc xác thực session và
+ * kiểm tra quyền trên đúng resource bằng client theo session trước khi gọi.
+ * Tuyệt đối không trả service_role key về client.
  */
 export function createAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

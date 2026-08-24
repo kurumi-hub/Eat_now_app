@@ -5,7 +5,9 @@ import { useEffect, useMemo, useState, useTransition, type FormEvent } from "rea
 
 import {
   applyFoodImageAction,
+  createFoodImageUploadTicketAction,
   deleteFoodImageAction,
+  discardFoodImageUploadAction,
   reorderOwnerFoodsAction,
   saveOwnerFoodAction,
   setOwnerFoodStateAction,
@@ -104,20 +106,29 @@ export default function OwnerMenuManager({
     startTransition(async () => {
       let result = await saveOwnerFoodAction(restaurantId, editing);
       if (!result.ok || !result.foodId) { setNotice(result); return; }
+      // Keep the newly created id in the editor. If Storage fails, retrying
+      // updates this food instead of creating a duplicate row.
+      if (!editing.id) setEditing((current) => current ? { ...current, id: result.foodId } : current);
       if (chosenFile) {
         const supabase = createClient();
-        const objectPath = `restaurants/${restaurantId}/foods/${result.foodId}/${crypto.randomUUID()}.${FILE_TYPES[chosenFile.type]}`;
-        const upload = await supabase.storage.from(BUCKET).upload(objectPath, chosenFile, {
+        const ticket = await createFoodImageUploadTicketAction(result.foodId, chosenFile.type);
+        if (!ticket.ok) {
+          setNotice({ ok: false, message: `${result.message} ${ticket.message} Bấm “Lưu món ăn” để thử lại.` });
+          router.refresh(); return;
+        }
+        const upload = await supabase.storage.from(BUCKET).uploadToSignedUrl(
+          ticket.objectPath, ticket.token, chosenFile, {
           contentType: chosenFile.type, upsert: false,
         });
         if (upload.error) {
-          setNotice({ ok: false, message: "Món đã được lưu nhưng chưa thể tải ảnh lên." });
+          console.error("[owner] Upload ảnh món thất bại", upload.error);
+          setNotice({ ok: false, message: `${result.message} Không thể tải ảnh lên (${upload.error.message}). Bấm “Lưu món ăn” để thử lại.` });
           router.refresh(); return;
         }
-        const publicUrl = supabase.storage.from(BUCKET).getPublicUrl(objectPath).data.publicUrl;
-        const imageResult = await applyFoodImageAction(result.foodId, objectPath, publicUrl, editing.name);
+        const publicUrl = supabase.storage.from(BUCKET).getPublicUrl(ticket.objectPath).data.publicUrl;
+        const imageResult = await applyFoodImageAction(result.foodId, ticket.objectPath, publicUrl, editing.name);
         if (!imageResult.ok) {
-          await supabase.storage.from(BUCKET).remove([objectPath]);
+          await discardFoodImageUploadAction(result.foodId, ticket.objectPath);
           setNotice(imageResult); router.refresh(); return;
         }
         result = { ...result, message: `${result.message} Đã cập nhật ảnh chính.` };
