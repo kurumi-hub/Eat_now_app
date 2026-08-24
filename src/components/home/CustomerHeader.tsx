@@ -64,12 +64,12 @@ export default function CustomerHeader({
   onSectionNavigate,
 }: CustomerHeaderProps) {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
-  const sellerLabel = hasAnyRole(user, [
+  const hasSellerAccess = hasAnyRole(user, [
     "RESTAURANT_OWNER",
     "RESTAURANT_STAFF",
-  ])
-    ? "Kênh người bán"
-    : "Mở quán trên EatNow";
+  ]);
+  const sellerLabel = hasSellerAccess ? "Kênh người bán" : "Mở quán trên EatNow";
+  const sellerHref = hasSellerAccess ? "/owner" : "/account/seller";
 
   // Đợi hydrate xong (persist middleware) mới đọc số lượng từ store để
   // tránh lệch nội dung giữa server render và client render.
@@ -266,7 +266,7 @@ export default function CustomerHeader({
                   "RESTAURANT_STAFF",
                 ]) ? (
                   <Link
-                    href="/account/seller"
+                    href={sellerHref}
                     className="home-account-menu__link"
                     onClick={handleMenuClose}
                   >

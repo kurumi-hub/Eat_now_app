@@ -18,19 +18,23 @@ export default async function AccountSellerPage() {
   if (contextResult.error || invitationsResult.error) {
     console.error("[seller] Không thể tải dữ liệu", contextResult.error || invitationsResult.error);
   }
+  const context = parseSellerContext(contextResult.data);
+  const hasManagedRestaurant = context.restaurants.length > 0;
 
   return (
     <>
       <header className="account-page-heading">
         <p className="account-page-heading__eyebrow">Tài khoản</p>
-        <h1 className="account-page-heading__title">Bán hàng cùng EatNow</h1>
+        <h1 className="account-page-heading__title">{hasManagedRestaurant ? "Nhà hàng của tôi" : "Bán hàng cùng EatNow"}</h1>
         <p className="account-page-heading__description">
-          Theo dõi trạng thái đăng ký mở quán và truy cập kênh người bán.
+          {hasManagedRestaurant
+            ? "Truy cập các nhà hàng đang quản lý hoặc bắt đầu một hồ sơ đăng ký mới."
+            : "Theo dõi trạng thái đăng ký mở quán và truy cập kênh người bán."}
         </p>
       </header>
 
       <SellerApplicationPanel
-        context={parseSellerContext(contextResult.data)}
+        context={context}
         invitations={parseStaffInvitations(invitationsResult.data)}
       />
     </>

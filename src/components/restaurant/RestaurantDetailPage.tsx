@@ -114,7 +114,7 @@ export default function RestaurantDetailPage({
 
   const handleAddItem = (item: RestaurantMenuItem) => {
     if (!restaurant.isOpen) {
-      showPlaceholder("Nhà hàng hiện đang đóng cửa.");
+      showPlaceholder(restaurant.availabilityMessage || "Nhà hàng hiện chưa nhận đơn.");
       return;
     }
 
@@ -199,11 +199,13 @@ export default function RestaurantDetailPage({
               <div className="restaurant-hero__status-row">
                 <Chip
                   size="small"
-                  label={restaurant.isOpen ? "Đang mở cửa" : "Đang đóng cửa"}
+                  label={restaurant.availabilityLabel || (restaurant.isOpen ? "Đang nhận đơn" : "Chưa nhận đơn")}
                   color={restaurant.isOpen ? "success" : "error"}
                   className="restaurant-status-chip"
                 />
-                <span>Mở đến {restaurant.openUntil}</span>
+                <span>{restaurant.isOpen && restaurant.openUntil
+                  ? `Mở đến ${restaurant.openUntil}`
+                  : restaurant.availabilityMessage}</span>
               </div>
               <h1 id="restaurant-title">{restaurant.name}</h1>
               <div className="restaurant-meta-row">
@@ -231,6 +233,10 @@ export default function RestaurantDetailPage({
             </div>
           </div>
         </section>
+
+        {!restaurant.isOpen && <Alert severity="warning" className="restaurant-availability-alert">
+          {restaurant.availabilityMessage || "Nhà hàng hiện chưa thể nhận đơn mới."}
+        </Alert>}
 
         <nav
           className="restaurant-category-tabs"

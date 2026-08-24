@@ -32,7 +32,7 @@ export default function AccountSidebar({ user }: AccountSidebarProps) {
   const roles = getUserRoles(user);
   const resetCartSession = useCartStore((state) => state.resetCartSession);
   const sellerLabel = hasAnyRole(user, ["RESTAURANT_OWNER", "RESTAURANT_STAFF"])
-    ? "Kênh người bán"
+    ? "Nhà hàng của tôi"
     : "Bán hàng cùng EatNow";
 
   return (

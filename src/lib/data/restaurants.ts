@@ -24,6 +24,10 @@ type RestaurantDetailRpc = {
   name: string;
   address: string;
   is_active: boolean;
+  order_state?: string;
+  accepting_orders?: boolean;
+  paused_reason?: string | null;
+  paused_until?: string | null;
   open_at: string | null;
   close_at: string | null;
   rating_average: number | string;
@@ -65,6 +69,17 @@ function formatReviewCount(count: number) {
   }
   return `${count}+ đánh giá`;
 }
+
+const ORDER_STATE_COPY: Record<string, { label: string; message: string }> = {
+  OPEN: { label: "Đang nhận đơn", message: "Nhà hàng đang nhận đơn mới." },
+  PAUSED: { label: "Tạm dừng nhận đơn", message: "Nhà hàng chủ động tạm dừng nhận đơn mới." },
+  CLOSED_BY_SCHEDULE: { label: "Ngoài giờ hoạt động", message: "Nhà hàng sẽ nhận đơn lại trong khung giờ đã cấu hình." },
+  SETUP: { label: "Đang thiết lập", message: "Nhà hàng chưa hoàn tất thiết lập vận hành." },
+  SUSPENDED: { label: "Tạm ngưng", message: "Nhà hàng hiện không thể nhận đơn." },
+  UNPUBLISHED: { label: "Chưa xuất bản", message: "Nhà hàng chưa mở bán công khai." },
+  CLOSED: { label: "Đã đóng", message: "Nhà hàng hiện không hoạt động." },
+  UNAVAILABLE: { label: "Chưa thể nhận đơn", message: "Nhà hàng hiện chưa thể nhận đơn mới." },
+};
 
 const fetchFeaturedRestaurants = unstable_cache(async (): Promise<HomeRestaurant[]> => {
   const supabase = createPublicClient();
@@ -113,6 +128,8 @@ const fetchRestaurantDetailBySlug = unstable_cache(async (
   if (!data) return undefined;
 
   const restaurant = data as unknown as RestaurantDetailRpc;
+  const orderState = restaurant.order_state || (restaurant.is_active ? "OPEN" : "UNAVAILABLE");
+  const availability = ORDER_STATE_COPY[orderState] || ORDER_STATE_COPY.UNAVAILABLE;
   const categoryOrder: string[] = [];
   const categoriesMap = new Map<string, RestaurantMenuCategory>();
 
@@ -167,11 +184,17 @@ const fetchRestaurantDetailBySlug = unstable_cache(async (
     address: restaurant.address,
     deliveryTime: "25-35 phút",
     deliveryFee: "Tính theo khoảng cách",
-    isOpen: restaurant.is_active,
+    isOpen: orderState === "OPEN",
+    orderState,
+    acceptingOrders: restaurant.accepting_orders === true,
+    availabilityLabel: availability.label,
+    availabilityMessage: restaurant.paused_reason && orderState === "PAUSED"
+      ? `${availability.message} Lý do: ${restaurant.paused_reason}`
+      : availability.message,
     openUntil: restaurant.close_at ?? "",
     menuCategories: categoryOrder.map((id) => categoriesMap.get(id)!),
   };
-}, ["catalog-restaurant-detail-v2"], {
+}, ["catalog-restaurant-detail-v3"], {
   revalidate: 60,
   tags: ["catalog", "restaurants"],
 });

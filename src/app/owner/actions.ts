@@ -188,12 +188,24 @@ export async function transferRestaurantOwnershipAction(restaurantId: string, us
   refresh(); return { ok: true, message: "Đã chuyển quyền Owner. Bạn hiện là Restaurant Staff." };
 }
 
-export async function applyRestaurantMediaAction(restaurantId: string, kind: "logo" | "cover" | "gallery", objectPath: string, url: string, altText: string): Promise<OwnerActionResult> {
+export async function applyRestaurantMediaAction(restaurantId: string, kind: "logo" | "cover" | "gallery", objectPath: string, altText: string): Promise<OwnerActionResult> {
   const expected = `restaurants/${restaurantId}/${kind}/`;
-  if (!UUID.test(restaurantId) || !objectPath.startsWith(expected) || !url) return { ok: false, message: "Thông tin ảnh không hợp lệ." };
+  if (!UUID.test(restaurantId) || !objectPath.startsWith(expected) || objectPath.includes("..") ||
+      !/\.(?:jpg|jpeg|png|webp|avif)$/i.test(objectPath)) {
+    return { ok: false, message: "Thông tin ảnh không hợp lệ." };
+  }
   const supabase = await authorized();
-  const { error } = await supabase.rpc("api_add_restaurant_media", { p_restaurant_id: restaurantId, p_kind: kind, p_object_path: objectPath, p_url: url, p_alt_text: altText.trim() || null });
+  const publicUrl = supabase.storage.from(BUCKET).getPublicUrl(objectPath).data.publicUrl;
+  const { data, error } = await supabase.rpc("api_add_restaurant_media", { p_restaurant_id: restaurantId, p_kind: kind, p_object_path: objectPath, p_url: publicUrl, p_alt_text: altText.trim() || null });
   if (error) return { ok: false, message: errorMessage(error, "Không thể lưu ảnh nhà hàng.") };
+  const oldPaths = data && typeof data === "object" && "old_object_paths" in data &&
+    Array.isArray(data.old_object_paths)
+      ? data.old_object_paths.filter((item: unknown): item is string => typeof item === "string" && item !== objectPath)
+      : [];
+  if (oldPaths.length) {
+    const { error: storageError } = await supabase.storage.from(BUCKET).remove(oldPaths);
+    if (storageError) console.error("[owner] Đã thay metadata nhưng chưa xóa được ảnh nhà hàng cũ", storageError);
+  }
   refresh(); return { ok: true, message: "Đã cập nhật ảnh nhà hàng." };
 }
 
@@ -310,15 +322,17 @@ export async function reorderOwnerFoodsAction(
 export async function applyFoodImageAction(
   foodId: string,
   objectPath: string,
-  url: string,
   altText: string
 ): Promise<OwnerActionResult> {
-  if (!UUID.test(foodId) || !objectPath.includes(`/foods/${foodId}/`) || !url) {
+  if (!UUID.test(foodId) || objectPath.includes("..") ||
+      !objectPath.includes(`/foods/${foodId}/`) ||
+      !/\.(?:jpg|jpeg|png|webp|avif)$/i.test(objectPath)) {
     return { ok: false, message: "Thông tin ảnh món không hợp lệ." };
   }
   const supabase = await authorized();
+  const publicUrl = supabase.storage.from(FOOD_BUCKET).getPublicUrl(objectPath).data.publicUrl;
   const { data, error } = await supabase.rpc("api_replace_food_primary_image", {
-    p_food_id: foodId, p_object_path: objectPath, p_url: url,
+    p_food_id: foodId, p_object_path: objectPath, p_url: publicUrl,
     p_alt_text: altText.trim() || null,
   });
   if (error) return { ok: false, message: errorMessage(error, "Không thể lưu ảnh món.") };

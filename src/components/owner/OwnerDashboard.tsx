@@ -27,6 +27,14 @@ const STATE: Record<string, string> = {
   SUSPENDED: "Nhà hàng bị tạm ngưng", UNPUBLISHED: "Chưa xuất bản",
   APPROVAL_PENDING: "Chờ phê duyệt", REJECTED: "Hồ sơ bị từ chối", CLOSED: "Đã đóng",
 };
+const STATE_HELP: Record<string, string> = {
+  OPEN: "Khách có thể thêm món và tạo đơn mới ngay lúc này.",
+  PAUSED: "Đơn mới đang bị chặn cho đến khi nhà hàng bật nhận đơn trở lại.",
+  CLOSED_BY_SCHEDULE: "Đã bật nhận đơn; hệ thống sẽ tự mở lại trong khung giờ đã cấu hình.",
+  SETUP: "Hoàn tất hồ sơ, giờ hoạt động và xuất bản trước khi nhận đơn.",
+  SUSPENDED: "Nhà hàng đang bị tạm ngưng và không thể nhận đơn mới.",
+  UNPUBLISHED: "Nhà hàng chưa được xuất bản công khai.",
+};
 type Tab = "overview" | "orders" | "profile" | "menu" | "hours" | "media" | "staff" | "wallet";
 const BUCKET = "restaurant-media";
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -67,7 +75,7 @@ export default function OwnerDashboard({
       <div><p>Kênh người bán EatNow</p><h1>{data.restaurant.name}</h1><span>{STATE[data.restaurant.orderState] || data.restaurant.orderState}</span></div>
       <div className="owner-heading__actions">
         {restaurants.length > 1 && <select aria-label="Chọn nhà hàng" value={data.restaurant.id} onChange={(event) => router.push(`/owner?restaurant=${event.target.value}`)}>{restaurants.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>}
-        <Link href="/account/seller">Hồ sơ bán hàng</Link>
+        <Link href="/account/seller">Nhà hàng & đăng ký mới</Link>
       </div>
     </header>
     {notice && <div className={`owner-notice ${notice.ok ? "is-success" : "is-error"}`} role="status">{notice.message}<button onClick={() => setNotice(null)}>×</button></div>}
@@ -97,10 +105,10 @@ function Overview({ data, pending, canOrders, canProfile, run }: { data: OwnerDa
   const [reason, setReason] = useState("Tạm dừng vận hành");
   const restaurant = data.restaurant;
   return <div className="owner-grid">
-    <section className="owner-card owner-card--hero"><div><p>Trạng thái nhận đơn</p><h2>{STATE[restaurant.orderState] || restaurant.orderState}</h2><span>Duyệt: {restaurant.approvalStatus} · Vận hành: {restaurant.lifecycleStatus}</span></div>
+    <section className={`owner-card owner-card--hero ${restaurant.acceptingOrders ? "is-accepting" : "is-paused"}`}><div><p>Trạng thái nhận đơn thực tế</p><div className="owner-order-state"><h2>{STATE[restaurant.orderState] || restaurant.orderState}</h2><b>{restaurant.acceptingOrders ? "Cho phép đơn mới: BẬT" : "Cho phép đơn mới: TẮT"}</b></div><span>{STATE_HELP[restaurant.orderState] || `Duyệt: ${restaurant.approvalStatus} · Vận hành: ${restaurant.lifecycleStatus}`}</span>{!restaurant.acceptingOrders && restaurant.pausedReason && <small>Lý do: {restaurant.pausedReason}</small>}</div>
       {canOrders && restaurant.lifecycleStatus === "ACTIVE" && <div className="owner-order-control">
         {restaurant.acceptingOrders && <input value={reason} onChange={(event) => setReason(event.target.value)} aria-label="Lý do tạm dừng" />}
-        <button disabled={pending} onClick={() => run(() => setAcceptingOrdersAction(restaurant.id, !restaurant.acceptingOrders, reason))}>{restaurant.acceptingOrders ? "Tạm dừng nhận đơn" : "Bật nhận đơn"}</button>
+        <button disabled={pending || (restaurant.acceptingOrders && reason.trim().length < 3)} onClick={() => run(() => setAcceptingOrdersAction(restaurant.id, !restaurant.acceptingOrders, reason))}>{restaurant.acceptingOrders ? "Tạm dừng nhận đơn" : "Bật nhận đơn ngay"}</button>
       </div>}
       {canProfile && restaurant.lifecycleStatus === "SETUP" && restaurant.approvalStatus === "APPROVED" && <button disabled={pending} onClick={() => run(() => publishRestaurantAction(restaurant.id))}>Xuất bản nhà hàng</button>}
     </section>
@@ -134,8 +142,39 @@ function Hours({ data, pending, run }: { data: OwnerDashboardData; pending: bool
 }
 
 function Media({ data, pending, run }: { data: OwnerDashboardData; pending: boolean; run: (task: () => Promise<OwnerActionResult>) => void }) {
-  const upload = (event: FormEvent<HTMLFormElement>, kind: RestaurantMedia["kind"]) => { event.preventDefault(); const form = event.currentTarget; const values = new FormData(form); const file = values.get("image"); if (!(file instanceof File) || !TYPES[file.type] || file.size > MAX_BYTES) { run(async () => ({ ok: false, message: "Ảnh phải là JPG/PNG/WebP/AVIF và không quá 5 MB." })); return; }
-    run(async () => { const supabase = createClient(); const path = `restaurants/${data.restaurant.id}/${kind}/${crypto.randomUUID()}.${TYPES[file.type]}`; const { error } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false }); if (error) return { ok: false, message: "Không thể tải ảnh lên Storage." }; const { data: publicData } = supabase.storage.from(BUCKET).getPublicUrl(path); const result = await applyRestaurantMediaAction(data.restaurant.id, kind, path, publicData.publicUrl, String(values.get("alt") || "")); if (!result.ok) await supabase.storage.from(BUCKET).remove([path]); else { const old = data.media.find((item) => item.kind === kind && kind !== "gallery")?.objectPath; if (old) await supabase.storage.from(BUCKET).remove([old]); form.reset(); } return result; }); };
+  const upload = (event: FormEvent<HTMLFormElement>, kind: RestaurantMedia["kind"]) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = new FormData(form);
+    const file = values.get("image");
+    if (!(file instanceof File) || !TYPES[file.type] || file.size > MAX_BYTES) {
+      run(async () => ({ ok: false, message: "Ảnh phải là JPG/PNG/WebP/AVIF và không quá 5 MB." }));
+      return;
+    }
+    run(async () => {
+      const supabase = createClient();
+      const path = `restaurants/${data.restaurant.id}/${kind}/${crypto.randomUUID()}.${TYPES[file.type]}`;
+      try {
+        const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+          cacheControl: "31536000", contentType: file.type, upsert: false,
+        });
+        if (error) {
+          console.error("[owner] Upload ảnh nhà hàng thất bại", error);
+          return { ok: false, message: "Không thể tải ảnh nhà hàng. Kiểm tra bucket restaurant-media và quyền Storage." };
+        }
+        const result = await applyRestaurantMediaAction(
+          data.restaurant.id, kind, path, String(values.get("alt") || "")
+        );
+        if (!result.ok) await supabase.storage.from(BUCKET).remove([path]);
+        else form.reset();
+        return result;
+      } catch (error) {
+        console.error("[owner] Luồng upload ảnh nhà hàng bị gián đoạn", error);
+        await supabase.storage.from(BUCKET).remove([path]);
+        return { ok: false, message: "Kết nối bị gián đoạn khi tải ảnh. Vui lòng thử lại." };
+      }
+    });
+  };
   const grouped = (["logo", "cover", "gallery"] as const);
   return <div className="owner-media-grid">{grouped.map((kind) => <section className="owner-card" key={kind}><h2>{kind === "logo" ? "Ảnh đại diện" : kind === "cover" ? "Ảnh bìa nhà hàng" : "Thư viện ảnh"}</h2><div className="owner-media-list">{data.media.filter((item) => item.kind === kind).map((item) => <figure key={item.id}><img src={item.url} alt={item.altText || data.restaurant.name} /><button disabled={pending} onClick={() => run(() => deleteRestaurantMediaAction(item.id))}>Xóa</button></figure>)}</div><form className="owner-upload" onSubmit={(event) => upload(event, kind)}><input name="image" type="file" accept="image/jpeg,image/png,image/webp,image/avif" required /><input name="alt" placeholder="Mô tả ảnh" maxLength={180} /><button disabled={pending}>Tải ảnh lên</button></form></section>)}</div>;
 }

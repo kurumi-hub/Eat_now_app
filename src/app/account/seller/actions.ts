@@ -57,21 +57,38 @@ export async function saveSellerApplicationAction(
   if (input.applicationId && !UUID.test(input.applicationId)) {
     return { ok: false, message: "Mã hồ sơ không hợp lệ." };
   }
-  let verifiedAddress;
-  try {
-    verifiedAddress = await verifyGoogleAddressSelection({
-      address, placeId: input.googlePlaceId, lat: input.lat, lon: input.lon,
-    });
-  } catch (error) {
-    console.error("[seller] Xác minh Google Maps thất bại", error);
-    return {
-      ok: false,
-      message: error instanceof Error && error.message.includes("GOOGLE_MAPS_SERVER_API_KEY")
-        ? "Máy chủ chưa cấu hình GOOGLE_MAPS_SERVER_API_KEY."
-        : error instanceof Error ? error.message : "Không thể xác minh địa chỉ Google Maps.",
-    };
-  }
   const supabase = await createClient();
+  let verifiedAddress = { formattedAddress: address };
+  let unchangedLocation = false;
+  if (input.applicationId && !input.googlePlaceId) {
+    const { data: currentContext } = await supabase.rpc("api_get_my_seller_context");
+    const current = currentContext && typeof currentContext === "object" &&
+      !Array.isArray(currentContext) && "application" in currentContext &&
+      currentContext.application && typeof currentContext.application === "object" &&
+      !Array.isArray(currentContext.application)
+        ? currentContext.application as Record<string, unknown>
+        : null;
+    unchangedLocation = Boolean(
+      current?.id === input.applicationId &&
+      current.address === address &&
+      Number(current.lat) === input.lat && Number(current.lon) === input.lon
+    );
+  }
+  if (!unchangedLocation) {
+    try {
+      verifiedAddress = await verifyGoogleAddressSelection({
+        address, placeId: input.googlePlaceId, lat: input.lat, lon: input.lon,
+      });
+    } catch (error) {
+      console.error("[seller] Xác minh Google Maps thất bại", error);
+      return {
+        ok: false,
+        message: error instanceof Error && error.message.includes("GOOGLE_MAPS_SERVER_API_KEY")
+          ? "Máy chủ chưa cấu hình GOOGLE_MAPS_SERVER_API_KEY."
+          : error instanceof Error ? error.message : "Không thể xác minh địa chỉ Google Maps.",
+      };
+    }
+  }
   const { error } = await supabase.rpc("api_save_restaurant_application", {
     p_restaurant_name: name,
     p_description: input.description.trim() || null,

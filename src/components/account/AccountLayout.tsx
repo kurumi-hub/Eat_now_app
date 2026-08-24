@@ -26,7 +26,7 @@ export default function AccountLayout({ user, children }: AccountLayoutProps) {
     ? optimisticPath
     : visibleItems[0]?.href ?? false;
   const sellerLabel = hasAnyRole(user, ["RESTAURANT_OWNER", "RESTAURANT_STAFF"])
-    ? "Kênh người bán"
+    ? "Nhà hàng của tôi"
     : "Bán hàng cùng EatNow";
 
   useEffect(() => {

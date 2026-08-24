@@ -104,6 +104,7 @@ export default function OwnerMenuManager({
       return;
     }
     startTransition(async () => {
+      try {
       let result = await saveOwnerFoodAction(restaurantId, editing);
       if (!result.ok || !result.foodId) { setNotice(result); return; }
       // Keep the newly created id in the editor. If Storage fails, retrying
@@ -125,8 +126,7 @@ export default function OwnerMenuManager({
           setNotice({ ok: false, message: `${result.message} Không thể tải ảnh lên (${upload.error.message}). Bấm “Lưu món ăn” để thử lại.` });
           router.refresh(); return;
         }
-        const publicUrl = supabase.storage.from(BUCKET).getPublicUrl(ticket.objectPath).data.publicUrl;
-        const imageResult = await applyFoodImageAction(result.foodId, ticket.objectPath, publicUrl, editing.name);
+        const imageResult = await applyFoodImageAction(result.foodId, ticket.objectPath, editing.name);
         if (!imageResult.ok) {
           await discardFoodImageUploadAction(result.foodId, ticket.objectPath);
           setNotice(imageResult); router.refresh(); return;
@@ -134,6 +134,11 @@ export default function OwnerMenuManager({
         result = { ...result, message: `${result.message} Đã cập nhật ảnh chính.` };
       }
       setNotice(result); setEditing(null); setImageFile(null); router.refresh();
+      } catch (error) {
+        console.error("[owner] Luồng lưu món và tải ảnh bị gián đoạn", error);
+        setNotice({ ok: false, message: "Kết nối bị gián đoạn khi lưu món hoặc tải ảnh. Dữ liệu món đã lưu (nếu có) sẽ được dùng lại khi thử lại." });
+        router.refresh();
+      }
     });
   };
 

@@ -64,6 +64,7 @@
   border-radius: 999px;
   font-weight: 700;
 }
+.restaurant-availability-alert { margin-top: 16px; border-radius: 12px !important; }
 
 .restaurant-hero h1 {
   margin: 0 0 10px;

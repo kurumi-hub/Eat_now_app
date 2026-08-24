@@ -20,6 +20,11 @@ const STATUS: Record<string, string> = {
   NEEDS_CHANGES: "Cần bổ sung", APPROVED: "Đã duyệt", REJECTED: "Đã từ chối",
   WITHDRAWN: "Đã rút",
 };
+const ACTIVE_APPLICATION_STATUSES = ["DRAFT", "SUBMITTED", "UNDER_REVIEW", "NEEDS_CHANGES"];
+const ORDER_STATE: Record<string, string> = {
+  OPEN: "Đang nhận đơn", PAUSED: "Tạm dừng", CLOSED_BY_SCHEDULE: "Ngoài giờ",
+  SETUP: "Đang thiết lập", UNPUBLISHED: "Chưa xuất bản", SUSPENDED: "Tạm ngưng",
+};
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -34,25 +39,44 @@ export default function SellerApplicationPanel({
 }: { context: SellerContext; invitations: StaffInvitation[] }) {
   const router = useRouter();
   const application = context.application;
-  const editable = !application || ["DRAFT", "NEEDS_CHANGES"].includes(application.status);
+  const activeApplication = application && ACTIVE_APPLICATION_STATUSES.includes(application.status)
+    ? application : null;
+  const editableApplication = activeApplication && ["DRAFT", "NEEDS_CHANGES"].includes(activeApplication.status)
+    ? activeApplication : null;
+  const waitingApplication = activeApplication && ["SUBMITTED", "UNDER_REVIEW"].includes(activeApplication.status)
+    ? activeApplication : null;
+  const approvedWithoutRestaurant = application?.status === "APPROVED" && context.restaurants.length === 0;
   const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState("");
+  const [showNewForm, setShowNewForm] = useState(false);
   const [location, setLocation] = useState<RestaurantAddressSelection | null>(() =>
-    application?.address && application.lat != null && application.lon != null
+    editableApplication?.address && editableApplication.lat != null && editableApplication.lon != null
       ? {
-          formattedAddress: application.address,
+          formattedAddress: editableApplication.address,
           placeId: "",
-          lat: application.lat,
-          lon: application.lon,
+          lat: editableApplication.lat,
+          lon: editableApplication.lon,
         }
       : null
   );
+  const showForm = Boolean(editableApplication) || (!activeApplication && showNewForm);
 
-  const run = (task: () => Promise<{ ok: boolean; message: string }>) => {
+  const run = (
+    task: () => Promise<{ ok: boolean; message: string }>,
+    onSuccess?: () => void
+  ) => {
     startTransition(async () => {
-      const result = await task();
-      setNotice(result.message);
-      if (result.ok) router.refresh();
+      try {
+        const result = await task();
+        setNotice(result.message);
+        if (result.ok) {
+          onSuccess?.();
+          router.refresh();
+        }
+      } catch (error) {
+        console.error("[seller] Thao tác hồ sơ thất bại", error);
+        setNotice("Kết nối bị gián đoạn. Vui lòng thử lại.");
+      }
     });
   };
 
@@ -64,7 +88,7 @@ export default function SellerApplicationPanel({
     }
     const data = new FormData(event.currentTarget);
     run(() => saveSellerApplicationAction({
-      applicationId: application?.id,
+      applicationId: editableApplication?.id,
       restaurantName: String(data.get("restaurantName") || ""),
       description: String(data.get("description") || ""),
       address: location.formattedAddress,
@@ -95,41 +119,55 @@ export default function SellerApplicationPanel({
     </section>}
 
     {context.restaurants.length > 0 && <section className="account-card">
-      <h2>Nhà hàng đang quản lý</h2>
+      <div className="seller-section-heading"><div><p className="account-page-heading__eyebrow">Kênh người bán</p><h2>Nhà hàng đang quản lý</h2></div><Link className="seller-primary-link" href="/owner">Mở tổng quan</Link></div>
       <div className="seller-managed-list">
         {context.restaurants.map((item) => <Link key={item.id} href={`/owner?restaurant=${item.id}`}>
-          <strong>{item.name}</strong><span>{item.membershipRole === "RESTAURANT_OWNER" ? "Owner" : "Staff"} · {item.orderState}</span>
+          <strong>{item.name}</strong><span>{item.membershipRole === "RESTAURANT_OWNER" ? "Owner" : "Staff"} · {ORDER_STATE[item.orderState] || item.orderState}</span>
         </Link>)}
       </div>
     </section>}
 
-    <section className="account-card">
+    {waitingApplication && <section className="account-card seller-application-summary">
+      <div className="seller-section-heading"><div><p className="account-page-heading__eyebrow">Hồ sơ đang xử lý</p><h2>{waitingApplication.restaurantName}</h2></div><span className={`seller-status seller-status--${waitingApplication.status.toLowerCase()}`}>{STATUS[waitingApplication.status]}</span></div>
+      <p>Hồ sơ phiên bản {waitingApplication.revision} đã được gửi lúc {formatDate(waitingApplication.submittedAt)}. Bạn sẽ có thể chỉnh sửa nếu Admin yêu cầu bổ sung.</p>
+    </section>}
+
+    {approvedWithoutRestaurant && <section className="account-card seller-application-summary">
+      <h2>Đang khởi tạo nhà hàng</h2><p>Hồ sơ đã được duyệt nhưng nhà hàng chưa xuất hiện trong danh sách quản lý. Hãy tải lại trang; nếu vẫn chưa có, kiểm tra migration Owner.</p>
+    </section>}
+
+    {!activeApplication && !showNewForm && <section className="account-card seller-application-cta">
+      <div><p className="account-page-heading__eyebrow">{context.restaurants.length ? "Mở rộng kinh doanh" : "Bắt đầu bán hàng"}</p><h2>{context.restaurants.length ? "Đăng ký thêm nhà hàng" : "Mở nhà hàng trên EatNow"}</h2><span>Form chỉ mở khi bạn chủ động bắt đầu. Mỗi thời điểm chỉ có một hồ sơ đang xử lý.</span></div>
+      <button type="button" onClick={() => { setLocation(null); setShowNewForm(true); setNotice(""); }}>Đăng ký mở nhà hàng mới</button>
+    </section>}
+
+    {showForm && <section className="account-card">
       <div className="seller-section-heading">
-        <div><p className="account-page-heading__eyebrow">Hồ sơ mở quán</p><h2>{application ? application.restaurantName : "Đăng ký nhà hàng mới"}</h2></div>
-        {application && <span className={`seller-status seller-status--${application.status.toLowerCase()}`}>{STATUS[application.status]}</span>}
+        <div><p className="account-page-heading__eyebrow">Hồ sơ mở quán</p><h2>{editableApplication ? editableApplication.restaurantName : "Đăng ký nhà hàng mới"}</h2></div>
+        {editableApplication && <span className={`seller-status seller-status--${editableApplication.status.toLowerCase()}`}>{STATUS[editableApplication.status]}</span>}
       </div>
-      {application?.reviewNote && <div className="account-inline-notice account-inline-notice--warning"><strong>Phản hồi xét duyệt:</strong> {application.reviewNote}</div>}
+      {editableApplication?.reviewNote && <div className="account-inline-notice account-inline-notice--warning"><strong>Phản hồi xét duyệt:</strong> {editableApplication.reviewNote}</div>}
       <form className="seller-form" onSubmit={save}>
-        <label>Tên nhà hàng<input name="restaurantName" required minLength={2} maxLength={160} defaultValue={application?.restaurantName} disabled={!editable} /></label>
-        <label>Số điện thoại<input name="phone" required defaultValue={application?.phone} disabled={!editable} /></label>
-        <label className="full">Mô tả<textarea name="description" rows={3} defaultValue={application?.description} disabled={!editable} /></label>
+        <label>Tên nhà hàng<input name="restaurantName" required minLength={2} maxLength={160} defaultValue={editableApplication?.restaurantName} /></label>
+        <label>Số điện thoại<input name="phone" required defaultValue={editableApplication?.phone} /></label>
+        <label className="full">Mô tả<textarea name="description" rows={3} defaultValue={editableApplication?.description} /></label>
         <div className="full seller-address-field">
           <span>Địa chỉ và vị trí nhà hàng</span>
-          <RestaurantAddressField value={location} onChange={setLocation} disabled={!editable} />
+          <RestaurantAddressField value={location} onChange={setLocation} />
         </div>
-        <label>Múi giờ<input name="timezone" required defaultValue={application?.timezone || "Asia/Ho_Chi_Minh"} disabled={!editable} /></label>
-        <label>Giấy phép kinh doanh<input name="businessLicenseNumber" defaultValue={application?.businessLicenseNumber} disabled={!editable} /></label>
-        <label>Mã số thuế<input name="taxCode" defaultValue={application?.taxCode} disabled={!editable} /></label>
-        <label>Người đại diện<input name="legalRepresentativeName" defaultValue={application?.legalRepresentativeName} disabled={!editable} /></label>
-        {editable && <div className="seller-actions full">
+        <label>Múi giờ<input name="timezone" required defaultValue={editableApplication?.timezone || "Asia/Ho_Chi_Minh"} /></label>
+        <label>Giấy phép kinh doanh<input name="businessLicenseNumber" defaultValue={editableApplication?.businessLicenseNumber} /></label>
+        <label>Mã số thuế<input name="taxCode" defaultValue={editableApplication?.taxCode} /></label>
+        <label>Người đại diện<input name="legalRepresentativeName" defaultValue={editableApplication?.legalRepresentativeName} /></label>
+        <div className="seller-actions full">
           <button type="submit" disabled={pending}>{pending ? "Đang xử lý…" : "Lưu bản nháp"}</button>
-          {application && <button type="button" disabled={pending} onClick={() => run(() => submitSellerApplicationAction(application.id))}>Nộp xét duyệt</button>}
-          {application && <button type="button" className="secondary" disabled={pending} onClick={() => run(() => withdrawSellerApplicationAction(application.id, "Người đăng ký chủ động rút hồ sơ"))}>Rút hồ sơ</button>}
-        </div>}
+          {editableApplication && <button type="button" disabled={pending} onClick={() => run(() => submitSellerApplicationAction(editableApplication.id))}>Nộp xét duyệt</button>}
+          {editableApplication ? <button type="button" className="secondary" disabled={pending} onClick={() => run(() => withdrawSellerApplicationAction(editableApplication.id, "Người đăng ký chủ động rút hồ sơ"), () => setShowNewForm(false))}>Rút hồ sơ</button> : <button type="button" className="secondary" disabled={pending} onClick={() => { setShowNewForm(false); setLocation(null); }}>Hủy</button>}
+        </div>
       </form>
-    </section>
+    </section>}
 
-    {context.timeline.length > 0 && <section className="account-card"><h2>Lịch sử xét duyệt</h2><ol className="seller-timeline">
+    {application?.status !== "APPROVED" && context.timeline.length > 0 && <section className="account-card"><h2>Lịch sử xét duyệt</h2><ol className="seller-timeline">
       {[...context.timeline].reverse().map((event) => <li key={event.id}><strong>{STATUS[event.toStatus] || event.toStatus}</strong><span>{formatDate(event.createdAt)} · phiên bản {event.revision}</span>{event.note && <p>{event.note}</p>}</li>)}
     </ol></section>}
   </div>;

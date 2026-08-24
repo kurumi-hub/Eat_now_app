@@ -17,6 +17,12 @@
 .owner-card__heading p { margin: -8px 0 18px; color: #727984; }
 .owner-card--hero { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 20px; background: #fff7f2; border-color: #ffd9c6; }
 .owner-card--hero p, .owner-card--hero h2 { margin: 0 0 5px; }.owner-card--hero span { color: #737983; font-size: 13px; }
+.owner-card--hero.is-accepting { border-color: #b9e6ca; background: #f2fbf6; }
+.owner-card--hero.is-paused { border-color: #ffd1c3; background: #fff7f3; }
+.owner-order-state { display: flex; align-items: center; flex-wrap: wrap; gap: 9px 13px; }
+.owner-order-state b { border-radius: 999px; padding: 6px 10px; background: #e5f7ed; color: #087649; font-size: 11px; letter-spacing: .02em; }
+.owner-card--hero.is-paused .owner-order-state b { background: #ffebe5; color: #b94223; }
+.owner-card--hero small { display: block; margin-top: 7px; color: #a74628; }
 .owner-card button, .owner-form button, .owner-hours > button { border: 0; border-radius: 10px; padding: 10px 14px; background: #f0642e; color: white; font: inherit; font-weight: 700; cursor: pointer; }
 .owner-card button:disabled { cursor: wait; opacity: .55; }
 .owner-order-control { display: flex; gap: 8px; }.owner-order-control input { min-width: 190px; }

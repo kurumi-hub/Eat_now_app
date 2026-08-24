@@ -49,6 +49,10 @@ export type RestaurantDetail = {
   deliveryTime: string;
   deliveryFee: string;
   isOpen: boolean;
+  orderState?: string;
+  acceptingOrders?: boolean;
+  availabilityLabel?: string;
+  availabilityMessage?: string;
   openUntil: string;
   menuCategories: RestaurantMenuCategory[];
 };
