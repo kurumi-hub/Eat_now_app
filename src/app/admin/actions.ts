@@ -18,6 +18,8 @@ import {
 } from "@/types/siteMedia";
 import { requirePermission } from "@/utils/auth/guards";
 import { createClient } from "@/utils/supabase/server";
+import { voucherPayload } from "@/lib/voucherInput";
+import type { VoucherActionResult, VoucherSaveInput, VoucherStoredStatus } from "@/types/voucher";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -1051,4 +1053,32 @@ export async function reviewRestaurantApplicationAction(
   revalidatePath("/account/seller");
   revalidatePath("/owner");
   return { ok: true, message: decision === "approve" ? "Đã duyệt và tạo nhà hàng." : "Đã cập nhật trạng thái hồ sơ." };
+}
+
+export async function saveAdminVoucherAction(input: VoucherSaveInput): Promise<VoucherActionResult> {
+  await requirePermission("vouchers.manage");
+  const cleaned = voucherPayload(input, false);
+  if ("error" in cleaned) return { ok: false, message: cleaned.error };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("api_admin_save_voucher", { p_payload: cleaned.payload });
+  if (error) return { ok: false, message: failure("Không thể lưu voucher nền tảng.", error) };
+  updateTag("vouchers");
+  revalidatePath("/admin"); revalidatePath("/vouchers"); revalidatePath("/checkout");
+  return { ok: true, message: input.id ? "Đã cập nhật voucher." : "Đã tạo voucher nền tảng.", voucherId: String(data) };
+}
+
+export async function setAdminVoucherStatusAction(
+  voucherId: string,
+  status: VoucherStoredStatus
+): Promise<VoucherActionResult> {
+  await requirePermission("vouchers.manage");
+  if (!validId(voucherId) || !["draft", "active", "paused", "archived"].includes(status)) {
+    return { ok: false, message: "Voucher hoặc trạng thái không hợp lệ." };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("api_set_voucher_status", { p_voucher_id: voucherId, p_status: status });
+  if (error) return { ok: false, message: failure("Không thể đổi trạng thái voucher.", error) };
+  updateTag("vouchers");
+  revalidatePath("/admin"); revalidatePath("/vouchers"); revalidatePath("/checkout");
+  return { ok: true, message: status === "active" ? "Voucher đã hoạt động." : status === "paused" ? "Đã tạm dừng voucher." : status === "archived" ? "Đã lưu trữ voucher." : "Đã chuyển voucher về bản nháp." };
 }

@@ -64,6 +64,7 @@ export const RESTAURANT_PERMISSIONS = [
   "restaurant.media.manage",
   "restaurant.menu.view",
   "restaurant.menu.manage",
+  "restaurant.voucher.manage",
   "restaurant.orders.manage",
   "restaurant.orders.reject",
   "restaurant.staff.manage",

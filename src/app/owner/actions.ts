@@ -12,6 +12,8 @@ import { verifyGoogleAddressSelection } from "@/lib/geocoding";
 import { requireAnyRole } from "@/utils/auth/guards";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { voucherPayload } from "@/lib/voucherInput";
+import type { VoucherActionResult, VoucherSaveInput, VoucherStoredStatus } from "@/types/voucher";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const BUCKET = "restaurant-media";
@@ -470,4 +472,38 @@ export async function discardFoodImageUploadAction(
     const { error } = await createAdminClient().storage.from(FOOD_BUCKET).remove([objectPath]);
     if (error) console.error("[owner] Chưa dọn được ảnh món chưa gắn metadata", error);
   } catch (error) { console.error("[owner] Chưa dọn được ảnh món chưa gắn metadata", error); }
+}
+
+export async function saveOwnerVoucherAction(
+  restaurantId: string,
+  input: VoucherSaveInput
+): Promise<VoucherActionResult> {
+  if (!UUID.test(restaurantId)) return { ok: false, message: "Mã nhà hàng không hợp lệ." };
+  const cleaned = voucherPayload(input, true);
+  if ("error" in cleaned) return { ok: false, message: cleaned.error };
+  const supabase = await authorized();
+  const { data, error } = await supabase.rpc("api_owner_save_voucher", {
+    p_restaurant_id: restaurantId, p_payload: cleaned.payload,
+  });
+  if (error) return { ok: false, message: errorMessage(error, "Không thể lưu voucher nhà hàng.") };
+  updateTag("vouchers"); refresh(); revalidatePath("/vouchers"); revalidatePath("/checkout");
+  return { ok: true, message: input.id ? "Đã cập nhật voucher." : "Đã tạo voucher nhà hàng.", voucherId: String(data) };
+}
+
+export async function setOwnerVoucherStatusAction(
+  restaurantId: string,
+  voucherId: string,
+  status: VoucherStoredStatus
+): Promise<VoucherActionResult> {
+  if (!UUID.test(restaurantId) || !UUID.test(voucherId) ||
+      !["draft", "active", "paused", "archived"].includes(status)) {
+    return { ok: false, message: "Voucher hoặc trạng thái không hợp lệ." };
+  }
+  const supabase = await authorized();
+  const { error } = await supabase.rpc("api_set_voucher_status", {
+    p_voucher_id: voucherId, p_status: status,
+  });
+  if (error) return { ok: false, message: errorMessage(error, "Không thể đổi trạng thái voucher.") };
+  updateTag("vouchers"); refresh(); revalidatePath("/vouchers"); revalidatePath("/checkout");
+  return { ok: true, message: status === "active" ? "Voucher đã hoạt động." : status === "paused" ? "Đã tạm dừng voucher." : status === "archived" ? "Đã lưu trữ voucher." : "Đã chuyển voucher về bản nháp." };
 }

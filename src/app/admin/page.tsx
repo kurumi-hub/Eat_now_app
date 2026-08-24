@@ -26,6 +26,7 @@ import {
   parseAdminTags,
 } from "@/lib/data/adminCatalog";
 import { parseSiteMedia } from "@/types/siteMedia";
+import { EMPTY_VOUCHER_MANAGEMENT, parseVoucherManagement } from "@/lib/data/vouchers";
 import {
   EMPTY_ADMIN_SHIPPER_FINANCE,
   parseAdminShipperApplications,
@@ -56,6 +57,7 @@ const ADMIN_TABS: AdminTab[] = [
   "orders",
   "restaurants",
   "refunds",
+  "vouchers",
   "catalog",
   "finance",
   "media",
@@ -313,6 +315,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   if (tab === "finance" && !user.permissions.includes("finance.settings.manage")) {
     tab = "overview";
   }
+  if (tab === "vouchers" && !user.permissions.includes("vouchers.manage")) {
+    tab = "overview";
+  }
   if (tab === "applications" && !user.permissions.includes("restaurants.verify")) {
     tab = "overview";
   }
@@ -369,6 +374,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         p_status: status || null, p_search: search || null, p_limit: limit, p_offset: offset,
       });
     }
+    if (tab === "vouchers") {
+      return supabase.rpc("api_list_admin_vouchers", {
+        p_status: status || null, p_search: search || null, p_limit: limit, p_offset: offset,
+      });
+    }
     if (tab === "catalog") {
       const rpc = catalogKind === "tags"
         ? "api_list_admin_tags"
@@ -416,6 +426,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       orders={tab === "orders" ? parseAdminOrders(contentResult.data) : EMPTY_ORDERS}
       restaurants={tab === "restaurants" ? parseRestaurants(contentResult.data) : EMPTY_RESTAURANTS}
       refunds={tab === "refunds" ? parseRefunds(contentResult.data) : EMPTY_REFUNDS}
+      vouchers={tab === "vouchers" ? parseVoucherManagement(contentResult.data) : EMPTY_VOUCHER_MANAGEMENT}
       catalogKind={catalogKind}
       categories={
         tab === "catalog" && catalogKind === "categories"
@@ -430,7 +441,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       media={tab === "media" ? parseSiteMedia(contentResult.data) : EMPTY_MEDIA}
       finance={tab === "finance" ? parseAdminFinance(contentResult.data) : EMPTY_FINANCE}
       audit={tab === "overview" || tab === "audit" ? parseAudit(contentResult.data) : EMPTY_AUDIT}
-      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra SQL 13–28." : undefined}
+      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra các migration, gồm SQL 32 cho Voucher." : undefined}
     />
   );
 }

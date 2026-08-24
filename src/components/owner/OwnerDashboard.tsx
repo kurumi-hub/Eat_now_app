@@ -19,7 +19,9 @@ import RestaurantAddressField, {
 } from "@/components/restaurant/RestaurantAddressField";
 import OwnerMenuManager from "@/components/owner/OwnerMenuManager";
 import OwnerOrderConsole from "@/components/owner/OwnerOrderConsole";
+import VoucherManagementPanel from "@/components/voucher/VoucherManagementPanel";
 import type { OwnerOrderList } from "@/types/owner";
+import type { VoucherManagementData } from "@/types/voucher";
 
 const DAYS = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
 const STATE: Record<string, string> = {
@@ -36,7 +38,7 @@ const STATE_HELP: Record<string, string> = {
   SUSPENDED: "Nhà hàng đang bị tạm ngưng và không thể nhận đơn mới.",
   UNPUBLISHED: "Nhà hàng chưa được xuất bản công khai.",
 };
-type Tab = "overview" | "orders" | "profile" | "menu" | "hours" | "media" | "staff" | "wallet";
+type Tab = "overview" | "orders" | "profile" | "menu" | "vouchers" | "hours" | "media" | "staff" | "wallet";
 const BUCKET = "restaurant-media";
 const MAX_BYTES = 5 * 1024 * 1024;
 const TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" };
@@ -46,8 +48,8 @@ function dayRows(hours: RestaurantHour[]) {
 }
 
 export default function OwnerDashboard({
-  userId, restaurants, data, menu, orders,
-}: { userId: string; restaurants: ManagedRestaurantSummary[]; data: OwnerDashboardData; menu: OwnerMenuData; orders: OwnerOrderList }) {
+  userId, restaurants, data, menu, orders, vouchers,
+}: { userId: string; restaurants: ManagedRestaurantSummary[]; data: OwnerDashboardData; menu: OwnerMenuData; orders: OwnerOrderList; vouchers: VoucherManagementData }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("overview");
   const [pending, startTransition] = useTransition();
@@ -58,12 +60,13 @@ export default function OwnerDashboard({
   const canOrders = permissions.has("restaurant.orders.toggle");
   const canMedia = permissions.has("restaurant.media.manage");
   const canMenu = permissions.has("restaurant.menu.manage");
+  const canVouchers = permissions.has("restaurant.voucher.manage");
   const canStaff = permissions.has("restaurant.staff.manage");
   const canTransfer = permissions.has("restaurant.ownership.transfer");
   const openOrderCount = orders.items.filter((item) => !["completed", "cancelled"].includes(item.status)).length;
   const tabs: Array<[Tab, string, boolean]> = [
     ["overview", "Tổng quan", true], ["orders", `Đơn hàng (${openOrderCount})`, permissions.has("restaurant.orders.manage")], ["profile", "Hồ sơ", canProfile],
-    ["menu", "Thực đơn", canMenu], ["hours", "Giờ hoạt động", canHours], ["media", "Hình ảnh", canMedia],
+    ["menu", "Thực đơn", canMenu], ["vouchers", "Voucher", canVouchers], ["hours", "Giờ hoạt động", canHours], ["media", "Hình ảnh", canMedia],
     ["staff", "Nhân sự", canStaff], ["wallet", "Tài chính", permissions.has("restaurant.finance.view")],
   ];
 
@@ -86,6 +89,7 @@ export default function OwnerDashboard({
     {tab === "orders" && permissions.has("restaurant.orders.manage") && <OwnerOrderConsole restaurantId={data.restaurant.id} data={orders} canReject={permissions.has("restaurant.orders.reject")} />}
     {tab === "profile" && canProfile && <Profile data={data} pending={pending} run={run} />}
     {tab === "menu" && canMenu && <OwnerMenuManager restaurantId={data.restaurant.id} data={menu} />}
+    {tab === "vouchers" && canVouchers && <VoucherManagementPanel mode="owner" restaurantId={data.restaurant.id} data={vouchers} />}
     {tab === "hours" && canHours && <Hours data={data} pending={pending} run={run} />}
     {tab === "media" && canMedia && <Media data={data} pending={pending} run={run} />}
     {tab === "staff" && canStaff && <Staff userId={userId} data={data} pending={pending} canTransfer={canTransfer} run={run} />}

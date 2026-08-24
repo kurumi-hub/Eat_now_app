@@ -94,6 +94,8 @@ export type CheckoutVoucher = {
   maxDiscount: number | null;
   minOrderValue: number;
   discountScope: "items" | "shipping";
+  issuerType: "platform" | "restaurant";
+  targetScope: "system" | "restaurant" | "category" | "food";
   expiredAt: string;
 };
 
@@ -106,6 +108,8 @@ type CheckoutVoucherRow = {
   max_discount: number | null;
   min_order_value: number;
   discount_scope: "items" | "shipping";
+  issuer_type: "platform" | "restaurant";
+  target_scope: "system" | "restaurant" | "category" | "food";
   expired_at: string;
 };
 
@@ -120,6 +124,8 @@ function mapVoucherRows(data: unknown): CheckoutVoucher[] {
     maxDiscount: row.max_discount === null ? null : Number(row.max_discount),
     minOrderValue: Number(row.min_order_value),
     discountScope: row.discount_scope,
+    issuerType: row.issuer_type,
+    targetScope: row.target_scope,
     expiredAt: row.expired_at,
   }));
 }

@@ -51,6 +51,13 @@ function voucherBenefit(voucher: CheckoutVoucher) {
   return `Giảm ${voucher.discountValue}% ${target}${voucher.maxDiscount ? `, tối đa ${formatCurrency(voucher.maxDiscount)}` : ""}`;
 }
 
+function voucherScope(voucher: CheckoutVoucher) {
+  if (voucher.targetScope === "system") return "Toàn hệ thống";
+  if (voucher.targetScope === "restaurant") return "Nhà hàng này";
+  if (voucher.targetScope === "category") return "Category phù hợp";
+  return "Món được chọn";
+}
+
 function lineDescription(line: CartLine) {
   const parts: string[] = [];
   if (line.size) parts.push(`Size ${line.size.name}`);
@@ -195,7 +202,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
                     <label className={`order-voucher-card ${voucherCode === voucher.code ? "is-selected" : ""}`} key={voucher.id}>
                       <input type="radio" name="voucher" value={voucher.code} checked={voucherCode === voucher.code} onChange={(e) => setVoucherCode(e.target.value)} />
                       <span className="order-voucher-card__ticket"><LocalOfferOutlinedIcon /></span>
-                      <span><b>{voucher.code}</b><strong>{voucher.name}</strong><small>{voucherBenefit(voucher)}{voucher.minOrderValue > 0 ? ` · Đơn tối thiểu ${formatCurrency(voucher.minOrderValue)}` : ""}</small></span>
+                      <span><b>{voucher.code}</b><strong>{voucher.name}</strong><small>{voucherBenefit(voucher)} · {voucherScope(voucher)}{voucher.minOrderValue > 0 ? ` · Đơn tối thiểu ${formatCurrency(voucher.minOrderValue)}` : ""}</small></span>
                       {voucherCode === voucher.code ? <CheckCircleRoundedIcon /> : <RadioButtonUncheckedRoundedIcon />}
                     </label>
                   ))}

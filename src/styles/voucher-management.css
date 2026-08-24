@@ -1,0 +1,56 @@
+.voucher-management { display: grid; gap: 22px; }
+.voucher-management__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.voucher-management__heading span { color: #a04100; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+.voucher-management__heading h2 { margin: 3px 0 5px; font-size: 28px; }
+.voucher-management__heading p { margin: 0; color: #765b50; }
+.voucher-management button { font: inherit; cursor: pointer; }
+.voucher-management__primary { border: 0 !important; border-radius: 10px !important; background: #7a3000 !important; color: #fff !important; padding: 11px 17px !important; font-weight: 800 !important; }
+.voucher-management__notice { display: flex; justify-content: space-between; border-radius: 12px; padding: 12px 15px; }
+.voucher-management__notice.is-success { background: #e3f6ec; color: #12633f; }
+.voucher-management__notice.is-error { background: #ffdad6; color: #93000a; }
+.voucher-management__notice button { border: 0; background: transparent; color: inherit; font-size: 18px; }
+.voucher-management__metrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
+.voucher-management__metrics article { display: grid; gap: 6px; border: 1px solid #eadbd4; border-radius: 15px; background: #fff; padding: 16px; }
+.voucher-management__metrics span { color: #765b50; font-size: 12px; }
+.voucher-management__metrics strong { font-size: 21px; }
+.voucher-management__filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.voucher-management__filters button { border: 1px solid #ddc1b4; border-radius: 999px; background: #fff; color: #5a4136; padding: 7px 13px; }
+.voucher-management__filters button.is-active { border-color: #7a3000; background: #7a3000; color: #fff; }
+.voucher-editor { display: grid; gap: 16px; border: 1px solid #ddc1b4; border-radius: 18px; background: #fffaf7; padding: 20px; }
+.voucher-editor__title { display: flex; justify-content: space-between; gap: 18px; }
+.voucher-editor__title h3,.voucher-editor__title p { margin: 0; }
+.voucher-editor__title p { margin-top: 4px; color: #765b50; font-size: 13px; }
+.voucher-editor__title > button,.voucher-editor__actions > button:first-child { border: 1px solid #ddc1b4; border-radius: 9px; background: #fff; padding: 8px 13px; }
+.voucher-editor__grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 13px; }
+.voucher-editor label { display: grid; gap: 6px; color: #5a4136; font-size: 12px; font-weight: 700; }
+.voucher-editor input,.voucher-editor select,.voucher-editor textarea { min-width: 0; border: 1px solid #ddc1b4; border-radius: 9px; background: #fff; padding: 10px 11px; color: #1a1c1e; font: inherit; }
+.voucher-editor textarea { resize: vertical; }
+.voucher-target-picker { border: 1px solid #eadbd4; border-radius: 13px; padding: 13px; }
+.voucher-target-picker legend { color: #5a4136; font-weight: 800; }
+.voucher-target-picker > div { display: grid; max-height: 210px; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; overflow-y: auto; }
+.voucher-target-picker label { display: flex; align-items: center; gap: 8px; border: 1px solid #eee1da; border-radius: 9px; background: #fff; padding: 9px; }
+.voucher-target-picker label span { display: grid; }
+.voucher-target-picker small { color: #8e7164; font-weight: 500; }
+.voucher-editor__actions { display: flex; justify-content: flex-end; gap: 9px; }
+.voucher-campaign-list { display: grid; gap: 12px; }
+.voucher-campaign { display: grid; grid-template-columns: 52px minmax(0,1fr) auto; gap: 15px; border: 1px solid #eadbd4; border-radius: 16px; background: #fff; padding: 16px; }
+.voucher-campaign__icon { display: grid; width: 52px; height: 52px; place-items: center; border-radius: 14px; background: #fff0e6; color: #a04100; }
+.voucher-campaign__icon.is-shipping { background: #e6f3ff; color: #005f9d; }
+.voucher-campaign__title { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; }
+.voucher-campaign__title code { display: inline-block; border-radius: 5px; background: #7a3000; color: #fff; padding: 2px 7px; font-weight: 800; }
+.voucher-campaign__title h3 { margin: 5px 0 0; }
+.voucher-campaign__title > span { border-radius: 999px; background: #eeeef0; padding: 5px 9px; font-size: 11px; font-weight: 800; }
+.voucher-campaign__title > span.is-active { background: #e3f6ec; color: #12633f; }
+.voucher-campaign__title > span.is-paused,.voucher-campaign__title > span.is-ended { background: #ffdad6; color: #93000a; }
+.voucher-campaign__body > p { margin: 8px 0; color: #765b50; }
+.voucher-campaign__chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.voucher-campaign__chips span { border-radius: 999px; background: #fff4ed; padding: 4px 8px; color: #5a4136; font-size: 11px; }
+.voucher-campaign__progress { margin-top: 12px; }
+.voucher-campaign__progress > div { height: 7px; overflow: hidden; border-radius: 999px; background: #eee5df; }
+.voucher-campaign__progress > div span { display: block; height: 100%; background: #a04100; }
+.voucher-campaign__progress small { display: block; margin-top: 5px; color: #8e7164; }
+.voucher-campaign__actions { display: flex; flex-direction: column; gap: 7px; }
+.voucher-campaign__actions button { border: 1px solid #ddc1b4; border-radius: 8px; background: #fff; padding: 7px 10px; color: #5a4136; }
+.voucher-management__empty { display: grid; min-height: 210px; place-items: center; align-content: center; gap: 6px; border: 1px dashed #ddc1b4; border-radius: 16px; color: #8e7164; }
+@media(max-width:900px){.voucher-management__metrics{grid-template-columns:repeat(2,1fr)}.voucher-editor__grid,.voucher-target-picker>div{grid-template-columns:repeat(2,1fr)}.voucher-campaign{grid-template-columns:52px 1fr}.voucher-campaign__actions{grid-column:1/-1;flex-direction:row}}
+@media(max-width:600px){.voucher-management__heading{flex-direction:column}.voucher-management__metrics,.voucher-editor__grid,.voucher-target-picker>div{grid-template-columns:1fr}.voucher-campaign{grid-template-columns:1fr}.voucher-campaign__actions{grid-column:auto;flex-wrap:wrap}}

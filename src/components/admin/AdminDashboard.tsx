@@ -18,6 +18,7 @@ import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
+import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import {
   Alert,
@@ -52,6 +53,7 @@ import AdminRestaurantApplicationsPanel from "@/components/admin/AdminRestaurant
 import AdminShipperApplicationsPanel from "@/components/admin/AdminShipperApplicationsPanel";
 import AdminShipperFinancePanel from "@/components/admin/AdminShipperFinancePanel";
 import AdminOrderConsole from "@/components/admin/AdminOrderConsole";
+import VoucherManagementPanel from "@/components/voucher/VoucherManagementPanel";
 import type {
   AdminActionResult,
   AdminAuditList,
@@ -74,6 +76,7 @@ import type {
 import type { PublicUser } from "@/types/auth";
 import type { SiteMediaSlot } from "@/types/siteMedia";
 import type { AdminShipperApplicationList, AdminShipperFinanceData } from "@/types/shipper";
+import type { VoucherManagementData } from "@/types/voucher";
 import { formatRole, hasRole } from "@/utils/roles";
 import { signalNavigationStart } from "@/utils/navigationFeedback";
 import { createClient as createBrowserClient } from "@/utils/supabase/client";
@@ -100,6 +103,7 @@ type AdminDashboardProps = {
   orders: AdminOrderList;
   restaurants: AdminRestaurantList;
   refunds: AdminRefundList;
+  vouchers: VoucherManagementData;
   catalogKind: AdminCatalogKind;
   categories: AdminCategoryList;
   tags: AdminTagList;
@@ -134,6 +138,7 @@ const TABS: Array<{
   { value: "orders", label: "Điều hành đơn", icon: ReceiptLongOutlinedIcon },
   { value: "restaurants", label: "Nhà hàng", icon: StorefrontOutlinedIcon },
   { value: "refunds", label: "Hoàn tiền", icon: CurrencyExchangeOutlinedIcon },
+  { value: "vouchers", label: "Voucher", icon: LocalOfferOutlinedIcon },
   { value: "catalog", label: "Catalog", icon: CategoryOutlinedIcon },
   { value: "finance", label: "Tài chính", icon: AccountBalanceOutlinedIcon },
   { value: "media", label: "Hình ảnh", icon: PhotoLibraryOutlinedIcon },
@@ -190,6 +195,9 @@ const ACTION_LABELS: Record<string, string> = {
   finance_version_close: "Đóng phiên bản biểu phí",
   finance_override_create: "Tạo ngoại lệ tài chính",
   finance_override_close: "Đóng ngoại lệ tài chính",
+  voucher_create: "Tạo voucher",
+  voucher_update: "Cập nhật voucher",
+  voucher_status_update: "Đổi trạng thái voucher",
 };
 
 const REFUND_STATUS: Record<string, string> = {
@@ -258,6 +266,7 @@ export default function AdminDashboard({
   orders,
   restaurants,
   refunds,
+  vouchers,
   catalogKind,
   categories,
   tags,
@@ -274,6 +283,7 @@ export default function AdminDashboard({
   const canManageMedia = user.permissions.includes("site_media.manage");
   const canManageCatalog = user.permissions.includes("catalog.manage");
   const canManageFinance = user.permissions.includes("finance.settings.manage");
+  const canManageVouchers = user.permissions.includes("vouchers.manage");
   const canVerifyRestaurants = user.permissions.includes("restaurants.verify");
   const canVerifyShippers = user.permissions.includes("shippers.verify");
   const canManageShipperFinance = user.permissions.includes("shippers.finance.manage");
@@ -283,6 +293,7 @@ export default function AdminDashboard({
       (item.value !== "media" || canManageMedia) &&
       (item.value !== "catalog" || canManageCatalog) &&
       (item.value !== "finance" || canManageFinance) &&
+      (item.value !== "vouchers" || canManageVouchers) &&
       (item.value !== "applications" || canVerifyRestaurants)
       && (item.value !== "shippers" || canVerifyShippers)
       && (item.value !== "shipper_finance" || canManageShipperFinance)
@@ -460,6 +471,8 @@ export default function AdminDashboard({
         ? restaurants
         : tab === "refunds"
           ? refunds
+          : tab === "vouchers"
+            ? vouchers
           : tab === "audit"
             ? audit
             : null;
@@ -695,6 +708,12 @@ export default function AdminDashboard({
                   </article>
                 ))}
               </div>
+            </section>
+          ) : null}
+
+          {tab === "vouchers" && canManageVouchers ? (
+            <section className="admin-panel">
+              <VoucherManagementPanel mode="admin" data={vouchers} />
             </section>
           ) : null}
 

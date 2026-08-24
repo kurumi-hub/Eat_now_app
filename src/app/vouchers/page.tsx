@@ -1,5 +1,6 @@
 import VoucherPage from "@/components/voucher/VoucherPage";
+import { getPublicVouchers } from "@/lib/data/vouchers";
 
-export default function VouchersRoute() {
-  return <VoucherPage />;
+export default async function VouchersRoute() {
+  return <VoucherPage vouchers={await getPublicVouchers()} />;
 }

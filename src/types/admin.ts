@@ -10,6 +10,7 @@ export type AdminTab =
   | "orders"
   | "restaurants"
   | "refunds"
+  | "vouchers"
   | "catalog"
   | "finance"
   | "media"
