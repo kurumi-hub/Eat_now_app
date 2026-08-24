@@ -35,7 +35,7 @@ import {
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useOptimistic, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useOptimistic, useRef, useState, useTransition, type FormEvent } from "react";
 
 import {
   applySiteMediaAction,
@@ -300,6 +300,7 @@ export default function AdminDashboard({
       && (item.value !== "orders" || canViewOrders)
   );
   const [isPending, startTransition] = useTransition();
+  const tabsRef = useRef<HTMLElement>(null);
   const [search, setSearch] = useState(searchTerm);
   const [optimisticTab, setOptimisticTab] = useOptimistic(tab);
   const [dialog, setDialog] = useState<DialogState | null>(null);
@@ -311,6 +312,14 @@ export default function AdminDashboard({
     message: string;
     severity: "success" | "error" | "info";
   }>({ open: false, message: "", severity: "success" });
+
+  useEffect(() => {
+    const container = tabsRef.current;
+    const active = container?.querySelector<HTMLElement>("[aria-current='page']");
+    if (!container || !active || container.scrollWidth <= container.clientWidth) return;
+    const left = active.offsetLeft - (container.clientWidth - active.offsetWidth) / 2;
+    container.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
+  }, [optimisticTab]);
 
   const tabHref = (nextTab: AdminTab) =>
     nextTab === "overview" ? "/admin" : `/admin?tab=${nextTab}`;
@@ -503,7 +512,7 @@ export default function AdminDashboard({
             </Link>
           </header>
 
-          <nav className="admin-tabs" aria-label="Chức năng quản trị">
+          <nav ref={tabsRef} className="admin-tabs" aria-label="Chức năng quản trị">
             {visibleTabs.map((item) => {
               const Icon = item.icon;
               return (

@@ -98,15 +98,17 @@
 
 .admin-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   margin: 28px 0 22px;
   padding: 6px;
-  overflow-x: auto;
+  overflow-x: visible;
   border: 1px solid #eadfd8;
   border-radius: 16px;
   background: #fff;
   box-shadow: 0 6px 18px rgba(119, 87, 77, .06);
   scrollbar-width: none;
+  scroll-padding-inline: 6px;
 }
 
 .admin-tabs::-webkit-scrollbar { display: none; }
@@ -117,7 +119,7 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  flex: 1 0 max-content;
+  flex: 0 0 auto;
   padding: 8px 13px;
   border: 0;
   border-radius: 11px;
@@ -603,6 +605,7 @@ button.admin-metric { font: inherit; cursor: pointer; }
 .admin-dialog__actions.MuiDialogActions-root { padding: 10px 23px 22px; }
 
 @media (max-width: 1080px) {
+  .admin-tabs { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-inline: contain; }
   .admin-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .admin-user-row { grid-template-columns: 44px minmax(0, 1fr) auto; }
   .admin-user-row__status { grid-column: 2; }
