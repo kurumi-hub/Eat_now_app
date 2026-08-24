@@ -401,6 +401,16 @@
   gap: 20px;
 }
 
+.home-restaurant-empty {
+  grid-column: 1 / -1;
+  padding: 28px;
+  border: 1px dashed #d9c9c1;
+  border-radius: 14px;
+  background: #fff;
+  color: #70645d;
+  text-align: center;
+}
+
 .home-restaurant-card {
   overflow: hidden;
   border-radius: 12px;

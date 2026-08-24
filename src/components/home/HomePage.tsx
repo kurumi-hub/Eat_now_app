@@ -144,17 +144,18 @@ export default function HomePage({
             </button>
           </div>
           <div className="home-restaurant-grid">
-            {featuredRestaurants.map((restaurant) => (
+            {featuredRestaurants.length ? featuredRestaurants.map((restaurant) => (
               <Link
                 className="home-restaurant-card"
                 href={`/restaurants/${restaurant.slug}`}
-                key={restaurant.name}
+                key={restaurant.slug}
               >
                 <div className="home-card-media">
                   <Image
                     src={restaurant.image}
-                    alt={restaurant.name}
+                    alt={restaurant.imageAlt}
                     fill
+                    unoptimized
                     sizes="(max-width: 760px) 100vw, (max-width: 1024px) 50vw, 25vw"
                   />
                 </div>
@@ -168,7 +169,7 @@ export default function HomePage({
                   </p>
                 </div>
               </Link>
-            ))}
+            )) : <div className="home-restaurant-empty">Chưa có nhà hàng đã xuất bản kèm ảnh thật.</div>}
           </div>
         </section>
 

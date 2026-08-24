@@ -16,6 +16,7 @@ type FeaturedRestaurantRpcRow = {
   rating_average: number | string;
   rating_count: number;
   image_url: string | null;
+  image_alt_text?: string | null;
 };
 
 type RestaurantDetailRpc = {
@@ -92,15 +93,19 @@ const fetchFeaturedRestaurants = unstable_cache(async (): Promise<HomeRestaurant
   }
 
   const rows = data as unknown as FeaturedRestaurantRpcRow[];
-  return rows.map((restaurant) => ({
-    slug: restaurant.slug,
-    name: restaurant.name,
-    image:
-      restaurant.image_url ?? "/images/home/restaurant-com-tam.png",
-    rating: `${restaurant.rating_average} (${restaurant.rating_count}+)`,
-    time: "20 - 30 phút",
-  }));
-}, ["catalog-featured-restaurants-v1"], {
+  return rows.flatMap((restaurant) => {
+    const imageUrl = restaurant.image_url?.trim();
+    if (!imageUrl) return [];
+    return [{
+      slug: restaurant.slug,
+      name: restaurant.name,
+      image: imageUrl,
+      imageAlt: restaurant.image_alt_text?.trim() || `Ảnh nhà hàng ${restaurant.name}`,
+      rating: `${restaurant.rating_average} (${restaurant.rating_count}+)`,
+      time: "20 - 30 phút",
+    }];
+  });
+}, ["catalog-featured-restaurants-v2-real-media"], {
   revalidate: 60,
   tags: ["catalog", "restaurants"],
 });
