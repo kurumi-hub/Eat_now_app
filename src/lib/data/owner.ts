@@ -1,6 +1,10 @@
 import type {
   ManagedRestaurantSummary,
+  OwnerFood,
   OwnerDashboardData,
+  OwnerOrderList,
+  OwnerMenuCatalogItem,
+  OwnerMenuData,
   RestaurantApplication,
   RestaurantApplicationEvent,
   RestaurantApplicationStatus,
@@ -170,4 +174,85 @@ export function parseOwnerDashboard(value: unknown): OwnerDashboardData | null {
     orderStats: { today: number(rawStats.today), open: number(rawStats.open),
       completedToday: number(rawStats.completed_today) },
   };
+}
+
+export const EMPTY_OWNER_ORDERS: OwnerOrderList = { items: [], total: 0, limit: 100, offset: 0 };
+
+export function parseOwnerOrders(value: unknown): OwnerOrderList {
+  const source = record(value);
+  const items = Array.isArray(source.items) ? source.items.flatMap((raw) => {
+    const item = record(raw); if (!string(item.id)) return [];
+    const payment = record(item.payment); const shipper = record(item.shipper);
+    return [{
+      id: string(item.id), code: string(item.code), status: string(item.status),
+      deliveryStatus: string(item.delivery_status), version: number(item.version),
+      createdAt: string(item.created_at), responseDueAt: optionalString(item.response_due_at),
+      preparationDueAt: optionalString(item.preparation_due_at), receiverName: string(item.receiver_name),
+      receiverPhone: string(item.receiver_phone), deliveryAddress: string(item.delivery_address),
+      note: optionalString(item.note), subtotal: number(item.subtotal), shippingFee: number(item.shipping_fee),
+      discountAmount: number(item.discount_amount), taxAmount: number(item.tax_amount), totalPrice: number(item.total_price),
+      payment: { method: string(payment.method), status: string(payment.status) },
+      shipper: string(shipper.id) ? { id: string(shipper.id), name: string(shipper.name),
+        phone: optionalString(shipper.phone), plateNumber: optionalString(shipper.plate_number) } : null,
+      incidentStatus: string(item.incident_status, "none"), incidentReason: optionalString(item.incident_reason),
+      items: Array.isArray(item.items) ? item.items.map((rawItem) => { const orderItem = record(rawItem); return {
+        name: string(orderItem.name), size: optionalString(orderItem.size), quantity: number(orderItem.quantity),
+        lineTotal: number(orderItem.line_total), note: optionalString(orderItem.note) }; }) : [],
+      events: Array.isArray(item.events) ? item.events.map((rawEvent) => { const event = record(rawEvent); return {
+        id: string(event.id), eventType: string(event.event_type),
+        fromOrderStatus: optionalString(event.from_order_status), toOrderStatus: optionalString(event.to_order_status),
+        fromDeliveryStatus: optionalString(event.from_delivery_status), toDeliveryStatus: optionalString(event.to_delivery_status),
+        source: string(event.source), note: optionalString(event.note), createdAt: string(event.created_at) }; }) : [],
+    }];
+  }) : [];
+  return { items, total: number(source.total), limit: number(source.limit) || 100, offset: number(source.offset) };
+}
+
+export function parseOwnerMenu(value: unknown): OwnerMenuData {
+  const source = record(value);
+  const parseCatalog = (raw: unknown): OwnerMenuCatalogItem[] =>
+    Array.isArray(raw) ? raw.flatMap((value) => {
+      const item = record(value);
+      if (!string(item.id)) return [];
+      return [{ id: string(item.id), name: string(item.name),
+        isActive: item.is_active === true, displayOrder: number(item.display_order) }];
+    }) : [];
+  const categories = parseCatalog(source.categories);
+  const tags = parseCatalog(source.tags);
+  const foods: OwnerFood[] = Array.isArray(source.foods) ? source.foods.flatMap((raw) => {
+    const item = record(raw);
+    if (!string(item.id)) return [];
+    const rawCategory = record(item.category);
+    const parseOptions = (value: unknown) => Array.isArray(value) ? value : [];
+    return [{
+      id: string(item.id), name: string(item.name), description: string(item.description),
+      basePrice: number(item.base_price), isPublic: item.is_public === true,
+      isAvailable: item.is_available === true, displayOrder: number(item.display_order),
+      updatedAt: string(item.updated_at),
+      category: string(rawCategory.id) ? { id: string(rawCategory.id),
+        name: string(rawCategory.name), isActive: rawCategory.is_active === true,
+        displayOrder: 0 } : null,
+      tags: parseOptions(item.tags).flatMap((rawTag) => { const tag = record(rawTag);
+        return string(tag.id) ? [{ id: string(tag.id), name: string(tag.name),
+          isActive: tag.is_active === true, displayOrder: 0 }] : []; }),
+      images: parseOptions(item.images).flatMap((rawImage) => { const image = record(rawImage);
+        return string(image.id) ? [{ id: string(image.id), url: string(image.url),
+          objectPath: optionalString(image.object_path), altText: string(image.alt_text),
+          isPrimary: image.is_primary === true, displayOrder: number(image.display_order) }] : []; }),
+      sizes: parseOptions(item.sizes).map((rawSize) => { const size = record(rawSize); return {
+        id: optionalString(size.id), name: string(size.name), price: number(size.price),
+        isAvailable: size.is_available === true, displayOrder: number(size.display_order) }; }),
+      toppingGroups: parseOptions(item.topping_groups).map((rawGroup) => {
+        const group = record(rawGroup); return { id: optionalString(group.id),
+          name: string(group.name), description: string(group.description),
+          minSelect: number(group.min_select), maxSelect: number(group.max_select) || 1,
+          isAvailable: group.is_available === true, displayOrder: number(group.display_order),
+          toppings: parseOptions(group.toppings).map((rawTopping) => { const topping = record(rawTopping); return {
+            id: optionalString(topping.id), name: string(topping.name), price: number(topping.price),
+            isAvailable: topping.is_available === true, displayOrder: number(topping.display_order) }; })
+        };
+      }),
+    }];
+  }) : [];
+  return { foods, categories, tags };
 }

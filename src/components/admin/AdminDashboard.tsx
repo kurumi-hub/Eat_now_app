@@ -3,6 +3,7 @@
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import AccountBalanceOutlinedIcon from "@mui/icons-material/AccountBalanceOutlined";
+import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import CurrencyExchangeOutlinedIcon from "@mui/icons-material/CurrencyExchangeOutlined";
@@ -16,6 +17,7 @@ import PeopleOutlineOutlinedIcon from "@mui/icons-material/PeopleOutlineOutlined
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
+import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import {
   Alert,
@@ -47,6 +49,9 @@ import {
 import AdminCatalogPanel from "@/components/admin/AdminCatalogPanel";
 import AdminFinancePanel from "@/components/admin/AdminFinancePanel";
 import AdminRestaurantApplicationsPanel from "@/components/admin/AdminRestaurantApplicationsPanel";
+import AdminShipperApplicationsPanel from "@/components/admin/AdminShipperApplicationsPanel";
+import AdminShipperFinancePanel from "@/components/admin/AdminShipperFinancePanel";
+import AdminOrderConsole from "@/components/admin/AdminOrderConsole";
 import type {
   AdminActionResult,
   AdminAuditList,
@@ -54,6 +59,7 @@ import type {
   AdminCategoryList,
   AdminDashboardStats,
   AdminFinanceSettings,
+  AdminOrderList,
   AdminRefund,
   AdminRefundList,
   AdminRestaurant,
@@ -67,6 +73,7 @@ import type {
 } from "@/types/admin";
 import type { PublicUser } from "@/types/auth";
 import type { SiteMediaSlot } from "@/types/siteMedia";
+import type { AdminShipperApplicationList, AdminShipperFinanceData } from "@/types/shipper";
 import { formatRole, hasRole } from "@/utils/roles";
 import { signalNavigationStart } from "@/utils/navigationFeedback";
 import { createClient as createBrowserClient } from "@/utils/supabase/client";
@@ -88,6 +95,9 @@ type AdminDashboardProps = {
   stats: AdminDashboardStats;
   users: AdminUserList;
   applications: AdminRestaurantApplicationList;
+  shipperApplications: AdminShipperApplicationList;
+  shipperFinance: AdminShipperFinanceData;
+  orders: AdminOrderList;
   restaurants: AdminRestaurantList;
   refunds: AdminRefundList;
   catalogKind: AdminCatalogKind;
@@ -119,6 +129,9 @@ const TABS: Array<{
   { value: "overview", label: "Tổng quan", icon: DashboardOutlinedIcon },
   { value: "users", label: "Tài khoản & phân quyền", icon: PeopleOutlineOutlinedIcon },
   { value: "applications", label: "Hồ sơ mở quán", icon: AssignmentOutlinedIcon },
+  { value: "shippers", label: "Hồ sơ tài xế", icon: LocalShippingOutlinedIcon },
+  { value: "shipper_finance", label: "Tài chính tài xế", icon: AccountBalanceWalletOutlinedIcon },
+  { value: "orders", label: "Điều hành đơn", icon: ReceiptLongOutlinedIcon },
   { value: "restaurants", label: "Nhà hàng", icon: StorefrontOutlinedIcon },
   { value: "refunds", label: "Hoàn tiền", icon: CurrencyExchangeOutlinedIcon },
   { value: "catalog", label: "Catalog", icon: CategoryOutlinedIcon },
@@ -138,6 +151,21 @@ const ACTION_LABELS: Record<string, string> = {
   restaurant_reject: "Từ chối nhà hàng",
   restaurant_suspend: "Tạm ngưng nhà hàng",
   restaurant_reactivate: "Mở lại nhà hàng",
+  shipper_application_start_review: "Tiếp nhận hồ sơ tài xế",
+  shipper_application_needs_changes: "Yêu cầu bổ sung hồ sơ tài xế",
+  shipper_application_approve: "Duyệt hồ sơ tài xế",
+  shipper_application_reject: "Từ chối hồ sơ tài xế",
+  shipper_release_delivery: "Tài xế trả chuyến",
+  shipper_withdrawal_approve: "Duyệt rút tiền tài xế",
+  shipper_withdrawal_reject: "Từ chối rút tiền tài xế",
+  shipper_withdrawal_paid: "Xác nhận đã chuyển tiền tài xế",
+  shipper_withdrawal_failed: "Ghi nhận chuyển tiền thất bại",
+  shipper_cod_remittance: "Đối soát tiền COD tài xế",
+  admin_order_redispatch: "Tìm lại tài xế cho đơn",
+  admin_order_mark_failed: "Ghi nhận giao hàng thất bại",
+  admin_order_cancel_refund: "Hủy đơn và xử lý hoàn tiền",
+  admin_order_resolve_complete: "Xác nhận hoàn tất đơn lỗi",
+  admin_order_resend_notification: "Gửi lại thông báo đơn hàng",
   refund_approve: "Duyệt hoàn tiền",
   refund_reject: "Từ chối hoàn tiền",
   transfer_super_admin_in: "Nhận quyền Chủ nền tảng",
@@ -225,6 +253,9 @@ export default function AdminDashboard({
   stats,
   users,
   applications,
+  shipperApplications,
+  shipperFinance,
+  orders,
   restaurants,
   refunds,
   catalogKind,
@@ -244,12 +275,18 @@ export default function AdminDashboard({
   const canManageCatalog = user.permissions.includes("catalog.manage");
   const canManageFinance = user.permissions.includes("finance.settings.manage");
   const canVerifyRestaurants = user.permissions.includes("restaurants.verify");
+  const canVerifyShippers = user.permissions.includes("shippers.verify");
+  const canManageShipperFinance = user.permissions.includes("shippers.finance.manage");
+  const canViewOrders = user.permissions.includes("orders.view");
   const visibleTabs = TABS.filter(
     (item) =>
       (item.value !== "media" || canManageMedia) &&
       (item.value !== "catalog" || canManageCatalog) &&
       (item.value !== "finance" || canManageFinance) &&
       (item.value !== "applications" || canVerifyRestaurants)
+      && (item.value !== "shippers" || canVerifyShippers)
+      && (item.value !== "shipper_finance" || canManageShipperFinance)
+      && (item.value !== "orders" || canViewOrders)
   );
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState(searchTerm);
@@ -417,6 +454,8 @@ export default function AdminDashboard({
       ? users
       : tab === "applications"
         ? applications
+      : tab === "shippers"
+        ? shipperApplications
       : tab === "restaurants"
         ? restaurants
         : tab === "refunds"
@@ -609,6 +648,22 @@ export default function AdminDashboard({
               data={applications}
               statusFilter={statusFilter}
             />
+          ) : null}
+
+          {tab === "shippers" ? (
+            <AdminShipperApplicationsPanel data={shipperApplications} statusFilter={statusFilter} />
+          ) : null}
+
+          {tab === "shipper_finance" && canManageShipperFinance ? (
+            <AdminShipperFinancePanel
+              data={shipperFinance}
+              searchTerm={searchTerm}
+              statusFilter={statusFilter}
+            />
+          ) : null}
+
+          {tab === "orders" && canViewOrders ? (
+            <AdminOrderConsole data={orders} searchTerm={searchTerm} statusFilter={statusFilter} />
           ) : null}
 
           {tab === "refunds" ? (

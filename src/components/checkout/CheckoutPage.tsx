@@ -81,6 +81,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   const [isPlacing, startPlacing] = useTransition();
   const initializedRef = useRef(false);
   const skipNextPreviewRef = useRef(false);
+  const checkoutAttemptRef = useRef("");
 
   useEffect(() => { if (!addressId && defaultAddress) setAddressId(defaultAddress.id); }, [addressId, defaultAddress]);
   const handleAddressCreated = useCallback((newAddressId: string) => setAddressId(newAddressId), []);
@@ -122,9 +123,10 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
 
   const handlePlaceOrder = () => {
     if (!cartId || !addressId) return;
+    if (!checkoutAttemptRef.current) checkoutAttemptRef.current = crypto.randomUUID();
     setError("");
     startPlacing(async () => {
-      const result = await placeOrder(cartId, addressId, paymentMethod, note || undefined, voucherCode || undefined);
+      const result = await placeOrder(cartId, addressId, paymentMethod, note || undefined, voucherCode || undefined, checkoutAttemptRef.current);
       if (!result.ok) { setError(result.error); return; }
       if (paymentMethod === "vnpay") {
         const res = await fetch("/api/vnpay/create-payment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: result.orderId }) });

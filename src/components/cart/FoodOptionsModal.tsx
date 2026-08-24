@@ -99,7 +99,11 @@ export default function FoodOptionsModal({
     });
   }, [toppingGroups, selectedToppingIds]);
 
-  const canConfirm = food?.isAvailable && invalidGroups.length === 0;
+  const requiresSize = Boolean(food?.sizes?.length);
+  const hasAvailableSelectedSize = !requiresSize || Boolean(selectedSize?.isAvailable);
+  const canConfirm = Boolean(
+    food?.isAvailable && hasAvailableSelectedSize && invalidGroups.length === 0
+  );
 
   function toggleTopping(groupId: string, toppingId: string, maxSelect: number) {
     setSelectedToppingIds((prev) => {

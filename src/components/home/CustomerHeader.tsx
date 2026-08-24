@@ -12,6 +12,7 @@ import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
+import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import {
   Avatar,
   Badge,
@@ -277,6 +278,18 @@ export default function CustomerHeader({
                     </MenuItem>
                   </Link>
                 ) : null}
+                <Link
+                  href="/shipper"
+                  className="home-account-menu__link"
+                  onClick={handleMenuClose}
+                >
+                  <MenuItem component="span">
+                    <ListItemIcon>
+                      <LocalShippingOutlinedIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>{hasRole(user, "SHIPPER") ? "Kênh tài xế" : "Đăng ký làm tài xế"}</ListItemText>
+                  </MenuItem>
+                </Link>
                 <Divider />
                 <form action={logout} onSubmit={resetCartSession}>
                   <button type="submit" className="home-account-menu__logout">

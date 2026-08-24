@@ -243,12 +243,17 @@ export async function placeOrder(
   addressId: string,
   paymentMethod: "cod" | "vnpay",
   note?: string,
-  voucherCode?: string
+  voucherCode?: string,
+  idempotencyKey?: string
 ): Promise<PlaceOrderResult> {
   await requireCurrentUser();
+  if (!idempotencyKey || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey)) {
+    return { ok: false, error: "Phiên đặt hàng không hợp lệ. Vui lòng tải lại trang." };
+  }
   const supabase = await createClient();
 
-  const { data, error } = await supabase.rpc("place_order", {
+  const { data, error } = await supabase.rpc("api_place_order_idempotent", {
+    p_idempotency_key: idempotencyKey,
     p_cart_id: cartId,
     p_address_id: addressId,
     p_payment_method: paymentMethod,

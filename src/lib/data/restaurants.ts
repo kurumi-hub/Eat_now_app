@@ -38,6 +38,24 @@ type RestaurantDetailRpc = {
     image_url: string | null;
     category: { id: string; name: string } | null;
     tags: string[];
+    sizes: Array<{
+      id: string;
+      name: string;
+      price: number | string;
+      is_available: boolean;
+    }>;
+    topping_groups: Array<{
+      id: string;
+      name: string;
+      min_select: number;
+      max_select: number;
+      toppings: Array<{
+        id: string;
+        name: string;
+        price: number | string;
+        is_available: boolean;
+      }>;
+    }>;
   }>;
 };
 
@@ -118,6 +136,24 @@ const fetchRestaurantDetailBySlug = unstable_cache(async (
       image: food.image_url ?? "",
       isAvailable: food.is_available,
       isPopular: (food.tags ?? []).includes("popular"),
+      sizes: (food.sizes ?? []).map((size) => ({
+        id: size.id,
+        name: size.name,
+        price: Number(size.price),
+        isAvailable: size.is_available,
+      })),
+      toppingGroups: (food.topping_groups ?? []).map((group) => ({
+        id: group.id,
+        name: group.name,
+        minSelect: group.min_select,
+        maxSelect: group.max_select,
+        toppings: (group.toppings ?? []).map((topping) => ({
+          id: topping.id,
+          name: topping.name,
+          price: Number(topping.price),
+          isAvailable: topping.is_available,
+        })),
+      })),
     });
   }
 
@@ -135,7 +171,7 @@ const fetchRestaurantDetailBySlug = unstable_cache(async (
     openUntil: restaurant.close_at ?? "",
     menuCategories: categoryOrder.map((id) => categoriesMap.get(id)!),
   };
-}, ["catalog-restaurant-detail-v1"], {
+}, ["catalog-restaurant-detail-v2"], {
   revalidate: 60,
   tags: ["catalog", "restaurants"],
 });

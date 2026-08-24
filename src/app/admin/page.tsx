@@ -4,6 +4,7 @@ import type {
   AdminCatalogKind,
   AdminDashboardStats,
   AdminFinanceSettings,
+  AdminOrderList,
   AdminRefund,
   AdminRefundList,
   AdminRestaurantApplication,
@@ -15,7 +16,9 @@ import type {
   AdminUser,
   AdminUserList,
 } from "@/types/admin";
+import type { AdminShipperApplicationList } from "@/types/shipper";
 import { EMPTY_ADMIN_FINANCE, parseAdminFinance } from "@/lib/data/adminFinance";
+import { EMPTY_ADMIN_ORDERS, parseAdminOrders } from "@/lib/data/adminOrders";
 import {
   EMPTY_ADMIN_CATEGORIES,
   EMPTY_ADMIN_TAGS,
@@ -23,6 +26,11 @@ import {
   parseAdminTags,
 } from "@/lib/data/adminCatalog";
 import { parseSiteMedia } from "@/types/siteMedia";
+import {
+  EMPTY_ADMIN_SHIPPER_FINANCE,
+  parseAdminShipperApplications,
+  parseAdminShipperFinance,
+} from "@/lib/data/shipper";
 import { requirePermission } from "@/utils/auth/guards";
 import { normalizeRoles } from "@/utils/roles";
 import { createClient } from "@/utils/supabase/server";
@@ -43,6 +51,9 @@ const ADMIN_TABS: AdminTab[] = [
   "overview",
   "users",
   "applications",
+  "shippers",
+  "shipper_finance",
+  "orders",
   "restaurants",
   "refunds",
   "catalog",
@@ -66,10 +77,12 @@ const EMPTY_RESTAURANTS: AdminRestaurantList = {
 const EMPTY_APPLICATIONS: AdminRestaurantApplicationList = {
   items: [], total: 0, limit: 20, offset: 0,
 };
+const EMPTY_SHIPPER_APPLICATIONS: AdminShipperApplicationList = { items: [], total: 0, limit: 20, offset: 0 };
 const EMPTY_REFUNDS: AdminRefundList = { items: [], total: 0, limit: 20, offset: 0 };
 const EMPTY_AUDIT: AdminAuditList = { items: [], total: 0, limit: 20, offset: 0 };
 const EMPTY_MEDIA: AdminSiteMedia = parseSiteMedia(null);
 const EMPTY_FINANCE: AdminFinanceSettings = EMPTY_ADMIN_FINANCE;
+const EMPTY_ORDERS: AdminOrderList = EMPTY_ADMIN_ORDERS;
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -303,6 +316,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   if (tab === "applications" && !user.permissions.includes("restaurants.verify")) {
     tab = "overview";
   }
+  if (tab === "shippers" && !user.permissions.includes("shippers.verify")) {
+    tab = "overview";
+  }
+  if (tab === "shipper_finance" && !user.permissions.includes("shippers.finance.manage")) {
+    tab = "overview";
+  }
+  if (tab === "orders" && !user.permissions.includes("orders.view")) tab = "overview";
   const catalogKind: AdminCatalogKind =
     firstParam(params.catalog) === "tags" ? "tags" : "categories";
   const search = firstParam(params.q).slice(0, 80);
@@ -323,6 +343,22 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         p_status: status || null, p_limit: limit, p_offset: offset,
       });
     }
+    if (tab === "shippers") {
+      return supabase.rpc("api_list_admin_shipper_applications", {
+        p_status: status || null, p_limit: limit, p_offset: offset,
+      });
+    }
+    if (tab === "shipper_finance") {
+      return supabase.rpc("api_list_admin_shipper_finance", {
+        p_status: status || null,
+        p_search: search || null,
+        p_limit: limit,
+        p_offset: offset,
+      });
+    }
+    if (tab === "orders") return supabase.rpc("api_list_admin_orders", {
+      p_status: status || null, p_search: search || null, p_limit: limit, p_offset: offset,
+    });
     if (tab === "restaurants") {
       return supabase.rpc("api_list_admin_restaurants", {
         p_status: status || null, p_search: search || null, p_limit: limit, p_offset: offset,
@@ -375,6 +411,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       stats={parseStats(dashboardResult.data)}
       users={tab === "users" ? parseUsers(contentResult.data) : EMPTY_USERS}
       applications={tab === "applications" ? parseApplications(contentResult.data) : EMPTY_APPLICATIONS}
+      shipperApplications={tab === "shippers" ? parseAdminShipperApplications(contentResult.data) : EMPTY_SHIPPER_APPLICATIONS}
+      shipperFinance={tab === "shipper_finance" ? parseAdminShipperFinance(contentResult.data) : EMPTY_ADMIN_SHIPPER_FINANCE}
+      orders={tab === "orders" ? parseAdminOrders(contentResult.data) : EMPTY_ORDERS}
       restaurants={tab === "restaurants" ? parseRestaurants(contentResult.data) : EMPTY_RESTAURANTS}
       refunds={tab === "refunds" ? parseRefunds(contentResult.data) : EMPTY_REFUNDS}
       catalogKind={catalogKind}
@@ -391,7 +430,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       media={tab === "media" ? parseSiteMedia(contentResult.data) : EMPTY_MEDIA}
       finance={tab === "finance" ? parseAdminFinance(contentResult.data) : EMPTY_FINANCE}
       audit={tab === "overview" || tab === "audit" ? parseAudit(contentResult.data) : EMPTY_AUDIT}
-      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra SQL 13–22." : undefined}
+      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra SQL 13–28." : undefined}
     />
   );
 }

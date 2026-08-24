@@ -5,6 +5,9 @@ export type AdminTab =
   | "overview"
   | "users"
   | "applications"
+  | "shippers"
+  | "shipper_finance"
+  | "orders"
   | "restaurants"
   | "refunds"
   | "catalog"
@@ -13,6 +16,19 @@ export type AdminTab =
   | "audit";
 
 export type AdminSiteMedia = SiteMediaMap;
+
+export type AdminOrderEvent = {
+  id: string; eventType: string; fromOrderStatus?: string; toOrderStatus?: string;
+  fromDeliveryStatus?: string; toDeliveryStatus?: string; source: string; note?: string; createdAt: string;
+};
+export type AdminOrderItem = {
+  id: string; code: string; status: string; deliveryStatus: string; version: number;
+  restaurantName: string; customerName: string; customerPhone: string; shipperName?: string;
+  totalPrice: number; paymentMethod: string; paymentStatus: string; transactionId?: string;
+  incidentStatus: string; incidentReason?: string; createdAt: string; events: AdminOrderEvent[];
+  slaState: "ok" | "running" | "overdue"; slaCode?: string; slaDueAt?: string; slaOverdueMinutes: number;
+};
+export type AdminOrderList = { items: AdminOrderItem[]; total: number; limit: number; offset: number };
 
 export type AdminDashboardStats = {
   users: { total: number; active: number; suspended: number };

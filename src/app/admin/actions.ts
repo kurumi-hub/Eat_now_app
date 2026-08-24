@@ -290,6 +290,30 @@ export async function reviewRestaurantAction(
   return { ok: true, message: messages[decision] };
 }
 
+export async function reviewShipperApplicationAction(
+  applicationId: string,
+  decision: "start_review" | "needs_changes" | "approve" | "reject",
+  reason: string
+): Promise<AdminActionResult> {
+  await requirePermission("shippers.verify");
+  if (!validId(applicationId) || !["start_review", "needs_changes", "approve", "reject"].includes(decision)) {
+    return { ok: false, message: "Hồ sơ hoặc quyết định xét duyệt không hợp lệ." };
+  }
+  const note = reason.trim();
+  if (["needs_changes", "reject"].includes(decision) && (note.length < 5 || note.length > 1000)) {
+    return { ok: false, message: "Lý do phải từ 5 đến 1.000 ký tự." };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("api_review_shipper_application", {
+    p_application_id: applicationId, p_decision: decision, p_note: note || null,
+  });
+  if (error) return { ok: false, message: failure("Không thể xét duyệt hồ sơ tài xế.", error) };
+  revalidatePath("/admin"); revalidatePath("/shipper");
+  return { ok: true, message: decision === "approve" ? "Đã duyệt và cấp quyền Shipper." :
+    decision === "reject" ? "Đã từ chối hồ sơ tài xế." :
+    decision === "needs_changes" ? "Đã yêu cầu tài xế bổ sung hồ sơ." : "Đã tiếp nhận hồ sơ để xét duyệt." };
+}
+
 export async function reviewRefundAction(
   refundId: string,
   decision: "approve" | "reject",
@@ -326,6 +350,70 @@ export async function reviewRefundAction(
         ? "Đã duyệt. Hệ thống thanh toán cần tiếp tục xử lý giao dịch hoàn tiền."
         : "Đã từ chối yêu cầu hoàn tiền.",
   };
+}
+
+export async function reviewShipperWithdrawalAction(
+  withdrawalId: string, decision: "approve" | "reject" | "paid" | "failed",
+  noteValue: string, transferReference = ""
+): Promise<AdminActionResult> {
+  await requirePermission("shippers.finance.manage");
+  if (!validId(withdrawalId)) return { ok: false, message: "Mã yêu cầu rút tiền không hợp lệ." };
+  const note = cleanNote(noteValue); if (!note.ok) return { ok: false, message: note.error };
+  const reference = transferReference.trim();
+  if (decision === "paid" && (reference.length < 3 || reference.length > 120)) {
+    return { ok: false, message: "Mã giao dịch ngân hàng phải từ 3 đến 120 ký tự." };
+  }
+  const supabase = await createClient(); const { error } = await supabase.rpc("api_admin_review_shipper_withdrawal", {
+    p_withdrawal_id: withdrawalId, p_decision: decision, p_note: note.value,
+    p_transfer_reference: reference || null,
+  });
+  if (error) return { ok: false, message: failure("Không thể xử lý yêu cầu rút tiền.", error) };
+  revalidatePath("/admin"); revalidatePath("/shipper");
+  return { ok: true, message: decision === "approve" ? "Đã duyệt yêu cầu rút tiền." :
+    decision === "paid" ? "Đã ghi nhận chuyển khoản thành công." :
+    decision === "reject" ? "Đã từ chối và hoàn số dư cho tài xế." : "Đã ghi nhận thất bại và hoàn số dư." };
+}
+
+export async function recordShipperCodRemittanceAction(
+  shipperId: string, amount: number, referenceValue: string, noteValue: string
+): Promise<AdminActionResult> {
+  await requirePermission("shippers.finance.manage");
+  const note = cleanNote(noteValue); const reference = referenceValue.trim();
+  if (!validId(shipperId) || !Number.isFinite(amount) || amount <= 0 ||
+      reference.length < 3 || reference.length > 120) {
+    return { ok: false, message: "Thông tin đối soát COD không hợp lệ." };
+  }
+  if (!note.ok) return { ok: false, message: note.error };
+  const supabase = await createClient(); const { error } = await supabase.rpc("api_admin_record_shipper_cod_remittance", {
+    p_shipper_id: shipperId, p_amount: amount, p_reference: reference, p_note: note.value,
+  });
+  if (error) return { ok: false, message: failure("Không thể ghi nhận tiền COD.", error) };
+  revalidatePath("/admin"); revalidatePath("/shipper");
+  return { ok: true, message: "Đã ghi nhận khoản COD tài xế nộp." };
+}
+
+export async function interveneOrderAction(
+  orderId: string,
+  action: "redispatch" | "mark_failed" | "cancel_refund" | "resolve_complete" | "resend_notification",
+  noteValue: string,
+  expectedVersion: number
+): Promise<AdminActionResult> {
+  await requirePermission("orders.intervene");
+  const note = cleanNote(noteValue);
+  if (!validId(orderId) || !Number.isInteger(expectedVersion) || expectedVersion < 1) {
+    return { ok: false, message: "Thông tin đơn hàng không hợp lệ." };
+  }
+  if (!note.ok) return { ok: false, message: note.error };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("api_admin_intervene_order", {
+    p_order_id: orderId, p_action: action, p_note: note.value, p_expected_version: expectedVersion,
+  });
+  if (error) return { ok: false, message: failure("Không thể can thiệp đơn hàng.", error) };
+  revalidatePath("/admin"); revalidatePath("/owner"); revalidatePath(`/orders/${orderId}`); revalidatePath("/shipper");
+  return { ok: true, message: action === "redispatch" ? "Đã đưa đơn về hàng tìm tài xế." :
+    action === "resolve_complete" ? "Đã xác nhận hoàn tất và đóng sự cố." :
+    action === "resend_notification" ? "Đã gửi lại thông báo cho khách." :
+    action === "mark_failed" ? "Đã ghi nhận giao thất bại." : "Đã hủy đơn và khởi tạo xử lý hoàn tiền nếu cần." };
 }
 
 export async function applySiteMediaAction(

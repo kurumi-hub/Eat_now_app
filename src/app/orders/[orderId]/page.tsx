@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import CustomerDeliveryPanel, { type CustomerDeliveryData } from "@/components/order/CustomerDeliveryPanel";
 import { requireCurrentUser } from "@/utils/auth/guards";
 import { createClient } from "@/utils/supabase/server";
 
@@ -140,6 +141,38 @@ export default async function OrderDetailRoute({
     notFound();
   }
 
+  const { data: deliveryRaw, error: deliveryError } = await supabase.rpc("api_get_customer_delivery", {
+    p_order_id: orderId,
+  });
+  if (deliveryError) console.error("api_get_customer_delivery error:", deliveryError.message);
+  const deliverySource = deliveryRaw && typeof deliveryRaw === "object" && !Array.isArray(deliveryRaw)
+    ? deliveryRaw as Record<string, unknown> : {};
+  const proofSource = deliverySource.proof && typeof deliverySource.proof === "object" && !Array.isArray(deliverySource.proof)
+    ? deliverySource.proof as Record<string, unknown> : null;
+  const locationSource = deliverySource.latest_location && typeof deliverySource.latest_location === "object" && !Array.isArray(deliverySource.latest_location)
+    ? deliverySource.latest_location as Record<string, unknown> : null;
+  let proofUrl: string | undefined;
+  if (proofSource?.object_path && typeof proofSource.object_path === "string") {
+    const { data: signed } = await supabase.storage.from("delivery-proof").createSignedUrl(proofSource.object_path, 600);
+    proofUrl = signed?.signedUrl;
+  }
+  const deliveryPanel: CustomerDeliveryData | null = typeof deliverySource.delivery_status === "string" ? {
+    orderId,
+    deliveryStatus: deliverySource.delivery_status,
+    canConfirm: deliverySource.can_confirm === true,
+    proof: proofSource ? {
+      note: typeof proofSource.note === "string" ? proofSource.note : undefined,
+      status: String(proofSource.status || "submitted"),
+      submittedAt: String(proofSource.submitted_at || ""),
+    } : null,
+    proofUrl,
+    latestLocation: locationSource && Number.isFinite(Number(locationSource.lat)) && Number.isFinite(Number(locationSource.lon)) ? {
+      lat: Number(locationSource.lat), lon: Number(locationSource.lon),
+      accuracyM: locationSource.accuracy_m == null ? undefined : Number(locationSource.accuracy_m),
+      recordedAt: String(locationSource.recorded_at || ""),
+    } : null,
+  } : null;
+
   return (
     <div className="restaurant-detail-page">
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "32px 16px 96px" }}>
@@ -195,6 +228,8 @@ export default async function OrderDetailRoute({
             )}
           </section>
         )}
+
+        {deliveryPanel && order.shipper && <CustomerDeliveryPanel initial={deliveryPanel} />}
 
         <section style={{ marginTop: 24 }}>
           <h2>Món đã đặt</h2>
