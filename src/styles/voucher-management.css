@@ -16,22 +16,31 @@
 .voucher-management__filters { display: flex; flex-wrap: wrap; gap: 8px; }
 .voucher-management__filters button { border: 1px solid #ddc1b4; border-radius: 999px; background: #fff; color: #5a4136; padding: 7px 13px; }
 .voucher-management__filters button.is-active { border-color: #7a3000; background: #7a3000; color: #fff; }
-.voucher-editor { display: grid; gap: 16px; border: 1px solid #ddc1b4; border-radius: 18px; background: #fffaf7; padding: 20px; }
-.voucher-editor__title { display: flex; justify-content: space-between; gap: 18px; }
-.voucher-editor__title h3,.voucher-editor__title p { margin: 0; }
-.voucher-editor__title p { margin-top: 4px; color: #765b50; font-size: 13px; }
-.voucher-editor__title > button,.voucher-editor__actions > button:first-child { border: 1px solid #ddc1b4; border-radius: 9px; background: #fff; padding: 8px 13px; }
-.voucher-editor__grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 13px; }
+.voucher-editor-dialog.MuiPaper-root { max-height: calc(100vh - 32px); overflow: hidden; border: 1px solid #eadbd4; border-radius: 20px; background: #fffaf7; }
+.voucher-editor-dialog__title.MuiDialogTitle-root { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border-bottom: 1px solid #eadbd4; background: #fff; padding: 19px 22px; }
+.voucher-editor-dialog__title span { color: #a04100; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.voucher-editor-dialog__title h3 { margin: 2px 0 3px; color: #1a1c1e; font-size: 24px; line-height: 30px; }
+.voucher-editor-dialog__title p { margin: 0; color: #765b50; font-size: 12px; font-weight: 400; }
+.voucher-editor-dialog__title .MuiIconButton-root { flex: 0 0 auto; color: #5a4136; }
+.voucher-editor-dialog__content.MuiDialogContent-root { padding: 0; }
+.voucher-editor { display: grid; gap: 0; background: #fffaf7; }
+.voucher-editor__error { margin: 14px 22px 0; border-radius: 10px; background: #ffdad6; color: #93000a; padding: 10px 12px; font-size: 12px; font-weight: 700; }
+.voucher-editor__section { display: grid; gap: 13px; border-bottom: 1px solid #eadbd4; padding: 18px 22px; }
+.voucher-editor__section h4 { margin: 0; color: #7a3000; font-size: 14px; }
+.voucher-editor__grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px; }
 .voucher-editor label { display: grid; gap: 6px; color: #5a4136; font-size: 12px; font-weight: 700; }
-.voucher-editor input,.voucher-editor select,.voucher-editor textarea { min-width: 0; border: 1px solid #ddc1b4; border-radius: 9px; background: #fff; padding: 10px 11px; color: #1a1c1e; font: inherit; }
+.voucher-editor input,.voucher-editor select,.voucher-editor textarea { width: 100%; min-width: 0; border: 1px solid #ddc1b4; border-radius: 9px; background: #fff; padding: 10px 11px; color: #1a1c1e; font: inherit; box-sizing: border-box; }
+.voucher-editor input:focus,.voucher-editor select:focus,.voucher-editor textarea:focus { border-color: #a04100; outline: 2px solid rgba(160,65,0,.12); }
 .voucher-editor textarea { resize: vertical; }
 .voucher-target-picker { border: 1px solid #eadbd4; border-radius: 13px; padding: 13px; }
 .voucher-target-picker legend { color: #5a4136; font-weight: 800; }
-.voucher-target-picker > div { display: grid; max-height: 210px; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; overflow-y: auto; }
+.voucher-target-picker > div { display: grid; max-height: 210px; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; overflow-y: auto; }
 .voucher-target-picker label { display: flex; align-items: center; gap: 8px; border: 1px solid #eee1da; border-radius: 9px; background: #fff; padding: 9px; }
+.voucher-target-picker input[type="checkbox"] { width: 16px; height: 16px; flex: 0 0 auto; }
 .voucher-target-picker label span { display: grid; }
 .voucher-target-picker small { color: #8e7164; font-weight: 500; }
-.voucher-editor__actions { display: flex; justify-content: flex-end; gap: 9px; }
+.voucher-editor__actions { position: sticky; bottom: 0; z-index: 2; display: flex; justify-content: flex-end; gap: 9px; border-top: 1px solid #eadbd4; background: #fff; padding: 14px 22px; }
+.voucher-editor__actions > button:first-child { border: 1px solid #ddc1b4; border-radius: 9px; background: #fff; padding: 9px 15px; }
 .voucher-campaign-list { display: grid; gap: 12px; }
 .voucher-campaign { display: grid; grid-template-columns: 52px minmax(0,1fr) auto; gap: 15px; border: 1px solid #eadbd4; border-radius: 16px; background: #fff; padding: 16px; }
 .voucher-campaign__icon { display: grid; width: 52px; height: 52px; place-items: center; border-radius: 14px; background: #fff0e6; color: #a04100; }
@@ -52,5 +61,5 @@
 .voucher-campaign__actions { display: flex; flex-direction: column; gap: 7px; }
 .voucher-campaign__actions button { border: 1px solid #ddc1b4; border-radius: 8px; background: #fff; padding: 7px 10px; color: #5a4136; }
 .voucher-management__empty { display: grid; min-height: 210px; place-items: center; align-content: center; gap: 6px; border: 1px dashed #ddc1b4; border-radius: 16px; color: #8e7164; }
-@media(max-width:900px){.voucher-management__metrics{grid-template-columns:repeat(2,1fr)}.voucher-editor__grid,.voucher-target-picker>div{grid-template-columns:repeat(2,1fr)}.voucher-campaign{grid-template-columns:52px 1fr}.voucher-campaign__actions{grid-column:1/-1;flex-direction:row}}
-@media(max-width:600px){.voucher-management__heading{flex-direction:column}.voucher-management__metrics,.voucher-editor__grid,.voucher-target-picker>div{grid-template-columns:1fr}.voucher-campaign{grid-template-columns:1fr}.voucher-campaign__actions{grid-column:auto;flex-wrap:wrap}}
+@media(max-width:900px){.voucher-management__metrics{grid-template-columns:repeat(2,1fr)}.voucher-campaign{grid-template-columns:52px 1fr}.voucher-campaign__actions{grid-column:1/-1;flex-direction:row}}
+@media(max-width:600px){.voucher-editor-dialog.MuiPaper-root{max-height:100%;height:100%;margin:0;border:0;border-radius:0}.voucher-editor-dialog__title.MuiDialogTitle-root,.voucher-editor__section{padding-inline:16px}.voucher-management__heading{flex-direction:column}.voucher-management__metrics,.voucher-editor__grid,.voucher-target-picker>div{grid-template-columns:1fr}.voucher-campaign{grid-template-columns:1fr}.voucher-campaign__actions{grid-column:auto;flex-wrap:wrap}.voucher-editor__actions{padding:12px 16px}.voucher-editor__actions button{flex:1}}

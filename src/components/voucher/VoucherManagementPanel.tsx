@@ -2,6 +2,8 @@
 
 import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import { Dialog, DialogContent, DialogTitle, IconButton } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 
@@ -114,7 +116,7 @@ export default function VoucherManagementPanel({ mode, data, restaurantId }: Pro
   return <section className="voucher-management">
     <header className="voucher-management__heading">
       <div><span>{mode === "admin" ? "Voucher nền tảng" : "Ưu đãi nhà hàng"}</span><h2>Quản lý voucher</h2><p>Phân biệt tiền món và phí giao hàng, kiểm soát lượt dùng và ngân sách theo thời gian thực.</p></div>
-      <button type="button" className="voucher-management__primary" onClick={() => { setEditor(blank(mode)); setShowForm(true); }}>+ Tạo voucher</button>
+      <button type="button" className="voucher-management__primary" onClick={() => { setNotice(null); setEditor(blank(mode)); setShowForm(true); }}>+ Tạo voucher</button>
     </header>
 
     {notice && <div className={`voucher-management__notice ${notice.ok ? "is-success" : "is-error"}`}>{notice.message}<button onClick={() => setNotice(null)}>×</button></div>}
@@ -131,29 +133,51 @@ export default function VoucherManagementPanel({ mode, data, restaurantId }: Pro
         <button key={status} type="button" className={filter === status ? "is-active" : ""} onClick={() => setFilter(status)}>{status === "all" ? "Tất cả" : STATUS_LABEL[status]}</button>)}
     </div>
 
-    {showForm && <form className="voucher-editor" onSubmit={submit}>
-      <div className="voucher-editor__title"><div><h3>{editor.id ? "Cập nhật voucher" : "Tạo voucher mới"}</h3><p>Voucher đang lưu sẽ được server kiểm tra lại toàn bộ điều kiện.</p></div><button type="button" onClick={() => setShowForm(false)}>Đóng</button></div>
-      <div className="voucher-editor__grid">
-        <label>Mã voucher<input value={editor.code} maxLength={30} required onChange={(e) => set("code", e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ""))} /></label>
-        <label>Tên voucher<input value={editor.name} maxLength={120} required onChange={(e) => set("name", e.target.value)} /></label>
-        <label>Giảm vào<select value={editor.benefitScope} onChange={(e) => set("benefitScope", e.target.value as VoucherSaveInput["benefitScope"])}><option value="items">Tiền món</option><option value="shipping">Phí giao hàng / Freeship</option></select></label>
-        <label>Phạm vi<select value={editor.targetScope} onChange={(e) => { set("targetScope", e.target.value as VoucherTargetScope); set("targetIds", []); }}><option value={mode === "admin" ? "system" : "restaurant"}>{mode === "admin" ? "Toàn hệ thống" : "Toàn nhà hàng"}</option>{mode === "admin" && <option value="restaurant">Nhà hàng được chọn</option>}<option value="category">Category được chọn</option><option value="food">Món được chọn</option></select></label>
-        <label>Kiểu giảm<select value={editor.discountType} onChange={(e) => set("discountType", e.target.value as VoucherSaveInput["discountType"])}><option value="fixed">Số tiền cố định</option><option value="percent">Phần trăm</option></select></label>
-        <label>Giá trị giảm<input type="number" min="1" max={editor.discountType === "percent" ? 100 : undefined} value={editor.discountValue} onChange={(e) => set("discountValue", Number(e.target.value))} /></label>
-        {editor.discountType === "percent" && <label>Giảm tối đa<input type="number" min="1" value={editor.maxDiscount ?? ""} placeholder="Không giới hạn" onChange={(e) => set("maxDiscount", e.target.value ? Number(e.target.value) : null)} /></label>}
-        <label>Đơn tối thiểu<input type="number" min="0" value={editor.minOrderValue} onChange={(e) => set("minOrderValue", Number(e.target.value))} /></label>
-        <label>Tổng ngân sách<input type="number" min="1" required={mode === "owner"} value={editor.totalBudget ?? ""} placeholder={mode === "admin" ? "Không giới hạn" : "Bắt buộc"} onChange={(e) => set("totalBudget", e.target.value ? Number(e.target.value) : null)} /></label>
-        <label>Tổng lượt dùng<input type="number" min="1" value={editor.usageLimitTotal ?? ""} placeholder="Không giới hạn" onChange={(e) => set("usageLimitTotal", e.target.value ? Number(e.target.value) : null)} /></label>
-        <label>Lượt mỗi khách<input type="number" min="1" max="100" value={editor.usageLimitUser} onChange={(e) => set("usageLimitUser", Number(e.target.value))} /></label>
-        <label>Trạng thái khi lưu<select value={editor.status} onChange={(e) => set("status", e.target.value as VoucherStoredStatus)}><option value="draft">Bản nháp</option><option value="active">Kích hoạt</option><option value="paused">Tạm dừng</option></select></label>
-        <label>Bắt đầu<input type="datetime-local" required value={editor.startAt} onChange={(e) => set("startAt", e.target.value)} /></label>
-        <label>Kết thúc<input type="datetime-local" required value={editor.expiredAt} onChange={(e) => set("expiredAt", e.target.value)} /></label>
-      </div>
-      <label className="voucher-editor__wide">Mô tả<textarea rows={2} maxLength={500} value={editor.description} onChange={(e) => set("description", e.target.value)} /></label>
-      <label className="voucher-editor__wide">Điều khoản<textarea rows={2} maxLength={1000} value={editor.terms} onChange={(e) => set("terms", e.target.value)} /></label>
-      {needsTargets && <fieldset className="voucher-target-picker"><legend>Chọn {TARGET_LABEL[editor.targetScope].toLocaleLowerCase("vi")}</legend><div>{options.map((option) => <label key={option.id}><input type="checkbox" checked={editor.targetIds.includes(option.id)} onChange={() => toggleTarget(option.id)} /><span>{option.name}{option.restaurantName ? <small>{option.restaurantName}</small> : null}</span></label>)}</div>{options.length === 0 && <p>Chưa có đối tượng phù hợp.</p>}</fieldset>}
-      <div className="voucher-editor__actions"><button type="button" onClick={() => setShowForm(false)}>Hủy</button><button className="voucher-management__primary" disabled={pending}>{pending ? "Đang lưu..." : editor.id ? "Lưu thay đổi" : "Tạo voucher"}</button></div>
-    </form>}
+    <Dialog
+      open={showForm}
+      onClose={pending ? undefined : () => setShowForm(false)}
+      fullWidth
+      maxWidth="md"
+      scroll="paper"
+      slotProps={{ paper: { className: "voucher-editor-dialog" } }}
+    >
+      <DialogTitle className="voucher-editor-dialog__title">
+        <div><span>{mode === "admin" ? "Voucher nền tảng" : "Voucher nhà hàng"}</span><h3>{editor.id ? "Cập nhật voucher" : "Tạo voucher mới"}</h3><p>Thiết lập quyền lợi, phạm vi, thời gian và giới hạn ngân sách.</p></div>
+        <IconButton aria-label="Đóng form voucher" onClick={() => setShowForm(false)} disabled={pending}><CloseRoundedIcon /></IconButton>
+      </DialogTitle>
+      <DialogContent className="voucher-editor-dialog__content">
+        <form className="voucher-editor" onSubmit={submit}>
+          {notice && !notice.ok && <div className="voucher-editor__error" role="alert">{notice.message}</div>}
+          <section className="voucher-editor__section"><h4>Thông tin cơ bản</h4><div className="voucher-editor__grid">
+            <label>Mã voucher<input autoFocus value={editor.code} maxLength={30} required placeholder="VD: FREESHIP15" onChange={(e) => set("code", e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ""))} /></label>
+            <label>Tên voucher<input value={editor.name} maxLength={120} required placeholder="Tên hiển thị với khách hàng" onChange={(e) => set("name", e.target.value)} /></label>
+          </div><label className="voucher-editor__wide">Mô tả<textarea rows={2} maxLength={500} value={editor.description} placeholder="Mô tả ngắn về ưu đãi" onChange={(e) => set("description", e.target.value)} /></label></section>
+
+          <section className="voucher-editor__section"><h4>Quyền lợi và phạm vi</h4><div className="voucher-editor__grid">
+            <label>Giảm vào<select value={editor.benefitScope} onChange={(e) => set("benefitScope", e.target.value as VoucherSaveInput["benefitScope"])}><option value="items">Tiền món</option><option value="shipping">Phí giao hàng / Freeship</option></select></label>
+            <label>Phạm vi<select value={editor.targetScope} onChange={(e) => { set("targetScope", e.target.value as VoucherTargetScope); set("targetIds", []); }}><option value={mode === "admin" ? "system" : "restaurant"}>{mode === "admin" ? "Toàn hệ thống" : "Toàn nhà hàng"}</option>{mode === "admin" && <option value="restaurant">Nhà hàng được chọn</option>}<option value="category">Category được chọn</option><option value="food">Món được chọn</option></select></label>
+            <label>Kiểu giảm<select value={editor.discountType} onChange={(e) => set("discountType", e.target.value as VoucherSaveInput["discountType"])}><option value="fixed">Số tiền cố định</option><option value="percent">Phần trăm</option></select></label>
+            <label>Giá trị giảm<input type="number" min="1" max={editor.discountType === "percent" ? 100 : undefined} value={editor.discountValue} onChange={(e) => set("discountValue", Number(e.target.value))} /></label>
+            {editor.discountType === "percent" && <label>Giảm tối đa<input type="number" min="1" value={editor.maxDiscount ?? ""} placeholder="Không giới hạn" onChange={(e) => set("maxDiscount", e.target.value ? Number(e.target.value) : null)} /></label>}
+            <label>Giá trị đơn tối thiểu<input type="number" min="0" value={editor.minOrderValue} onChange={(e) => set("minOrderValue", Number(e.target.value))} /></label>
+          </div>{needsTargets && <fieldset className="voucher-target-picker"><legend>Chọn {TARGET_LABEL[editor.targetScope].toLocaleLowerCase("vi")}</legend><div>{options.map((option) => <label key={option.id}><input type="checkbox" checked={editor.targetIds.includes(option.id)} onChange={() => toggleTarget(option.id)} /><span>{option.name}{option.restaurantName ? <small>{option.restaurantName}</small> : null}</span></label>)}</div>{options.length === 0 && <p>Chưa có đối tượng phù hợp.</p>}</fieldset>}</section>
+
+          <section className="voucher-editor__section"><h4>Ngân sách và lượt sử dụng</h4><div className="voucher-editor__grid">
+            <label>Tổng ngân sách<input type="number" min="1" required={mode === "owner"} value={editor.totalBudget ?? ""} placeholder={mode === "admin" ? "Để trống nếu không giới hạn" : "Bắt buộc"} onChange={(e) => set("totalBudget", e.target.value ? Number(e.target.value) : null)} /></label>
+            <label>Tổng lượt sử dụng<input type="number" min="1" value={editor.usageLimitTotal ?? ""} placeholder="Để trống nếu không giới hạn" onChange={(e) => set("usageLimitTotal", e.target.value ? Number(e.target.value) : null)} /></label>
+            <label>Lượt tối đa mỗi khách<input type="number" min="1" max="100" value={editor.usageLimitUser} onChange={(e) => set("usageLimitUser", Number(e.target.value))} /></label>
+            <label>Trạng thái khi lưu<select value={editor.status} onChange={(e) => set("status", e.target.value as VoucherStoredStatus)}><option value="draft">Lưu bản nháp</option><option value="active">Kích hoạt</option><option value="paused">Tạm dừng</option></select></label>
+          </div></section>
+
+          <section className="voucher-editor__section"><h4>Thời gian và điều khoản</h4><div className="voucher-editor__grid">
+            <label>Bắt đầu<input type="datetime-local" required value={editor.startAt} onChange={(e) => set("startAt", e.target.value)} /></label>
+            <label>Kết thúc<input type="datetime-local" required value={editor.expiredAt} onChange={(e) => set("expiredAt", e.target.value)} /></label>
+          </div><label className="voucher-editor__wide">Điều khoản<textarea rows={3} maxLength={1000} value={editor.terms} placeholder="Điều kiện sử dụng hiển thị cho khách hàng" onChange={(e) => set("terms", e.target.value)} /></label></section>
+
+          <div className="voucher-editor__actions"><button type="button" onClick={() => setShowForm(false)} disabled={pending}>Hủy</button><button className="voucher-management__primary" disabled={pending}>{pending ? "Đang lưu..." : editor.id ? "Lưu thay đổi" : "Tạo voucher"}</button></div>
+        </form>
+      </DialogContent>
+    </Dialog>
 
     <div className="voucher-campaign-list">
       {filtered.map((item) => {
@@ -165,7 +189,7 @@ export default function VoucherManagementPanel({ mode, data, restaurantId }: Pro
             <div className="voucher-campaign__chips"><span>{item.discountType === "percent" ? `${item.discountValue}%${item.maxDiscount ? ` · tối đa ${money(item.maxDiscount)}` : ""}` : money(item.discountValue)}</span><span>Đơn từ {money(item.minOrderValue)}</span><span>{TARGET_LABEL[item.targetScope]}{item.targets.length ? ` (${item.targets.length})` : ""}</span></div>
             <div className="voucher-campaign__progress"><div><span style={{ width: `${budgetPercent}%` }} /></div><small>{item.totalBudget ? `${money(item.spentBudget + item.reservedBudget)} / ${money(item.totalBudget)}` : "Ngân sách không giới hạn"} · {item.usedCount}/{item.usageLimitTotal ?? "∞"} lượt</small></div>
           </div>
-          <div className="voucher-campaign__actions"><button type="button" onClick={() => { setEditor(fromItem(item)); setShowForm(true); }}>Sửa</button>{item.status === "active" ? <button type="button" disabled={pending} onClick={() => changeStatus(item.id, "paused")}>Tạm dừng</button> : item.status !== "archived" && <button type="button" disabled={pending} onClick={() => changeStatus(item.id, "active")}>Kích hoạt</button>}<button type="button" disabled={pending || item.status === "archived"} onClick={() => changeStatus(item.id, "archived")}>Lưu trữ</button></div>
+          <div className="voucher-campaign__actions"><button type="button" onClick={() => { setNotice(null); setEditor(fromItem(item)); setShowForm(true); }}>Sửa</button>{item.status === "active" ? <button type="button" disabled={pending} onClick={() => changeStatus(item.id, "paused")}>Tạm dừng</button> : item.status !== "archived" && <button type="button" disabled={pending} onClick={() => changeStatus(item.id, "active")}>Kích hoạt</button>}<button type="button" disabled={pending || item.status === "archived"} onClick={() => changeStatus(item.id, "archived")}>Lưu trữ</button></div>
         </article>;
       })}
       {filtered.length === 0 && <div className="voucher-management__empty"><LocalOfferOutlinedIcon /><strong>Chưa có voucher trong nhóm này</strong><span>Tạo chiến dịch đầu tiên để bắt đầu.</span></div>}
