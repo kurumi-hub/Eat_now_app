@@ -20,7 +20,7 @@ const FOOD_IMAGE_TYPES: Record<string, string> = {
   "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif",
 };
 
-export type FoodImageUploadTicketResult =
+export type ImageUploadTicketResult =
   | { ok: true; objectPath: string; token: string }
   | { ok: false; message: string };
 
@@ -40,6 +40,18 @@ function errorMessage(error: { code?: string; message?: string } | null, fallbac
 async function authorized() {
   await requireAnyRole(["RESTAURANT_OWNER", "RESTAURANT_STAFF"]);
   return createClient();
+}
+
+async function canManageRestaurantMedia(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  restaurantId: string
+) {
+  const { data, error } = await supabase.rpc("api_get_owner_restaurant_dashboard", {
+    p_restaurant_id: restaurantId,
+  });
+  if (error || !data || typeof data !== "object" || Array.isArray(data) ||
+      !("permissions" in data) || !Array.isArray(data.permissions)) return false;
+  return data.permissions.includes("restaurant.media.manage");
 }
 
 function refresh() {
@@ -203,10 +215,59 @@ export async function applyRestaurantMediaAction(restaurantId: string, kind: "lo
       ? data.old_object_paths.filter((item: unknown): item is string => typeof item === "string" && item !== objectPath)
       : [];
   if (oldPaths.length) {
-    const { error: storageError } = await supabase.storage.from(BUCKET).remove(oldPaths);
-    if (storageError) console.error("[owner] Đã thay metadata nhưng chưa xóa được ảnh nhà hàng cũ", storageError);
+    try {
+      const { error: storageError } = await createAdminClient().storage.from(BUCKET).remove(oldPaths);
+      if (storageError) console.error("[owner] Đã thay metadata nhưng chưa xóa được ảnh nhà hàng cũ", storageError);
+    } catch (storageError) {
+      console.error("[owner] Chưa thể khởi tạo cleanup ảnh nhà hàng cũ", storageError);
+    }
   }
   refresh(); return { ok: true, message: "Đã cập nhật ảnh nhà hàng." };
+}
+
+export async function createRestaurantMediaUploadTicketAction(
+  restaurantId: string,
+  kind: "logo" | "cover" | "gallery",
+  mimeType: string
+): Promise<ImageUploadTicketResult> {
+  if (!UUID.test(restaurantId) || !["logo", "cover", "gallery"].includes(kind) ||
+      !FOOD_IMAGE_TYPES[mimeType]) {
+    return { ok: false, message: "Nhà hàng, loại ảnh hoặc định dạng ảnh không hợp lệ." };
+  }
+  const supabase = await authorized();
+  if (!await canManageRestaurantMedia(supabase, restaurantId)) {
+    return { ok: false, message: "Bạn không có quyền tải ảnh cho nhà hàng này." };
+  }
+  const objectPath = `restaurants/${restaurantId}/${kind}/${crypto.randomUUID()}.${FOOD_IMAGE_TYPES[mimeType]}`;
+  try {
+    const { data, error } = await createAdminClient().storage.from(BUCKET)
+      .createSignedUploadUrl(objectPath);
+    if (error || !data?.token) {
+      console.error("[owner] Không thể tạo vé upload ảnh nhà hàng", error);
+      return { ok: false, message: "Không thể khởi tạo phiên tải ảnh nhà hàng." };
+    }
+    return { ok: true, objectPath, token: data.token };
+  } catch (error) {
+    console.error("[owner] Không thể khởi tạo Storage admin cho ảnh nhà hàng", error);
+    return { ok: false, message: "Server chưa đọc được SUPABASE_SECRET_KEY." };
+  }
+}
+
+export async function discardRestaurantMediaUploadAction(
+  restaurantId: string,
+  kind: "logo" | "cover" | "gallery",
+  objectPath: string
+): Promise<void> {
+  const expected = `restaurants/${restaurantId}/${kind}/`;
+  if (!UUID.test(restaurantId) || !objectPath.startsWith(expected) || objectPath.includes("..")) return;
+  const supabase = await authorized();
+  if (!await canManageRestaurantMedia(supabase, restaurantId)) return;
+  try {
+    const { error } = await createAdminClient().storage.from(BUCKET).remove([objectPath]);
+    if (error) console.error("[owner] Chưa dọn được ảnh nhà hàng chưa gắn metadata", error);
+  } catch (error) {
+    console.error("[owner] Không thể khởi tạo cleanup ảnh nhà hàng", error);
+  }
 }
 
 export async function deleteRestaurantMediaAction(mediaId: string): Promise<OwnerActionResult> {
@@ -216,8 +277,12 @@ export async function deleteRestaurantMediaAction(mediaId: string): Promise<Owne
   if (error) return { ok: false, message: errorMessage(error, "Không thể xóa ảnh.") };
   const objectPath = data && typeof data === "object" && "object_path" in data && typeof data.object_path === "string" ? data.object_path : null;
   if (objectPath) {
-    const { error: storageError } = await supabase.storage.from(BUCKET).remove([objectPath]);
-    if (storageError) console.error("[owner] Đã xóa metadata nhưng chưa xóa được object", storageError);
+    try {
+      const { error: storageError } = await createAdminClient().storage.from(BUCKET).remove([objectPath]);
+      if (storageError) console.error("[owner] Đã xóa metadata nhưng chưa xóa được object", storageError);
+    } catch (storageError) {
+      console.error("[owner] Chưa thể khởi tạo cleanup ảnh nhà hàng", storageError);
+    }
   }
   refresh(); return { ok: true, message: "Đã xóa ảnh nhà hàng." };
 }
@@ -367,7 +432,7 @@ export async function deleteFoodImageAction(imageId: string): Promise<OwnerActio
 export async function createFoodImageUploadTicketAction(
   foodId: string,
   mimeType: string
-): Promise<FoodImageUploadTicketResult> {
+): Promise<ImageUploadTicketResult> {
   if (!UUID.test(foodId) || !FOOD_IMAGE_TYPES[mimeType]) {
     return { ok: false, message: "Mã món hoặc định dạng ảnh không hợp lệ." };
   }

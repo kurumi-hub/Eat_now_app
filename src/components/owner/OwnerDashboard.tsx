@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 
 import {
-  applyRestaurantMediaAction, deleteRestaurantMediaAction,
+  applyRestaurantMediaAction, createRestaurantMediaUploadTicketAction,
+  deleteRestaurantMediaAction, discardRestaurantMediaUploadAction,
   inviteRestaurantStaffAction, publishRestaurantAction,
   replaceRestaurantHoursAction, revokeRestaurantMemberAction,
   revokeStaffInvitationAction, setAcceptingOrdersAction,
@@ -153,24 +154,35 @@ function Media({ data, pending, run }: { data: OwnerDashboardData; pending: bool
     }
     run(async () => {
       const supabase = createClient();
-      const path = `restaurants/${data.restaurant.id}/${kind}/${crypto.randomUUID()}.${TYPES[file.type]}`;
+      let objectPath: string | null = null;
       try {
-        const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
-          cacheControl: "31536000", contentType: file.type, upsert: false,
+        const ticket = await createRestaurantMediaUploadTicketAction(
+          data.restaurant.id, kind, file.type
+        );
+        if (!ticket.ok) return ticket;
+        objectPath = ticket.objectPath;
+        const { error } = await supabase.storage.from(BUCKET).uploadToSignedUrl(
+          ticket.objectPath, ticket.token, file, {
+          contentType: file.type, upsert: false,
         });
         if (error) {
           console.error("[owner] Upload ảnh nhà hàng thất bại", error);
-          return { ok: false, message: "Không thể tải ảnh nhà hàng. Kiểm tra bucket restaurant-media và quyền Storage." };
+          await discardRestaurantMediaUploadAction(data.restaurant.id, kind, ticket.objectPath);
+          return { ok: false, message: `Không thể tải ảnh nhà hàng (${error.message}).` };
         }
         const result = await applyRestaurantMediaAction(
-          data.restaurant.id, kind, path, String(values.get("alt") || "")
+          data.restaurant.id, kind, ticket.objectPath, String(values.get("alt") || "")
         );
-        if (!result.ok) await supabase.storage.from(BUCKET).remove([path]);
+        if (!result.ok) {
+          await discardRestaurantMediaUploadAction(data.restaurant.id, kind, ticket.objectPath);
+        }
         else form.reset();
         return result;
       } catch (error) {
         console.error("[owner] Luồng upload ảnh nhà hàng bị gián đoạn", error);
-        await supabase.storage.from(BUCKET).remove([path]);
+        if (objectPath) {
+          await discardRestaurantMediaUploadAction(data.restaurant.id, kind, objectPath);
+        }
         return { ok: false, message: "Kết nối bị gián đoạn khi tải ảnh. Vui lòng thử lại." };
       }
     });
