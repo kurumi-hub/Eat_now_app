@@ -104,6 +104,8 @@ export type CheckoutVoucher = {
   discountScope: "items" | "shipping";
   issuerType: "platform" | "restaurant";
   slot: "restaurant" | "platform" | "shipping";
+  distributionMode: "auto" | "claim" | "assigned";
+  walletAvailableCount: number;
   targetScope: "system" | "restaurant" | "category" | "food";
   expiredAt: string;
 };
@@ -119,6 +121,8 @@ type CheckoutVoucherRow = {
   discount_scope: "items" | "shipping";
   issuer_type: "platform" | "restaurant";
   slot: "restaurant" | "platform" | "shipping";
+  distribution_mode: "auto" | "claim" | "assigned";
+  wallet_available_count: number;
   target_scope: "system" | "restaurant" | "category" | "food";
   expired_at: string;
 };
@@ -136,6 +140,8 @@ function mapVoucherRows(data: unknown): CheckoutVoucher[] {
     discountScope: row.discount_scope,
     issuerType: row.issuer_type,
     slot: row.slot,
+    distributionMode: row.distribution_mode,
+    walletAvailableCount: Number(row.wallet_available_count || 0),
     targetScope: row.target_scope,
     expiredAt: row.expired_at,
   }));

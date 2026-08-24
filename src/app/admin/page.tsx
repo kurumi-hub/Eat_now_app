@@ -375,7 +375,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       });
     }
     if (tab === "vouchers") {
-      return supabase.rpc("api_list_admin_vouchers", {
+      return supabase.rpc("api_list_admin_vouchers_v2", {
         p_status: status || null, p_search: search || null, p_limit: limit, p_offset: offset,
       });
     }
@@ -441,7 +441,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       media={tab === "media" ? parseSiteMedia(contentResult.data) : EMPTY_MEDIA}
       finance={tab === "finance" ? parseAdminFinance(contentResult.data) : EMPTY_FINANCE}
       audit={tab === "overview" || tab === "audit" ? parseAudit(contentResult.data) : EMPTY_AUDIT}
-      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra các migration, gồm SQL 32 cho Voucher." : undefined}
+      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra các migration, gồm SQL 32–34 cho Voucher." : undefined}
     />
   );
 }

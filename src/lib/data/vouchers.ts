@@ -4,10 +4,12 @@ import { unstable_cache } from "next/cache";
 
 import type {
   PublicVoucher,
+  CustomerVoucherData,
   VoucherManagementData,
   VoucherManagementItem,
   VoucherOption,
   VoucherTarget,
+  VoucherWalletItem,
 } from "@/types/voucher";
 import { createPublicClient } from "@/utils/supabase/public";
 
@@ -81,6 +83,8 @@ function managementItems(value: unknown): VoucherManagementItem[] {
       startAt: string(item.start_at), expiredAt: string(item.expired_at),
       totalBudget: nullableNumber(item.total_budget), reservedBudget: number(item.reserved_budget),
       spentBudget: number(item.spent_budget), targets: targets(item.targets),
+      distributionMode: string(item.distribution_mode, "auto") as VoucherManagementItem["distributionMode"],
+      claimLimitTotal: nullableNumber(item.claim_limit_total), claimedCount: number(item.claimed_count),
       createdAt: string(item.created_at), updatedAt: string(item.updated_at),
     }];
   });
@@ -121,16 +125,44 @@ export function parsePublicVouchers(value: unknown): PublicVoucher[] {
       discountValue: number(item.discount_value), maxDiscount: nullableNumber(item.max_discount),
       minOrderValue: number(item.min_order_value), expiredAt: string(item.expired_at),
       targets: targets(item.targets),
+      distributionMode: string(item.distribution_mode, "auto") as PublicVoucher["distributionMode"],
+      claimLimitTotal: nullableNumber(item.claim_limit_total), claimedCount: number(item.claimed_count),
+      canClaim: item.can_claim === true, walletAvailableCount: number(item.wallet_available_count),
     }];
   });
 }
 
+function parseWallet(value: unknown): VoucherWalletItem[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((raw) => {
+    const item = record(raw);
+    const [voucher] = parsePublicVouchers([item]);
+    if (!voucher || !string(item.wallet_id)) return [];
+    return [{
+      ...voucher,
+      walletId: string(item.wallet_id),
+      walletStatus: string(item.wallet_status, "available") as VoucherWalletItem["walletStatus"],
+      source: string(item.source, "claim") as VoucherWalletItem["source"],
+      claimedAt: string(item.claimed_at),
+      reservedAt: optionalString(item.reserved_at),
+      usedAt: optionalString(item.used_at),
+      orderId: optionalString(item.order_id),
+      walletExpiresAt: string(item.wallet_expires_at, string(item.expired_at)),
+    }];
+  });
+}
+
+export function parseCustomerVouchers(value: unknown): CustomerVoucherData {
+  const source = record(value);
+  return { discover: parsePublicVouchers(source.discover), wallet: parseWallet(source.wallet) };
+}
+
 const fetchPublicVouchers = unstable_cache(async () => {
   const supabase = createPublicClient();
-  const { data, error } = await supabase.rpc("api_list_public_vouchers");
+  const { data, error } = await supabase.rpc("api_list_public_vouchers_v2");
   if (error) throw new Error(error.message);
   return parsePublicVouchers(data);
-}, ["public-vouchers-v1"], { revalidate: 60, tags: ["vouchers"] });
+}, ["public-vouchers-v2"], { revalidate: 60, tags: ["vouchers"] });
 
 export async function getPublicVouchers(): Promise<PublicVoucher[]> {
   try {

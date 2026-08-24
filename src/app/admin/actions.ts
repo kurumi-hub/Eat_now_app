@@ -1060,11 +1060,32 @@ export async function saveAdminVoucherAction(input: VoucherSaveInput): Promise<V
   const cleaned = voucherPayload(input, false);
   if ("error" in cleaned) return { ok: false, message: cleaned.error };
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("api_admin_save_voucher", { p_payload: cleaned.payload });
+  const { data, error } = await supabase.rpc("api_admin_save_voucher_v2", { p_payload: cleaned.payload });
   if (error) return { ok: false, message: failure("Không thể lưu voucher nền tảng.", error) };
   updateTag("vouchers");
   revalidatePath("/admin"); revalidatePath("/vouchers"); revalidatePath("/checkout");
   return { ok: true, message: input.id ? "Đã cập nhật voucher." : "Đã tạo voucher nền tảng.", voucherId: String(data) };
+}
+
+export async function assignVoucherByEmailAction(
+  voucherId: string,
+  email: string
+): Promise<VoucherActionResult> {
+  await requirePermission("vouchers.manage");
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!validId(voucherId) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    return { ok: false, message: "Voucher hoặc email khách hàng không hợp lệ." };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("api_assign_voucher_by_email", {
+    p_voucher_id: voucherId,
+    p_email: normalizedEmail,
+    p_source: "admin",
+  });
+  if (error) return { ok: false, message: failure("Không thể tặng voucher.", error) };
+  updateTag("vouchers");
+  revalidatePath("/admin"); revalidatePath("/vouchers"); revalidatePath("/checkout");
+  return { ok: true, message: `Đã tặng voucher cho ${normalizedEmail}.` };
 }
 
 export async function setAdminVoucherStatusAction(

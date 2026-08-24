@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogTitle, IconButton } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 
-import { saveAdminVoucherAction, setAdminVoucherStatusAction } from "@/app/admin/actions";
+import { assignVoucherByEmailAction, saveAdminVoucherAction, setAdminVoucherStatusAction } from "@/app/admin/actions";
 import { saveOwnerVoucherAction, setOwnerVoucherStatusAction } from "@/app/owner/actions";
 import type {
   VoucherManagementData,
@@ -47,6 +47,7 @@ function blank(mode: Props["mode"]): VoucherSaveInput {
     discountType: "fixed", discountValue: 10_000, maxDiscount: null,
     minOrderValue: 0, usageLimitTotal: 100, usageLimitUser: 1,
     totalBudget: mode === "owner" ? 1_000_000 : null,
+    distributionMode: "auto", claimLimitTotal: null,
     startAt: dateInput(new Date()), expiredAt: dateInput(new Date(Date.now() + 7 * 86_400_000)),
     targetIds: [], status: "draft",
   };
@@ -60,6 +61,7 @@ function fromItem(item: VoucherManagementItem): VoucherSaveInput {
     maxDiscount: item.maxDiscount, minOrderValue: item.minOrderValue,
     usageLimitTotal: item.usageLimitTotal, usageLimitUser: item.usageLimitUser,
     totalBudget: item.totalBudget, startAt: dateInput(item.startAt),
+    distributionMode: item.distributionMode, claimLimitTotal: item.claimLimitTotal,
     expiredAt: dateInput(item.expiredAt), targetIds: item.targets.map((target) => target.id),
     status: item.status,
   };
@@ -76,6 +78,8 @@ export default function VoucherManagementPanel({ mode, data, restaurantId }: Pro
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState("all");
   const [notice, setNotice] = useState<{ ok: boolean; message: string } | null>(null);
+  const [assignTarget, setAssignTarget] = useState<VoucherManagementItem | null>(null);
+  const [assignEmail, setAssignEmail] = useState("");
   const [pending, startTransition] = useTransition();
   const options = editor.targetScope === "restaurant" ? data.options.restaurants
     : editor.targetScope === "category" ? data.options.categories
@@ -106,6 +110,16 @@ export default function VoucherManagementPanel({ mode, data, restaurantId }: Pro
         : await setOwnerVoucherStatusAction(restaurantId || "", id, status);
       setNotice(result);
       if (result.ok) router.refresh();
+    });
+  };
+
+  const assignVoucher = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!assignTarget) return;
+    startTransition(async () => {
+      const result = await assignVoucherByEmailAction(assignTarget.id, assignEmail);
+      setNotice(result);
+      if (result.ok) { setAssignTarget(null); setAssignEmail(""); router.refresh(); }
     });
   };
 
@@ -163,6 +177,8 @@ export default function VoucherManagementPanel({ mode, data, restaurantId }: Pro
           </div>{needsTargets && <fieldset className="voucher-target-picker"><legend>Chọn {TARGET_LABEL[editor.targetScope].toLocaleLowerCase("vi")}</legend><div>{options.map((option) => <label key={option.id}><input type="checkbox" checked={editor.targetIds.includes(option.id)} onChange={() => toggleTarget(option.id)} /><span>{option.name}{option.restaurantName ? <small>{option.restaurantName}</small> : null}</span></label>)}</div>{options.length === 0 && <p>Chưa có đối tượng phù hợp.</p>}</fieldset>}</section>
 
           <section className="voucher-editor__section"><h4>Ngân sách và lượt sử dụng</h4><div className="voucher-editor__grid">
+            <label>Cách phân phối<select value={editor.distributionMode} onChange={(e) => { set("distributionMode", e.target.value as VoucherSaveInput["distributionMode"]); if (e.target.value === "auto") set("claimLimitTotal", null); }}><option value="auto">Tự động khả dụng</option><option value="claim">Khách bấm nhận vào kho</option>{mode === "admin" && <option value="assigned">Tặng riêng cho khách</option>}</select></label>
+            {editor.distributionMode !== "auto" && <label>Tổng lượt có thể cấp<input type="number" min="1" value={editor.claimLimitTotal ?? ""} placeholder="Để trống nếu không giới hạn" onChange={(e) => set("claimLimitTotal", e.target.value ? Number(e.target.value) : null)} /></label>}
             <label>Tổng ngân sách<input type="number" min="1" required={mode === "owner"} value={editor.totalBudget ?? ""} placeholder={mode === "admin" ? "Để trống nếu không giới hạn" : "Bắt buộc"} onChange={(e) => set("totalBudget", e.target.value ? Number(e.target.value) : null)} /></label>
             <label>Tổng lượt sử dụng<input type="number" min="1" value={editor.usageLimitTotal ?? ""} placeholder="Để trống nếu không giới hạn" onChange={(e) => set("usageLimitTotal", e.target.value ? Number(e.target.value) : null)} /></label>
             <label>Lượt tối đa mỗi khách<input type="number" min="1" max="100" value={editor.usageLimitUser} onChange={(e) => set("usageLimitUser", Number(e.target.value))} /></label>
@@ -179,6 +195,11 @@ export default function VoucherManagementPanel({ mode, data, restaurantId }: Pro
       </DialogContent>
     </Dialog>
 
+    <Dialog open={Boolean(assignTarget)} onClose={pending ? undefined : () => setAssignTarget(null)} fullWidth maxWidth="xs" slotProps={{ paper: { className: "voucher-editor-dialog" } }}>
+      <DialogTitle className="voucher-editor-dialog__title"><div><span>Tặng voucher</span><h3>{assignTarget?.code}</h3><p>Cấp một voucher trực tiếp vào kho của khách hàng.</p></div><IconButton aria-label="Đóng form tặng voucher" onClick={() => setAssignTarget(null)} disabled={pending}><CloseRoundedIcon /></IconButton></DialogTitle>
+      <DialogContent className="voucher-editor-dialog__content"><form className="voucher-editor" onSubmit={assignVoucher}><section className="voucher-editor__section"><label>Email khách hàng<input autoFocus type="email" required value={assignEmail} placeholder="customer@example.com" onChange={(event) => setAssignEmail(event.target.value)} /></label><p className="voucher-editor__helper">Voucher sẽ xuất hiện ngay trong “Kho của tôi” và khách hàng nhận được thông báo.</p></section><div className="voucher-editor__actions"><button type="button" onClick={() => setAssignTarget(null)} disabled={pending}>Hủy</button><button className="voucher-management__primary" disabled={pending}>{pending ? "Đang tặng..." : "Tặng voucher"}</button></div></form></DialogContent>
+    </Dialog>
+
     <div className="voucher-campaign-list">
       {filtered.map((item) => {
         const budgetPercent = item.totalBudget ? Math.min(100, (item.spentBudget + item.reservedBudget) / item.totalBudget * 100) : 0;
@@ -186,10 +207,10 @@ export default function VoucherManagementPanel({ mode, data, restaurantId }: Pro
           <div className={`voucher-campaign__icon is-${item.benefitScope}`}>{item.benefitScope === "shipping" ? <LocalShippingOutlinedIcon /> : <LocalOfferOutlinedIcon />}</div>
           <div className="voucher-campaign__body"><div className="voucher-campaign__title"><div><code>{item.code}</code><h3>{item.name}</h3></div><span className={`is-${item.effectiveStatus}`}>{STATUS_LABEL[item.effectiveStatus]}</span></div>
             <p>{item.description || `${item.benefitScope === "shipping" ? "Giảm phí giao hàng" : "Giảm tiền món"} · ${TARGET_LABEL[item.targetScope]}`}</p>
-            <div className="voucher-campaign__chips"><span>{item.discountType === "percent" ? `${item.discountValue}%${item.maxDiscount ? ` · tối đa ${money(item.maxDiscount)}` : ""}` : money(item.discountValue)}</span><span>Đơn từ {money(item.minOrderValue)}</span><span>{TARGET_LABEL[item.targetScope]}{item.targets.length ? ` (${item.targets.length})` : ""}</span></div>
+            <div className="voucher-campaign__chips"><span>{item.discountType === "percent" ? `${item.discountValue}%${item.maxDiscount ? ` · tối đa ${money(item.maxDiscount)}` : ""}` : money(item.discountValue)}</span><span>Đơn từ {money(item.minOrderValue)}</span><span>{TARGET_LABEL[item.targetScope]}{item.targets.length ? ` (${item.targets.length})` : ""}</span><span>{item.distributionMode === "auto" ? "Tự động" : item.distributionMode === "claim" ? `Đã nhận ${item.claimedCount}/${item.claimLimitTotal ?? "∞"}` : `Đã tặng ${item.claimedCount}/${item.claimLimitTotal ?? "∞"}`}</span></div>
             <div className="voucher-campaign__progress"><div><span style={{ width: `${budgetPercent}%` }} /></div><small>{item.totalBudget ? `${money(item.spentBudget + item.reservedBudget)} / ${money(item.totalBudget)}` : "Ngân sách không giới hạn"} · {item.usedCount}/{item.usageLimitTotal ?? "∞"} lượt</small></div>
           </div>
-          <div className="voucher-campaign__actions"><button type="button" onClick={() => { setNotice(null); setEditor(fromItem(item)); setShowForm(true); }}>Sửa</button>{item.status === "active" ? <button type="button" disabled={pending} onClick={() => changeStatus(item.id, "paused")}>Tạm dừng</button> : item.status !== "archived" && <button type="button" disabled={pending} onClick={() => changeStatus(item.id, "active")}>Kích hoạt</button>}<button type="button" disabled={pending || item.status === "archived"} onClick={() => changeStatus(item.id, "archived")}>Lưu trữ</button></div>
+          <div className="voucher-campaign__actions">{mode === "admin" && item.distributionMode === "assigned" && item.effectiveStatus === "active" && <button type="button" disabled={pending} onClick={() => { setAssignEmail(""); setAssignTarget(item); }}>Tặng</button>}<button type="button" onClick={() => { setNotice(null); setEditor(fromItem(item)); setShowForm(true); }}>Sửa</button>{item.status === "active" ? <button type="button" disabled={pending} onClick={() => changeStatus(item.id, "paused")}>Tạm dừng</button> : item.status !== "archived" && <button type="button" disabled={pending} onClick={() => changeStatus(item.id, "active")}>Kích hoạt</button>}<button type="button" disabled={pending || item.status === "archived"} onClick={() => changeStatus(item.id, "archived")}>Lưu trữ</button></div>
         </article>;
       })}
       {filtered.length === 0 && <div className="voucher-management__empty"><LocalOfferOutlinedIcon /><strong>Chưa có voucher trong nhóm này</strong><span>Tạo chiến dịch đầu tiên để bắt đầu.</span></div>}

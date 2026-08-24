@@ -25,7 +25,7 @@ export default async function OwnerPage({ searchParams }: Props) {
     supabase.rpc("api_list_restaurant_orders", {
       p_restaurant_id: selected.id, p_status: null, p_search: null, p_limit: 100, p_offset: 0,
     }),
-    supabase.rpc("api_list_owner_vouchers", { p_restaurant_id: selected.id }),
+    supabase.rpc("api_list_owner_vouchers_v2", { p_restaurant_id: selected.id }),
   ]);
   const dashboard = parseOwnerDashboard(dashboardResult.data);
   if (!dashboard || dashboardResult.error) {

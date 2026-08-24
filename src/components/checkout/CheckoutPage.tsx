@@ -326,7 +326,7 @@ function VoucherGroup({
             <span className="order-voucher-card__ticket"><LocalOfferOutlinedIcon /></span>
             <span>
               <b>{voucher.code}</b><strong>{voucher.name}</strong>
-              <small>{voucherBenefit(voucher)} · {voucherScope(voucher)}{voucher.minOrderValue > 0 ? ` · Đơn tối thiểu ${formatCurrency(voucher.minOrderValue)}` : ""}</small>
+              <small>{voucherBenefit(voucher)} · {voucherScope(voucher)}{voucher.distributionMode === "auto" ? " · Tự động khả dụng" : ` · Trong kho: ${voucher.walletAvailableCount}`}{voucher.minOrderValue > 0 ? ` · Đơn tối thiểu ${formatCurrency(voucher.minOrderValue)}` : ""}</small>
             </span>
             {selectedCode === voucher.code ? <CheckCircleRoundedIcon /> : <RadioButtonUncheckedRoundedIcon />}
           </label>

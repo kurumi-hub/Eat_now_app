@@ -482,7 +482,7 @@ export async function saveOwnerVoucherAction(
   const cleaned = voucherPayload(input, true);
   if ("error" in cleaned) return { ok: false, message: cleaned.error };
   const supabase = await authorized();
-  const { data, error } = await supabase.rpc("api_owner_save_voucher", {
+  const { data, error } = await supabase.rpc("api_owner_save_voucher_v2", {
     p_restaurant_id: restaurantId, p_payload: cleaned.payload,
   });
   if (error) return { ok: false, message: errorMessage(error, "Không thể lưu voucher nhà hàng.") };

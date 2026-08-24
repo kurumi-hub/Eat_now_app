@@ -32,6 +32,13 @@ export function voucherPayload(input: VoucherSaveInput, ownerMode: boolean): Vou
       (input.usageLimitTotal !== null && (!Number.isInteger(input.usageLimitTotal) || input.usageLimitTotal < 1))) {
     return { error: "Giới hạn lượt sử dụng không hợp lệ." } as const;
   }
+  if (ownerMode && input.distributionMode === "assigned") {
+    return { error: "Voucher tặng riêng chỉ do nền tảng phát hành." } as const;
+  }
+  if (input.distributionMode !== "auto" && input.claimLimitTotal !== null &&
+      (!Number.isInteger(input.claimLimitTotal) || input.claimLimitTotal < 1)) {
+    return { error: "Tổng lượt nhận voucher không hợp lệ." } as const;
+  }
   if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start >= end) {
     return { error: "Thời gian áp dụng không hợp lệ." } as const;
   }
@@ -49,6 +56,8 @@ export function voucherPayload(input: VoucherSaveInput, ownerMode: boolean): Vou
       max_discount: input.discountType === "percent" ? input.maxDiscount : null,
       min_order_value: input.minOrderValue, usage_limit_total: input.usageLimitTotal,
       usage_limit_user: input.usageLimitUser, total_budget: input.totalBudget,
+      distribution_mode: input.distributionMode,
+      claim_limit_total: input.distributionMode === "auto" ? null : input.claimLimitTotal,
       start_at: start.toISOString(), expired_at: end.toISOString(),
       target_ids: requiresTargets ? targetIds : [], status: input.status,
     },
