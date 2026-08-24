@@ -33,6 +33,39 @@
   object-fit: cover;
 }
 
+.restaurant-image-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  background: linear-gradient(145deg, #f8eee9 0%, #eee3de 100%);
+  color: #795548;
+  text-align: center;
+}
+
+.restaurant-image-placeholder svg {
+  font-size: 40px;
+}
+
+.restaurant-image-placeholder span {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
+.restaurant-image-placeholder--food svg {
+  font-size: 28px;
+}
+
+.restaurant-image-placeholder--food span {
+  font-size: 11px;
+  line-height: 14px;
+}
+
 .restaurant-hero__body {
   min-width: 0;
   padding: 26px 32px;

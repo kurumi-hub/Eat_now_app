@@ -185,13 +185,21 @@ export default function RestaurantDetailPage({
       <main className="restaurant-detail-main">
         <section className="restaurant-hero" aria-labelledby="restaurant-title">
           <div className="restaurant-hero__media">
-            <Image
-              src={restaurant.image}
-              alt={`Món nổi bật tại ${restaurant.name}`}
-              fill
-              priority
-              sizes="(max-width: 900px) 100vw, 390px"
-            />
+            {restaurant.image ? (
+              <Image
+                src={restaurant.image}
+                alt={`Ảnh nhà hàng ${restaurant.name}`}
+                fill
+                priority
+                unoptimized
+                sizes="(max-width: 900px) 100vw, 390px"
+              />
+            ) : (
+              <div className="restaurant-image-placeholder">
+                <RestaurantMenuOutlinedIcon />
+                <span>Nhà hàng chưa cập nhật ảnh bìa</span>
+              </div>
+            )}
           </div>
 
           <div className="restaurant-hero__body">
@@ -288,12 +296,20 @@ export default function RestaurantDetailPage({
                       </div>
 
                       <div className="restaurant-menu-card__media">
-                        <Image
-                          src={item.image}
-                          alt={item.name}
-                          fill
-                          sizes="96px"
-                        />
+                        {item.image ? (
+                          <Image
+                            src={item.image}
+                            alt={item.name}
+                            fill
+                            unoptimized
+                            sizes="96px"
+                          />
+                        ) : (
+                          <div className="restaurant-image-placeholder restaurant-image-placeholder--food">
+                            <RestaurantMenuOutlinedIcon />
+                            <span>Chưa có ảnh</span>
+                          </div>
+                        )}
                         <IconButton
                           aria-label={`Thêm ${item.name}`}
                           className="restaurant-add-button"

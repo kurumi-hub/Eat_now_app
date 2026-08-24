@@ -183,7 +183,7 @@ const fetchRestaurantDetailBySlug = unstable_cache(async (
     id: restaurant.id,
     slug: restaurant.slug,
     name: restaurant.name,
-    image: restaurant.image_url ?? "",
+    image: restaurant.image_url?.trim() || "",
     rating: String(restaurant.rating_average),
     reviewCount: formatReviewCount(restaurant.rating_count),
     address: restaurant.address,
@@ -199,7 +199,7 @@ const fetchRestaurantDetailBySlug = unstable_cache(async (
     openUntil: restaurant.close_at ?? "",
     menuCategories: categoryOrder.map((id) => categoriesMap.get(id)!),
   };
-}, ["catalog-restaurant-detail-v3"], {
+}, ["catalog-restaurant-detail-v4-real-media"], {
   revalidate: 60,
   tags: ["catalog", "restaurants"],
 });
