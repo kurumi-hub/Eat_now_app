@@ -194,18 +194,12 @@ export default function CustomerHeader({
                     <ListItemText>Tài khoản của tôi</ListItemText>
                   </MenuItem>
                 </Link>
-                <MenuItem
-                  onClick={() =>
-                    onPlaceholder(
-                      "Đơn hàng sẽ được triển khai ở sprint tiếp theo."
-                    )
-                  }
-                >
-                  <ListItemIcon>
-                    <ReceiptLongOutlinedIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Đơn hàng của tôi</ListItemText>
-                </MenuItem>
+                <Link href="/orders" className="home-account-menu__link" onClick={handleMenuClose}>
+                  <MenuItem component="span">
+                    <ListItemIcon><ReceiptLongOutlinedIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>Đơn hàng của tôi</ListItemText>
+                  </MenuItem>
+                </Link>
                 {hasRole(user, "CUSTOMER") ? (
                   <Link
                     href="/account/addresses"
