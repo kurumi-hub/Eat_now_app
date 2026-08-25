@@ -219,6 +219,8 @@ export type OwnerOrderItem = {
   createdAt: string;
   responseDueAt?: string;
   preparationDueAt?: string;
+  pickupConfirmationRequestedAt?: string;
+  pickupConfirmedAt?: string;
   receiverName: string;
   receiverPhone: string;
   deliveryAddress: string;

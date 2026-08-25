@@ -78,6 +78,8 @@ export type ActiveDelivery = {
   code: string;
   orderStatus: string;
   deliveryStatus: DeliveryStatus;
+  pickupConfirmationRequestedAt?: string;
+  pickupConfirmedAt?: string;
   createdAt: string;
   earning: number;
   restaurant: { name: string; address: string; phone?: string; lat?: number; lon?: number };

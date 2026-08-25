@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { transitionOwnerOrderAction } from "@/app/owner/actions";
+import { confirmShipperPickupAction, transitionOwnerOrderAction } from "@/app/owner/actions";
 import type { OwnerActionResult, OwnerOrderItem, OwnerOrderList } from "@/types/owner";
 import { createClient } from "@/utils/supabase/client";
 
@@ -48,6 +48,13 @@ export default function OwnerOrderConsole({ restaurantId, data, canReject }: { r
     startTransition(async () => { const result = await transitionOwnerOrderAction({ restaurantId, orderId: item.id,
       action, reason, etaMinutes, expectedVersion: item.version }); setNotice(result); if (result.ok) router.refresh(); });
   };
+  const confirmPickup = (item: OwnerOrderItem) => startTransition(async () => {
+    const result = await confirmShipperPickupAction({
+      restaurantId, orderId: item.id, expectedVersion: item.version,
+    });
+    setNotice(result);
+    if (result.ok) router.refresh();
+  });
   return <section className="owner-orders">
     <div className="owner-orders__heading"><div><p>Điều hành theo thời gian thực</p><h2>Đơn hàng nhà hàng</h2><span>{data.total} đơn · thao tác được khóa phiên bản để tránh xử lý trùng</span></div><button type="button" className={sound ? "is-on" : ""} onClick={() => setSound((value) => !value)}>{sound ? "Âm báo đang bật" : "Bật âm báo"}</button></div>
     {notice && <div className={`owner-notice ${notice.ok ? "is-success" : "is-error"}`}><span>{notice.message}</span><button type="button" onClick={() => setNotice(null)}>×</button></div>}
@@ -55,10 +62,11 @@ export default function OwnerOrderConsole({ restaurantId, data, canReject }: { r
     <div className="owner-order-list">{items.length ? items.map((item) => <article key={item.id} className={`owner-order-card${item.incidentStatus === "open" ? " has-incident" : ""}`}>
       <header><div><span>{item.code}</span><h3>{item.receiverName}</h3><small>{time(item.createdAt)} · {item.receiverPhone}</small></div><div><b>{STATUS[item.status] || item.status}</b><em>{DELIVERY[item.deliveryStatus] || item.deliveryStatus}</em></div></header>
       {item.incidentStatus === "open" && <div className="owner-order-incident"><strong>Cần hỗ trợ</strong><span>{item.incidentReason || "Đơn đang được Admin kiểm tra."}</span></div>}
+      {item.deliveryStatus === "arrived_at_restaurant" && item.pickupConfirmationRequestedAt && <div className="owner-order-pickup"><strong>Tài xế đang chờ xác nhận lấy món</strong><span>Kiểm tra đúng tài xế và biển số trước khi xác nhận bàn giao.</span></div>}
       <div className="owner-order-card__body"><div><h4>Món ăn</h4>{item.items.map((food,index) => <p key={`${food.name}-${index}`}><strong>{food.quantity}× {food.name}{food.size ? ` · ${food.size}` : ""}</strong><span>{money(food.lineTotal)}</span>{food.note && <small>{food.note}</small>}</p>)}</div><dl><div><dt>Giao đến</dt><dd>{item.deliveryAddress}</dd></div><div><dt>Thanh toán</dt><dd>{item.payment.method.toUpperCase()} · {item.payment.status}</dd></div><div><dt>Tổng tiền</dt><dd>{money(item.totalPrice)}</dd></div>{item.status === "pending" && item.responseDueAt && <div><dt>Phản hồi trước</dt><dd>{time(item.responseDueAt)}</dd></div>}{item.shipper && <div><dt>Tài xế</dt><dd>{item.shipper.name} · {item.shipper.plateNumber}</dd></div>}{item.preparationDueAt && <div><dt>Dự kiến xong</dt><dd>{time(item.preparationDueAt)}</dd></div>}</dl></div>
       {item.note && <blockquote>Ghi chú khách: {item.note}</blockquote>}
       <details><summary>Lịch sử trạng thái ({item.events.length})</summary><ol>{item.events.map((event) => <li key={event.id}><span>{event.toOrderStatus || event.toDeliveryStatus || event.eventType}</span><small>{event.source} · {time(event.createdAt)}{event.note ? ` · ${event.note}` : ""}</small></li>)}</ol></details>
-      <footer>{item.status === "pending" && <><button disabled={pending} onClick={() => run(item,"accept")}>Nhận đơn</button>{canReject && <button className="is-danger" disabled={pending} onClick={() => run(item,"reject")}>Từ chối</button>}</>}{item.status === "confirmed" && <button disabled={pending} onClick={() => run(item,"start_preparing")}>Bắt đầu chuẩn bị</button>}{item.status === "preparing" && <button disabled={pending} onClick={() => run(item,"ready")}>Món đã sẵn sàng</button>}</footer>
+      <footer>{item.status === "pending" && <><button disabled={pending} onClick={() => run(item,"accept")}>Nhận đơn</button>{canReject && <button className="is-danger" disabled={pending} onClick={() => run(item,"reject")}>Từ chối</button>}</>}{item.status === "confirmed" && <button disabled={pending} onClick={() => run(item,"start_preparing")}>Bắt đầu chuẩn bị</button>}{item.status === "preparing" && <button disabled={pending} onClick={() => run(item,"ready")}>Món đã sẵn sàng</button>}{item.status === "ready" && item.deliveryStatus === "arrived_at_restaurant" && item.pickupConfirmationRequestedAt && <button className="is-primary" disabled={pending} onClick={() => confirmPickup(item)}>Xác nhận đã giao món cho tài xế</button>}</footer>
     </article>) : <div className="owner-menu-empty"><strong>Không có đơn phù hợp</strong><span>Thử chọn bộ lọc khác.</span></div>}</div>
   </section>;
 }

@@ -69,6 +69,8 @@ function parseActiveItem(value: unknown): ActiveDelivery | null {
   return {
     orderId: text(item.order_id), code: text(item.code), orderStatus: text(item.order_status),
     deliveryStatus: text(item.delivery_status) as ActiveDelivery["deliveryStatus"],
+    pickupConfirmationRequestedAt: optionalText(item.pickup_confirmation_requested_at),
+    pickupConfirmedAt: optionalText(item.pickup_confirmed_at),
     createdAt: text(item.created_at), earning: number(item.earning),
     restaurant: { name: text(restaurant.name), address: text(restaurant.address),
       phone: optionalText(restaurant.phone), lat: optionalNumber(restaurant.lat), lon: optionalNumber(restaurant.lon) },

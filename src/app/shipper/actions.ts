@@ -83,7 +83,7 @@ export async function rejectDeliveryOfferAction(offerId: string): Promise<Shippe
   refresh(); return { ok: true, message: "Đã bỏ qua đề xuất chuyến." };
 }
 
-const NEXT: DeliveryStatus[] = ["arrived_at_restaurant", "picked_up", "delivering"];
+const NEXT: DeliveryStatus[] = ["arrived_at_restaurant", "delivering"];
 export async function updateDeliveryAction(orderId: string, status: DeliveryStatus): Promise<ShipperActionResult> {
   await requireAnyRole(["SHIPPER"]);
   if (!UUID.test(orderId) || !NEXT.includes(status)) return { ok: false, message: "Bước giao hàng không hợp lệ." };
@@ -91,6 +91,18 @@ export async function updateDeliveryAction(orderId: string, status: DeliveryStat
   const { error } = await supabase.rpc("api_shipper_update_delivery", { p_order_id: orderId, p_next_status: status });
   if (error) return { ok: false, message: message(error, "Không thể cập nhật chuyến giao.") };
   refresh(); return { ok: true, message: "Đã cập nhật trạng thái chuyến." };
+}
+
+export async function requestPickupConfirmationAction(orderId: string): Promise<ShipperActionResult> {
+  await requireAnyRole(["SHIPPER"]);
+  if (!UUID.test(orderId)) return { ok: false, message: "Mã chuyến không hợp lệ." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("api_shipper_request_pickup_confirmation", {
+    p_order_id: orderId,
+  });
+  if (error) return { ok: false, message: message(error, "Không thể gửi yêu cầu xác nhận lấy món.") };
+  refresh();
+  return { ok: true, message: "Đã báo lấy món. Đang chờ nhà hàng xác nhận bàn giao." };
 }
 
 export async function submitDeliveryProofAction(orderId: string, objectPath: string, note: string): Promise<ShipperActionResult> {

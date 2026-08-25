@@ -161,6 +161,26 @@ export async function transitionOwnerOrderAction(input: {
       "Đã chuyển sang chuẩn bị món." : "Món đã sẵn sàng để shipper nhận." };
 }
 
+export async function confirmShipperPickupAction(input: {
+  restaurantId: string;
+  orderId: string;
+  expectedVersion: number;
+}): Promise<OwnerActionResult> {
+  if (!UUID.test(input.restaurantId) || !UUID.test(input.orderId) ||
+      !Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) {
+    return { ok: false, message: "Thông tin đơn hàng không hợp lệ." };
+  }
+  const supabase = await authorized();
+  const { error } = await supabase.rpc("api_restaurant_confirm_shipper_pickup", {
+    p_restaurant_id: input.restaurantId,
+    p_order_id: input.orderId,
+    p_expected_version: input.expectedVersion,
+  });
+  if (error) return { ok: false, message: errorMessage(error, "Không thể xác nhận bàn giao món.") };
+  refresh(); revalidatePath(`/orders/${input.orderId}`);
+  return { ok: true, message: "Đã xác nhận bàn giao món cho tài xế." };
+}
+
 export async function publishRestaurantAction(id: string): Promise<OwnerActionResult> {
   if (!UUID.test(id)) return { ok: false, message: "Mã nhà hàng không hợp lệ." };
   const supabase = await authorized();
