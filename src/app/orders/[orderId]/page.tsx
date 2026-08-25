@@ -5,6 +5,7 @@ import type { CustomerDeliveryData } from "@/components/order/CustomerDeliveryPa
 import { parseCustomerOrderJourney } from "@/lib/data/customerOrders";
 import type { CustomerOrderJourney } from "@/types/customerOrders";
 import { requireCurrentUser } from "@/utils/auth/guards";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 type OrderDetailRouteProps = { params: Promise<{ orderId: string }> };
@@ -130,10 +131,22 @@ export default async function OrderDetailRoute({ params }: OrderDetailRouteProps
   const proofSource = object(deliverySource.proof);
   const locationSource = object(deliverySource.latest_location);
   let proofUrl: string | undefined;
-  if (typeof proofSource.object_path === "string") {
-    const { data } = await supabase.storage.from("delivery-proof")
-      .createSignedUrl(proofSource.object_path, 600);
-    proofUrl = data?.signedUrl;
+  const proofObjectPath = typeof proofSource.object_path === "string"
+    ? proofSource.object_path : "";
+  if (proofObjectPath.startsWith(`orders/${orderId}/`) &&
+      !proofObjectPath.includes("..") &&
+      /\.(?:jpg|jpeg|png|webp)$/i.test(proofObjectPath)) {
+    try {
+      // api_get_customer_delivery already verifies that this order belongs to
+      // the current customer. Sign the private object with the server client;
+      // the browser session intentionally has no broad Storage SELECT policy.
+      const { data, error } = await createAdminClient().storage.from("delivery-proof")
+        .createSignedUrl(proofObjectPath, 3600);
+      if (error) console.error("[orders] Không thể ký URL ảnh giao hàng", error.message);
+      proofUrl = data?.signedUrl;
+    } catch (error) {
+      console.error("[orders] Không thể khởi tạo dịch vụ ảnh giao hàng", error);
+    }
   }
   const lat = Number(locationSource.lat); const lon = Number(locationSource.lon);
   const deliveryPanel: CustomerDeliveryData | null = typeof deliverySource.delivery_status === "string" ? {

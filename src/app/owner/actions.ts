@@ -192,6 +192,9 @@ export async function confirmShipperPickupAction(input: {
       if (["PGRST202", "42883"].includes(error.code ?? "")) {
         return { ok: false, message: "Database chưa cập nhật RPC bàn giao món. Hãy chạy SQL 39 đến SQL 42 rồi tải lại trang." };
       }
+      if (error.code === "42804" && /ref_type|notify_ref/i.test(error.message ?? "")) {
+        return { ok: false, message: "Database chưa áp dụng bản sửa kiểu thông báo. Hãy chạy SQL 43 rồi tải lại trang." };
+      }
       const fallback = "Không thể xác nhận bàn giao món.";
       const message = errorMessage(error, fallback);
       return { ok: false, message: message === fallback && error.message ? `${fallback} ${error.message}` : message };
