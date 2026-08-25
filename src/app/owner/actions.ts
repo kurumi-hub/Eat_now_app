@@ -170,33 +170,38 @@ export async function confirmShipperPickupAction(input: {
       !Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) {
     return { ok: false, message: "Thông tin đơn hàng không hợp lệ." };
   }
-  const supabase = await authorized();
-  let { error } = await supabase.rpc("api_restaurant_confirm_shipper_pickup", {
-    p_restaurant_id: input.restaurantId,
-    p_order_id: input.orderId,
-    p_expected_version: input.expectedVersion,
-  });
-  // pickup_confirmation_requested_at also increments order_version. Retry once
-  // without the advisory version; the RPC still locks the row and validates
-  // ready + arrived_at_restaurant + pickup request before changing state.
-  if (error?.code === "40001") {
-    const retried = await supabase.rpc("api_restaurant_confirm_shipper_pickup", {
+  try {
+    const supabase = await authorized();
+    let { error } = await supabase.rpc("api_restaurant_confirm_shipper_pickup", {
       p_restaurant_id: input.restaurantId,
       p_order_id: input.orderId,
-      p_expected_version: null,
+      p_expected_version: input.expectedVersion,
     });
-    error = retried.error;
-  }
-  if (error) {
-    if (["PGRST202", "42883"].includes(error.code ?? "")) {
-      return { ok: false, message: "Database chưa cập nhật RPC bàn giao món. Hãy chạy SQL 39 đến SQL 42 rồi tải lại trang." };
+    // pickup_confirmation_requested_at also increments order_version. Retry once
+    // without the advisory version; the RPC still locks the row and validates
+    // ready + arrived_at_restaurant + pickup request before changing state.
+    if (error?.code === "40001") {
+      const retried = await supabase.rpc("api_restaurant_confirm_shipper_pickup", {
+        p_restaurant_id: input.restaurantId,
+        p_order_id: input.orderId,
+        p_expected_version: null,
+      });
+      error = retried.error;
     }
-    const fallback = "Không thể xác nhận bàn giao món.";
-    const message = errorMessage(error, fallback);
-    return { ok: false, message: message === fallback && error.message ? `${fallback} ${error.message}` : message };
+    if (error) {
+      if (["PGRST202", "42883"].includes(error.code ?? "")) {
+        return { ok: false, message: "Database chưa cập nhật RPC bàn giao món. Hãy chạy SQL 39 đến SQL 42 rồi tải lại trang." };
+      }
+      const fallback = "Không thể xác nhận bàn giao món.";
+      const message = errorMessage(error, fallback);
+      return { ok: false, message: message === fallback && error.message ? `${fallback} ${error.message}` : message };
+    }
+    refresh(); revalidatePath(`/orders/${input.orderId}`);
+    return { ok: true, message: "Đã xác nhận bàn giao món cho tài xế." };
+  } catch (error) {
+    console.error("[owner] Xác nhận bàn giao món bị gián đoạn", error);
+    return { ok: false, message: "Kết nối tới máy chủ bị gián đoạn. Hãy tải lại trang và thử xác nhận lần nữa." };
   }
-  refresh(); revalidatePath(`/orders/${input.orderId}`);
-  return { ok: true, message: "Đã xác nhận bàn giao món cho tài xế." };
 }
 
 export async function publishRestaurantAction(id: string): Promise<OwnerActionResult> {
