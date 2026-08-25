@@ -6,16 +6,19 @@ import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined
 import RemoveOutlinedIcon from "@mui/icons-material/RemoveOutlined";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
+import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
 import { Alert, Button, IconButton, Snackbar } from "@mui/material";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import { loadCartFoodImagesAction } from "@/app/cart/actions";
 import type { PublicUser } from "@/types/auth";
 import { useCartStore, type CartLine } from "@/store/cartStore";
 import { useCartSession } from "@/store/useCartSession";
 import { signalNavigationStart } from "@/utils/navigationFeedback";
+import { isRealFoodImage } from "@/utils/foodImage";
 
 type CartPageProps = { user: PublicUser | null };
 
@@ -37,9 +40,23 @@ export default function CartPage({ user }: CartPageProps) {
   const restaurantName = useCartStore((state) => state.restaurantName);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const removeLine = useCartStore((state) => state.removeLine);
+  const updateFoodImages = useCartStore((state) => state.updateFoodImages);
   const totalPrice = useCartStore((state) => state.totalPrice());
   const cartReady = useCartSession(user?.id ?? null);
   const [snackbar, setSnackbar] = useState({ open: false, message: "" });
+  const foodIdsKey = useMemo(
+    () => [...new Set(lines.map((line) => line.foodId))].sort().join(","),
+    [lines]
+  );
+
+  useEffect(() => {
+    if (!cartReady || !foodIdsKey) return;
+    let cancelled = false;
+    loadCartFoodImagesAction(foodIdsKey.split(",")).then((result) => {
+      if (!cancelled && result.ok) updateFoodImages(result.images);
+    });
+    return () => { cancelled = true; };
+  }, [cartReady, foodIdsKey, updateFoodImages]);
 
   const handleCheckoutClick = () => {
     if (!user) {
@@ -84,7 +101,13 @@ export default function CartPage({ user }: CartPageProps) {
               <div className="cart-item-list">
                 {lines.map((line) => (
                   <article className="cart-item-row" key={line.lineId}>
-                    <div className="cart-item-row__media"><Image src={line.foodImage} alt={line.foodName} fill sizes="88px" /></div>
+                    <div className="cart-item-row__media">
+                      {isRealFoodImage(line.foodImage) ? (
+                        <Image src={line.foodImage} alt={line.foodName} fill unoptimized sizes="88px" />
+                      ) : (
+                        <span className="cart-item-row__image-placeholder"><RestaurantMenuOutlinedIcon /></span>
+                      )}
+                    </div>
                     <div className="cart-item-row__body">
                       <div className="cart-item-row__top">
                         <div>

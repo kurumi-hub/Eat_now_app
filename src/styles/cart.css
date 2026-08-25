@@ -22,6 +22,8 @@
 .cart-item-row:last-child { border-bottom: 0; padding-bottom: 0; }
 .cart-item-row__media { position: relative; width: 88px; height: 88px; overflow: hidden; border-radius: 16px; background: #eee; }
 .cart-item-row__media img { object-fit: cover; }
+.cart-item-row__image-placeholder { width: 100%; height: 100%; display: grid; place-items: center; color: #a98270; background: #fff3ed; }
+.cart-item-row__image-placeholder svg { width: 30px; height: 30px; }
 .cart-item-row__body { min-width: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; }
 .cart-item-row__top, .cart-item-row__actions { display: flex; justify-content: space-between; gap: 16px; }
 .cart-item-row__top h3 { margin: 0; font-size: 17px; line-height: 23px; }

@@ -25,7 +25,7 @@ export default function AdminShipperFinancePanel({
   const [search, setSearch] = useState(searchTerm);
   const [notice, setNotice] = useState<AdminActionResult | null>(null);
   const navigate = (next: { search?: string; status?: string; page?: number }) => {
-    const params = new URLSearchParams({ tab: "shipper_finance" });
+    const params = new URLSearchParams({ tab: "shippers", view: "finance" });
     const nextSearch = next.search ?? searchTerm;
     const nextStatus = next.status ?? statusFilter;
     if (nextSearch) params.set("q", nextSearch);

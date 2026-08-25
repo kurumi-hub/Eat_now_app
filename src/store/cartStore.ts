@@ -52,6 +52,7 @@ type CartState = {
   resetCartSession: () => void;
   addItem: (input: AddToCartInput) => void;
   updateQuantity: (lineId: string, quantity: number) => void;
+  updateFoodImages: (images: Record<string, string>) => void;
   removeLine: (lineId: string) => void;
   clearCart: () => void;
 
@@ -229,6 +230,18 @@ export const useCartStore = create<CartState>()(
         });
       },
 
+      updateFoodImages: (images) => {
+        if (Object.keys(images).length === 0) return;
+        set({
+          lines: get().lines.map((line) => {
+            const nextImage = images[line.foodId]?.trim();
+            return nextImage && nextImage !== line.foodImage
+              ? { ...line, foodImage: nextImage }
+              : line;
+          }),
+        });
+      },
+
       removeLine: (lineId) => {
         const remainingLines = get().lines.filter(
           (line) => line.lineId !== lineId
@@ -282,6 +295,7 @@ export const useCartStore = create<CartState>()(
 
         return persistedState as CartState;
       },
+
       partialize: (state) => ({
         ownerId: state.ownerId,
         restaurantId: state.restaurantId,

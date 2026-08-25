@@ -3,7 +3,6 @@
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import AccountBalanceOutlinedIcon from "@mui/icons-material/AccountBalanceOutlined";
-import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import CurrencyExchangeOutlinedIcon from "@mui/icons-material/CurrencyExchangeOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
@@ -93,7 +92,7 @@ const SITE_MEDIA_TYPES: Record<string, string> = {
 type AdminDashboardProps = {
   user: PublicUser;
   tab: AdminTab;
-  managementView: "list" | "applications";
+  managementView: "list" | "applications" | "finance";
   searchTerm: string;
   statusFilter: string;
   stats: AdminDashboardStats;
@@ -135,7 +134,6 @@ const TABS: Array<{
   { value: "overview", label: "Tổng quan", icon: DashboardOutlinedIcon },
   { value: "users", label: "Tài khoản & phân quyền", icon: PeopleOutlineOutlinedIcon },
   { value: "shippers", label: "Tài xế", icon: LocalShippingOutlinedIcon },
-  { value: "shipper_finance", label: "Tài chính tài xế", icon: AccountBalanceWalletOutlinedIcon },
   { value: "orders", label: "Điều hành đơn", icon: ReceiptLongOutlinedIcon },
   { value: "restaurants", label: "Nhà hàng", icon: StorefrontOutlinedIcon },
   { value: "refunds", label: "Hoàn tiền", icon: CurrencyExchangeOutlinedIcon },
@@ -299,8 +297,7 @@ export default function AdminDashboard({
       (item.value !== "catalog" || canManageCatalog) &&
       (item.value !== "finance" || canManageFinance) &&
       (item.value !== "vouchers" || canManageVouchers) &&
-      (item.value !== "shippers" || canVerifyShippers)
-      && (item.value !== "shipper_finance" || canManageShipperFinance)
+      (item.value !== "shippers" || canVerifyShippers || canManageShipperFinance)
       && (item.value !== "orders" || canViewOrders)
   );
   const [isPending, startTransition] = useTransition();
@@ -328,9 +325,9 @@ export default function AdminDashboard({
   const tabHref = (nextTab: AdminTab) =>
     nextTab === "overview" ? "/admin" : `/admin?tab=${nextTab}`;
 
-  const managementHref = (view: "list" | "applications") => {
+  const managementHref = (view: "list" | "applications" | "finance") => {
     const params = new URLSearchParams({ tab });
-    if (view === "applications") params.set("view", "applications");
+    if (view !== "list") params.set("view", view);
     return `/admin?${params.toString()}`;
   };
 
@@ -397,7 +394,7 @@ export default function AdminDashboard({
     });
   };
 
-  const goToManagementView = (view: "list" | "applications") => {
+  const goToManagementView = (view: "list" | "applications" | "finance") => {
     if (view === managementView) return;
     setSearch("");
     signalNavigationStart();
@@ -407,9 +404,9 @@ export default function AdminDashboard({
   const withManagementView = (params: URLSearchParams) => {
     if (
       (tab === "restaurants" || tab === "shippers") &&
-      managementView === "applications"
+      managementView !== "list"
     ) {
-      params.set("view", "applications");
+      params.set("view", managementView);
     }
   };
 
@@ -502,7 +499,9 @@ export default function AdminDashboard({
     tab === "users"
       ? users
       : tab === "shippers"
-        ? managementView === "applications" ? shipperApplications : shippers
+        ? managementView === "applications"
+          ? shipperApplications
+          : managementView === "list" ? shippers : null
       : tab === "restaurants"
         ? managementView === "applications" ? applications : restaurants
         : tab === "refunds"
@@ -712,6 +711,10 @@ export default function AdminDashboard({
                 active={managementView}
                 listLabel="Danh sách tài xế"
                 applicationsLabel="Hồ sơ đăng ký"
+                financeLabel="Tài chính tài xế"
+                showList={canVerifyShippers}
+                showApplications={canVerifyShippers}
+                showFinance={canManageShipperFinance}
                 onChange={goToManagementView}
               />
               {managementView === "list" ? (
@@ -720,21 +723,19 @@ export default function AdminDashboard({
                   searchTerm={searchTerm}
                   statusFilter={statusFilter}
                 />
-              ) : (
+              ) : managementView === "applications" ? (
                 <AdminShipperApplicationsPanel
                   data={shipperApplications}
                   statusFilter={statusFilter}
                 />
+              ) : (
+                <AdminShipperFinancePanel
+                  data={shipperFinance}
+                  searchTerm={searchTerm}
+                  statusFilter={statusFilter}
+                />
               )}
             </>
-          ) : null}
-
-          {tab === "shipper_finance" && canManageShipperFinance ? (
-            <AdminShipperFinancePanel
-              data={shipperFinance}
-              searchTerm={searchTerm}
-              statusFilter={statusFilter}
-            />
           ) : null}
 
           {tab === "orders" && canViewOrders ? (
@@ -931,29 +932,41 @@ function EntityManagementTabs({
   active,
   listLabel,
   applicationsLabel,
+  financeLabel,
+  showList = true,
   showApplications = true,
+  showFinance = false,
   onChange,
 }: {
-  active: "list" | "applications";
+  active: "list" | "applications" | "finance";
   listLabel: string;
   applicationsLabel: string;
+  financeLabel?: string;
+  showList?: boolean;
   showApplications?: boolean;
-  onChange: (view: "list" | "applications") => void;
+  showFinance?: boolean;
+  onChange: (view: "list" | "applications" | "finance") => void;
 }) {
   return (
     <nav className="admin-entity-tabs" aria-label="Chế độ quản lý">
-      <button
+      {showList ? <button
         type="button"
         className={active === "list" ? "is-active" : ""}
         aria-current={active === "list" ? "page" : undefined}
         onClick={() => onChange("list")}
-      >{listLabel}</button>
+      >{listLabel}</button> : null}
       {showApplications ? <button
         type="button"
         className={active === "applications" ? "is-active" : ""}
         aria-current={active === "applications" ? "page" : undefined}
         onClick={() => onChange("applications")}
       >{applicationsLabel}</button> : null}
+      {showFinance && financeLabel ? <button
+        type="button"
+        className={active === "finance" ? "is-active" : ""}
+        aria-current={active === "finance" ? "page" : undefined}
+        onClick={() => onChange("finance")}
+      >{financeLabel}</button> : null}
     </nav>
   );
 }

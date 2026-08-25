@@ -61,6 +61,8 @@
 .order-summary-item { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 11px; }
 .order-summary-item__media { position: relative; width: 56px; height: 56px; overflow: hidden; border-radius: 12px; background: #eee; }
 .order-summary-item__media img { object-fit: cover; }
+.order-summary-item__image-placeholder { width: 100%; height: 100%; display: grid !important; place-items: center; margin: 0 !important; color: #a98270 !important; background: #fff3ed; }
+.order-summary-item__image-placeholder svg { width: 24px; height: 24px; }
 .order-summary-item h3 { margin: 0; font-size: 14px; line-height: 20px; }
 .order-summary-item span { display: block; margin-top: 2px; color: #765b50; font-size: 12px; line-height: 16px; }
 .order-summary-item > strong { color: #7a3000; font-size: 14px; white-space: nowrap; }

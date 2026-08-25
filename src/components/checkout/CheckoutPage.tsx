@@ -11,6 +11,7 @@ import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
+import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
 import { Alert, Button, CircularProgress } from "@mui/material";
 import Image from "next/image";
 import Link from "next/link";
@@ -20,6 +21,7 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import type { AccountAddress } from "@/types/account";
+import { loadCartFoodImagesAction } from "@/app/cart/actions";
 import type { PublicUser } from "@/types/auth";
 import { useCartStore, type CartLine } from "@/store/cartStore";
 import { useCartSession } from "@/store/useCartSession";
@@ -31,6 +33,7 @@ import {
   type VoucherSelection,
 } from "@/app/checkout/actions";
 import { signalNavigationStart } from "@/utils/navigationFeedback";
+import { isRealFoodImage } from "@/utils/foodImage";
 
 const CheckoutAddressDialog = dynamic(() => import("@/components/checkout/CheckoutAddressDialog"), { ssr: false });
 
@@ -87,6 +90,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   const lines = useCartStore((state) => state.lines);
   const restaurantName = useCartStore((state) => state.restaurantName);
   const clearCart = useCartStore((state) => state.clearCart);
+  const updateFoodImages = useCartStore((state) => state.updateFoodImages);
   const cartReady = useCartSession(user.id);
   const defaultAddress = useMemo(() => addresses.find((a) => a.isDefault) ?? addresses[0], [addresses]);
   const [addressId, setAddressId] = useState(defaultAddress?.id ?? "");
@@ -106,6 +110,10 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   const initializedRef = useRef(false);
   const skipNextPreviewRef = useRef(false);
   const checkoutAttemptRef = useRef("");
+  const foodIdsKey = useMemo(
+    () => [...new Set(lines.map((line) => line.foodId))].sort().join(","),
+    [lines]
+  );
 
   const vouchersBySlot = useMemo(() => ({
     restaurant: vouchers.filter((voucher) => voucher.slot === "restaurant"),
@@ -116,6 +124,15 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   const selectVoucher = useCallback((slot: VoucherSlot, code: string) => {
     setVoucherCodes((current) => ({ ...current, [slot]: code || undefined }));
   }, []);
+
+  useEffect(() => {
+    if (!cartReady || !foodIdsKey) return;
+    let cancelled = false;
+    loadCartFoodImagesAction(foodIdsKey.split(",")).then((result) => {
+      if (!cancelled && result.ok) updateFoodImages(result.images);
+    });
+    return () => { cancelled = true; };
+  }, [cartReady, foodIdsKey, updateFoodImages]);
 
   useEffect(() => { if (!addressId && defaultAddress) setAddressId(defaultAddress.id); }, [addressId, defaultAddress]);
   const handleAddressCreated = useCallback((newAddressId: string) => setAddressId(newAddressId), []);
@@ -257,7 +274,13 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
             <div className="order-summary-list">
               {lines.map((line) => (
                 <div className="order-summary-item" key={line.lineId}>
-                  <div className="order-summary-item__media"><Image src={line.foodImage} alt={line.foodName} fill sizes="56px" /></div>
+                  <div className="order-summary-item__media">
+                    {isRealFoodImage(line.foodImage) ? (
+                      <Image src={line.foodImage} alt={line.foodName} fill unoptimized sizes="56px" />
+                    ) : (
+                      <span className="order-summary-item__image-placeholder"><RestaurantMenuOutlinedIcon /></span>
+                    )}
+                  </div>
                   <div><h3>{line.quantity} × {line.foodName}</h3>{lineDescription(line) && <span>{lineDescription(line)}</span>}</div>
                   <strong>{formatCurrency(line.unitPrice * line.quantity)}</strong>
                 </div>

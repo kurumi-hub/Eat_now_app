@@ -309,13 +309,21 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const params = await searchParams;
   const requestedTab = firstParam(params.tab) as AdminTab;
   let tab = ADMIN_TABS.includes(requestedTab) ? requestedTab : "overview";
-  let managementView: "list" | "applications" =
-    firstParam(params.view) === "applications" ? "applications" : "list";
+  const requestedView = firstParam(params.view);
+  let managementView: "list" | "applications" | "finance" =
+    requestedView === "applications" || requestedView === "finance"
+      ? requestedView
+      : "list";
   // Giữ tương thích các bookmark cũ trước khi hồ sơ mở quán được gom vào Nhà hàng.
   if (tab === "applications") {
     tab = "restaurants";
     managementView = "applications";
   }
+  if (tab === "shipper_finance") {
+    tab = "shippers";
+    managementView = "finance";
+  }
+  if (tab === "restaurants" && managementView === "finance") managementView = "list";
   if (tab !== "restaurants" && tab !== "shippers") managementView = "list";
   if (tab === "media" && !user.permissions.includes("site_media.manage")) {
     tab = "overview";
@@ -332,12 +340,16 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   if (tab === "restaurants" && managementView === "applications" && !user.permissions.includes("restaurants.verify")) {
     managementView = "list";
   }
-  if (tab === "shippers" && !user.permissions.includes("shippers.verify")) {
-    tab = "overview";
-    managementView = "list";
+  if (tab === "shippers" && managementView === "finance" && !user.permissions.includes("shippers.finance.manage")) {
+    if (user.permissions.includes("shippers.verify")) managementView = "list";
+    else {
+      tab = "overview";
+      managementView = "list";
+    }
   }
-  if (tab === "shipper_finance" && !user.permissions.includes("shippers.finance.manage")) {
-    tab = "overview";
+  if (tab === "shippers" && managementView !== "finance" && !user.permissions.includes("shippers.verify")) {
+    if (user.permissions.includes("shippers.finance.manage")) managementView = "finance";
+    else tab = "overview";
   }
   if (tab === "orders" && !user.permissions.includes("orders.view")) tab = "overview";
   const catalogKind: AdminCatalogKind =
@@ -356,7 +368,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       });
     }
     if (tab === "shippers") {
-      return managementView === "applications"
+      return managementView === "finance"
+        ? supabase.rpc("api_list_admin_shipper_finance", {
+            p_status: status || null,
+            p_search: search || null,
+            p_limit: limit,
+            p_offset: offset,
+          })
+        : managementView === "applications"
         ? supabase.rpc("api_list_admin_shipper_applications", {
             p_status: status || null, p_limit: limit, p_offset: offset,
           })
@@ -364,14 +383,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             p_status: status || null, p_search: search || null,
             p_limit: limit, p_offset: offset,
           });
-    }
-    if (tab === "shipper_finance") {
-      return supabase.rpc("api_list_admin_shipper_finance", {
-        p_status: status || null,
-        p_search: search || null,
-        p_limit: limit,
-        p_offset: offset,
-      });
     }
     if (tab === "orders") return supabase.rpc("api_list_admin_orders", {
       p_status: status || null, p_search: search || null, p_limit: limit, p_offset: offset,
@@ -441,7 +452,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       applications={tab === "restaurants" && managementView === "applications" ? parseApplications(contentResult.data) : EMPTY_APPLICATIONS}
       shippers={tab === "shippers" && managementView === "list" ? parseAdminShippers(contentResult.data) : EMPTY_ADMIN_SHIPPERS}
       shipperApplications={tab === "shippers" && managementView === "applications" ? parseAdminShipperApplications(contentResult.data) : EMPTY_SHIPPER_APPLICATIONS}
-      shipperFinance={tab === "shipper_finance" ? parseAdminShipperFinance(contentResult.data) : EMPTY_ADMIN_SHIPPER_FINANCE}
+      shipperFinance={tab === "shippers" && managementView === "finance" ? parseAdminShipperFinance(contentResult.data) : EMPTY_ADMIN_SHIPPER_FINANCE}
       orders={tab === "orders" ? parseAdminOrders(contentResult.data) : EMPTY_ORDERS}
       restaurants={tab === "restaurants" && managementView === "list" ? parseRestaurants(contentResult.data) : EMPTY_RESTAURANTS}
       refunds={tab === "refunds" ? parseRefunds(contentResult.data) : EMPTY_REFUNDS}
