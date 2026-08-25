@@ -14,7 +14,7 @@ const STATUS: Record<string, string> = {
 export default function AdminShipperApplicationsPanel({ data, statusFilter }: { data: AdminShipperApplicationList; statusFilter: string }) {
   const router = useRouter(); const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState<{ ok: boolean; message: string } | null>(null);
-  const filter = (status: string) => router.push(`/admin?tab=shippers${status ? `&status=${status}` : ""}`);
+  const filter = (status: string) => router.push(`/admin?tab=shippers&view=applications${status ? `&status=${status}` : ""}`);
   const review = (item: ShipperApplication, decision: "start_review" | "needs_changes" | "approve" | "reject") => {
     let note = "";
     if (["needs_changes", "reject"].includes(decision)) {
@@ -26,10 +26,10 @@ export default function AdminShipperApplicationsPanel({ data, statusFilter }: { 
       setNotice(result); if (result.ok) router.refresh(); });
   };
   return <section className="admin-panel">
-    <div className="admin-panel__heading"><div><h2>Hồ sơ tài xế</h2><p>{data.total} hồ sơ trong bộ lọc hiện tại</p></div></div>
+    <div className="admin-panel__heading"><div><h2>Hồ sơ đăng ký tài xế</h2><p>{data.total} hồ sơ trong bộ lọc hiện tại</p></div></div>
     {notice && <div className={`admin-inline-notice ${notice.ok ? "is-success" : "is-error"}`}>{notice.message}<button onClick={() => setNotice(null)}>×</button></div>}
     <div className="admin-filter-row">{[["", "Tất cả"], ["submitted", "Chờ tiếp nhận"], ["under_review", "Đang xét duyệt"], ["needs_changes", "Cần bổ sung"], ["approved", "Đã duyệt"], ["rejected", "Đã từ chối"]].map(([value, label]) => <button key={value} className={statusFilter === value ? "is-active" : ""} onClick={() => filter(value)}>{label}</button>)}</div>
-    <div className="admin-list">{data.items.length ? data.items.map((item) => <article className="admin-shipper-row" key={item.id}>
+    <div className="admin-list admin-shipper-application-list">{data.items.length ? data.items.map((item) => <article className="admin-shipper-row" key={item.id}>
       <div className="admin-shipper-row__identity"><div className="admin-row-title"><h3>{item.fullName}</h3><span className={`admin-status admin-status--${item.status.toLowerCase()}`}>{STATUS[item.status] || item.status}</span></div><p>{item.email} · {item.phone}</p><small>Ngày sinh: {new Date(item.dateOfBirth).toLocaleDateString("vi-VN")} · Phiên bản {item.revision}</small></div>
       <dl><div><dt>CCCD/CMND</dt><dd>{item.identityNumber}</dd></div><div><dt>GPLX</dt><dd>{item.driverLicenseNumber}</dd></div><div><dt>Phương tiện</dt><dd>{item.vehicleType} · {item.plateNumber}</dd></div></dl>
       {item.reviewNote && <blockquote>{item.reviewNote}</blockquote>}

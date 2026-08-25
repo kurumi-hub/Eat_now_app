@@ -5,7 +5,6 @@ import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutli
 import AccountBalanceOutlinedIcon from "@mui/icons-material/AccountBalanceOutlined";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
-import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import CurrencyExchangeOutlinedIcon from "@mui/icons-material/CurrencyExchangeOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import GavelOutlinedIcon from "@mui/icons-material/GavelOutlined";
@@ -51,6 +50,7 @@ import AdminCatalogPanel from "@/components/admin/AdminCatalogPanel";
 import AdminFinancePanel from "@/components/admin/AdminFinancePanel";
 import AdminRestaurantApplicationsPanel from "@/components/admin/AdminRestaurantApplicationsPanel";
 import AdminShipperApplicationsPanel from "@/components/admin/AdminShipperApplicationsPanel";
+import AdminShippersPanel from "@/components/admin/AdminShippersPanel";
 import AdminShipperFinancePanel from "@/components/admin/AdminShipperFinancePanel";
 import AdminOrderConsole from "@/components/admin/AdminOrderConsole";
 import VoucherManagementPanel from "@/components/voucher/VoucherManagementPanel";
@@ -75,7 +75,7 @@ import type {
 } from "@/types/admin";
 import type { PublicUser } from "@/types/auth";
 import type { SiteMediaSlot } from "@/types/siteMedia";
-import type { AdminShipperApplicationList, AdminShipperFinanceData } from "@/types/shipper";
+import type { AdminShipperApplicationList, AdminShipperFinanceData, AdminShipperList } from "@/types/shipper";
 import type { VoucherManagementData } from "@/types/voucher";
 import { formatRole, hasRole } from "@/utils/roles";
 import { signalNavigationStart } from "@/utils/navigationFeedback";
@@ -93,11 +93,13 @@ const SITE_MEDIA_TYPES: Record<string, string> = {
 type AdminDashboardProps = {
   user: PublicUser;
   tab: AdminTab;
+  managementView: "list" | "applications";
   searchTerm: string;
   statusFilter: string;
   stats: AdminDashboardStats;
   users: AdminUserList;
   applications: AdminRestaurantApplicationList;
+  shippers: AdminShipperList;
   shipperApplications: AdminShipperApplicationList;
   shipperFinance: AdminShipperFinanceData;
   orders: AdminOrderList;
@@ -132,8 +134,7 @@ const TABS: Array<{
 }> = [
   { value: "overview", label: "Tổng quan", icon: DashboardOutlinedIcon },
   { value: "users", label: "Tài khoản & phân quyền", icon: PeopleOutlineOutlinedIcon },
-  { value: "applications", label: "Hồ sơ mở quán", icon: AssignmentOutlinedIcon },
-  { value: "shippers", label: "Hồ sơ tài xế", icon: LocalShippingOutlinedIcon },
+  { value: "shippers", label: "Tài xế", icon: LocalShippingOutlinedIcon },
   { value: "shipper_finance", label: "Tài chính tài xế", icon: AccountBalanceWalletOutlinedIcon },
   { value: "orders", label: "Điều hành đơn", icon: ReceiptLongOutlinedIcon },
   { value: "restaurants", label: "Nhà hàng", icon: StorefrontOutlinedIcon },
@@ -160,6 +161,8 @@ const ACTION_LABELS: Record<string, string> = {
   shipper_application_needs_changes: "Yêu cầu bổ sung hồ sơ tài xế",
   shipper_application_approve: "Duyệt hồ sơ tài xế",
   shipper_application_reject: "Từ chối hồ sơ tài xế",
+  shipper_suspend: "Tạm ngưng tài xế",
+  shipper_reactivate: "Mở lại tài xế",
   shipper_release_delivery: "Tài xế trả chuyến",
   shipper_withdrawal_approve: "Duyệt rút tiền tài xế",
   shipper_withdrawal_reject: "Từ chối rút tiền tài xế",
@@ -256,11 +259,13 @@ function restaurantStatus(item: AdminRestaurant) {
 export default function AdminDashboard({
   user,
   tab,
+  managementView,
   searchTerm,
   statusFilter,
   stats,
   users,
   applications,
+  shippers,
   shipperApplications,
   shipperFinance,
   orders,
@@ -294,8 +299,7 @@ export default function AdminDashboard({
       (item.value !== "catalog" || canManageCatalog) &&
       (item.value !== "finance" || canManageFinance) &&
       (item.value !== "vouchers" || canManageVouchers) &&
-      (item.value !== "applications" || canVerifyRestaurants)
-      && (item.value !== "shippers" || canVerifyShippers)
+      (item.value !== "shippers" || canVerifyShippers)
       && (item.value !== "shipper_finance" || canManageShipperFinance)
       && (item.value !== "orders" || canViewOrders)
   );
@@ -323,6 +327,12 @@ export default function AdminDashboard({
 
   const tabHref = (nextTab: AdminTab) =>
     nextTab === "overview" ? "/admin" : `/admin?tab=${nextTab}`;
+
+  const managementHref = (view: "list" | "applications") => {
+    const params = new URLSearchParams({ tab });
+    if (view === "applications") params.set("view", "applications");
+    return `/admin?${params.toString()}`;
+  };
 
   const notify = (result: AdminActionResult) => {
     setSnackbar({
@@ -387,8 +397,25 @@ export default function AdminDashboard({
     });
   };
 
+  const goToManagementView = (view: "list" | "applications") => {
+    if (view === managementView) return;
+    setSearch("");
+    signalNavigationStart();
+    startTransition(() => router.push(managementHref(view)));
+  };
+
+  const withManagementView = (params: URLSearchParams) => {
+    if (
+      (tab === "restaurants" || tab === "shippers") &&
+      managementView === "applications"
+    ) {
+      params.set("view", "applications");
+    }
+  };
+
   const setStatus = (status: string) => {
     const params = new URLSearchParams({ tab });
+    withManagementView(params);
     if (searchTerm) params.set("q", searchTerm);
     if (status) params.set("status", status);
     signalNavigationStart();
@@ -398,6 +425,7 @@ export default function AdminDashboard({
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const params = new URLSearchParams({ tab });
+    withManagementView(params);
     if (search.trim()) params.set("q", search.trim());
     if (statusFilter) params.set("status", statusFilter);
     signalNavigationStart();
@@ -406,6 +434,7 @@ export default function AdminDashboard({
 
   const changePage = (page: number) => {
     const params = new URLSearchParams({ tab });
+    withManagementView(params);
     if (searchTerm) params.set("q", searchTerm);
     if (statusFilter) params.set("status", statusFilter);
     if (page > 1) params.set("page", String(page));
@@ -472,12 +501,10 @@ export default function AdminDashboard({
   const pageData =
     tab === "users"
       ? users
-      : tab === "applications"
-        ? applications
       : tab === "shippers"
-        ? shipperApplications
+        ? managementView === "applications" ? shipperApplications : shippers
       : tab === "restaurants"
-        ? restaurants
+        ? managementView === "applications" ? applications : restaurants
         : tab === "refunds"
           ? refunds
           : tab === "vouchers"
@@ -624,7 +651,15 @@ export default function AdminDashboard({
           ) : null}
 
           {tab === "restaurants" ? (
-            <section className="admin-panel">
+            <>
+              <EntityManagementTabs
+                active={managementView}
+                listLabel="Danh sách nhà hàng"
+                applicationsLabel="Hồ sơ mở quán"
+                showApplications={canVerifyRestaurants}
+                onChange={goToManagementView}
+              />
+              {managementView === "list" ? <section className="admin-panel">
               <PanelToolbar
                 title="Quản lý nhà hàng"
                 subtitle={`${restaurants.total} nhà hàng`}
@@ -652,28 +687,46 @@ export default function AdminDashboard({
                         <small>Chủ quán: {item.owners.map((owner) => owner.full_name).join(", ") || "Chưa xác định"} · {item.rating_average.toFixed(1)} ★ ({item.rating_count})</small>
                       </div>
                       <div className="admin-row-actions">
-                        {item.approval_status === "PENDING" ? (
+                        {canVerifyRestaurants && item.approval_status === "PENDING" ? (
                           <><button className="is-primary" type="button" onClick={() => openDialog({ kind: "restaurant", target: item, decision: "approve" })}>Duyệt</button><button type="button" onClick={() => openDialog({ kind: "restaurant", target: item, decision: "reject" })}>Từ chối</button></>
                         ) : null}
-                        {item.approval_status === "APPROVED" && item.lifecycle_status === "ACTIVE" ? <button type="button" onClick={() => openDialog({ kind: "restaurant", target: item, decision: "suspend" })}>Tạm ngưng</button> : null}
-                        {item.approval_status === "APPROVED" && item.lifecycle_status === "SUSPENDED" ? <button className="is-primary" type="button" onClick={() => openDialog({ kind: "restaurant", target: item, decision: "reactivate" })}>Mở lại</button> : null}
+                        {canVerifyRestaurants && item.approval_status === "APPROVED" && item.lifecycle_status === "ACTIVE" ? <button type="button" onClick={() => openDialog({ kind: "restaurant", target: item, decision: "suspend" })}>Tạm ngưng</button> : null}
+                        {canVerifyRestaurants && item.approval_status === "APPROVED" && item.lifecycle_status === "SUSPENDED" ? <button className="is-primary" type="button" onClick={() => openDialog({ kind: "restaurant", target: item, decision: "reactivate" })}>Mở lại</button> : null}
                       </div>
                     </article>
                   );
                 })}
               </div>
-            </section>
-          ) : null}
-
-          {tab === "applications" ? (
-            <AdminRestaurantApplicationsPanel
-              data={applications}
-              statusFilter={statusFilter}
-            />
+              </section> : (
+                <AdminRestaurantApplicationsPanel
+                  data={applications}
+                  statusFilter={statusFilter}
+                />
+              )}
+            </>
           ) : null}
 
           {tab === "shippers" ? (
-            <AdminShipperApplicationsPanel data={shipperApplications} statusFilter={statusFilter} />
+            <>
+              <EntityManagementTabs
+                active={managementView}
+                listLabel="Danh sách tài xế"
+                applicationsLabel="Hồ sơ đăng ký"
+                onChange={goToManagementView}
+              />
+              {managementView === "list" ? (
+                <AdminShippersPanel
+                  data={shippers}
+                  searchTerm={searchTerm}
+                  statusFilter={statusFilter}
+                />
+              ) : (
+                <AdminShipperApplicationsPanel
+                  data={shipperApplications}
+                  statusFilter={statusFilter}
+                />
+              )}
+            </>
           ) : null}
 
           {tab === "shipper_finance" && canManageShipperFinance ? (
@@ -873,6 +926,37 @@ type PanelToolbarProps = {
   activeFilter?: string;
   onFilter?: (value: string) => void;
 };
+
+function EntityManagementTabs({
+  active,
+  listLabel,
+  applicationsLabel,
+  showApplications = true,
+  onChange,
+}: {
+  active: "list" | "applications";
+  listLabel: string;
+  applicationsLabel: string;
+  showApplications?: boolean;
+  onChange: (view: "list" | "applications") => void;
+}) {
+  return (
+    <nav className="admin-entity-tabs" aria-label="Chế độ quản lý">
+      <button
+        type="button"
+        className={active === "list" ? "is-active" : ""}
+        aria-current={active === "list" ? "page" : undefined}
+        onClick={() => onChange("list")}
+      >{listLabel}</button>
+      {showApplications ? <button
+        type="button"
+        className={active === "applications" ? "is-active" : ""}
+        aria-current={active === "applications" ? "page" : undefined}
+        onClick={() => onChange("applications")}
+      >{applicationsLabel}</button> : null}
+    </nav>
+  );
+}
 
 function PanelToolbar({ title, subtitle, search, placeholder, onSearchChange, onSubmit, filters, activeFilter, onFilter }: PanelToolbarProps) {
   return <div className="admin-toolbar">

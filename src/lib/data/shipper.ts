@@ -1,5 +1,6 @@
 import type {
   ActiveDelivery,
+  AdminShipperList,
   AdminShipperApplicationList,
   AvailableDelivery,
   DeliveryBatch,
@@ -131,6 +132,42 @@ export function parseAdminShipperApplications(value: unknown): AdminShipperAppli
   return { items: Array.isArray(source.items) ? source.items.flatMap((item) => {
       const parsed = parseApplication(item); return parsed ? [parsed] : [];
     }) : [], total: number(source.total), limit: number(source.limit) || 20, offset: number(source.offset) };
+}
+
+export const EMPTY_ADMIN_SHIPPERS: AdminShipperList = {
+  items: [], total: 0, limit: 20, offset: 0,
+};
+
+export function parseAdminShippers(value: unknown): AdminShipperList {
+  const source = record(value);
+  return {
+    items: Array.isArray(source.items) ? source.items.flatMap((raw) => {
+      const item = record(raw);
+      if (!text(item.id) || !text(item.user_id)) return [];
+      return [{
+        id: text(item.id),
+        userId: text(item.user_id),
+        fullName: text(item.full_name, "Tài xế EatNow"),
+        email: text(item.email),
+        phone: optionalText(item.phone),
+        avatarUrl: optionalText(item.avatar_url),
+        dateOfBirth: text(item.date_of_birth),
+        vehicleType: text(item.vehicle_type),
+        plateNumber: text(item.plate_number),
+        isActive: item.is_active === true,
+        isOnline: item.is_online === true,
+        lastLocationAt: optionalText(item.last_location_at),
+        ratingAverage: number(item.rating_average),
+        ratingCount: number(item.rating_count),
+        activeDeliveries: number(item.active_deliveries),
+        completedDeliveries: number(item.completed_deliveries),
+        createdAt: text(item.created_at),
+      }];
+    }) : [],
+    total: number(source.total),
+    limit: number(source.limit) || 20,
+    offset: number(source.offset),
+  };
 }
 
 export const EMPTY_SHIPPER_WALLET: ShipperWalletData = {

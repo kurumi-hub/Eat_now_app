@@ -316,6 +316,38 @@ export async function reviewShipperApplicationAction(
     decision === "needs_changes" ? "Đã yêu cầu tài xế bổ sung hồ sơ." : "Đã tiếp nhận hồ sơ để xét duyệt." };
 }
 
+export async function setShipperActiveAction(
+  shipperId: string,
+  active: boolean,
+  reason: string
+): Promise<AdminActionResult> {
+  await requirePermission("shippers.verify");
+  if (!validId(shipperId)) {
+    return { ok: false, message: "Mã tài xế không hợp lệ." };
+  }
+  const note = cleanNote(reason);
+  if (!note.ok) return { ok: false, message: note.error };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("api_admin_set_shipper_active", {
+    p_shipper_id: shipperId,
+    p_active: active,
+    p_reason: note.value,
+  });
+  if (error) {
+    return {
+      ok: false,
+      message: failure("Không thể cập nhật trạng thái tài xế.", error),
+    };
+  }
+  revalidatePath("/admin");
+  revalidatePath("/shipper");
+  return {
+    ok: true,
+    message: active ? "Đã mở lại tài xế." : "Đã tạm ngưng tài xế.",
+  };
+}
+
 export async function reviewRefundAction(
   refundId: string,
   decision: "approve" | "reject",

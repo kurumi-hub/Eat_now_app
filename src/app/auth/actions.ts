@@ -19,6 +19,7 @@ import {
   getPostLoginRedirectPath,
   getSafeRedirectPath,
 } from "@/utils/auth/redirects";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import {
   normalizeEmail,
@@ -45,6 +46,32 @@ function formBoolean(formData: FormData, name: string) {
 
 function firstFieldError(fieldErrors: Record<string, string | undefined>) {
   return Object.values(fieldErrors).find(Boolean) || "";
+}
+
+async function isRegistrationPhoneInUse(phone: string) {
+  try {
+    const { data, error } = await createAdminClient()
+      .from("profiles")
+      .select("id")
+      .eq("phone", phone)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[auth.signup.phone-check]", {
+        code: error.code,
+        message: error.message,
+      });
+      return false;
+    }
+
+    return Boolean(data?.id);
+  } catch (error) {
+    // Không biến lỗi cấu hình Secret key thành chặn đăng ký. Trigger database
+    // vẫn là lớp bảo vệ cuối cùng cho ràng buộc số điện thoại duy nhất.
+    console.error("[auth.signup.phone-check] Không thể kiểm tra số điện thoại", error);
+    return false;
+  }
 }
 
 async function getRequestOrigin() {
@@ -172,6 +199,16 @@ export async function signup(
       status: "error",
       error: firstFieldError(validation.errors),
       fieldErrors: validation.errors,
+    };
+  }
+
+  if (await isRegistrationPhoneInUse(validation.normalized.phone)) {
+    return {
+      status: "error",
+      error: "Số điện thoại này đã được sử dụng cho một tài khoản khác.",
+      fieldErrors: {
+        phone: "Số điện thoại này đã được sử dụng.",
+      },
     };
   }
 

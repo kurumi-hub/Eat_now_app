@@ -141,6 +141,33 @@ export type AdminShipperApplicationList = {
   offset: number;
 };
 
+export type AdminShipper = {
+  id: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  avatarUrl?: string;
+  dateOfBirth: string;
+  vehicleType: string;
+  plateNumber: string;
+  isActive: boolean;
+  isOnline: boolean;
+  lastLocationAt?: string;
+  ratingAverage: number;
+  ratingCount: number;
+  activeDeliveries: number;
+  completedDeliveries: number;
+  createdAt: string;
+};
+
+export type AdminShipperList = {
+  items: AdminShipper[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 export type ShipperWalletBalances = {
   pending: number;
   earningAvailable: number;

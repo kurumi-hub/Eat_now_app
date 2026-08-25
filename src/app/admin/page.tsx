@@ -28,7 +28,9 @@ import {
 import { parseSiteMedia } from "@/types/siteMedia";
 import { EMPTY_VOUCHER_MANAGEMENT, parseVoucherManagement } from "@/lib/data/vouchers";
 import {
+  EMPTY_ADMIN_SHIPPERS,
   EMPTY_ADMIN_SHIPPER_FINANCE,
+  parseAdminShippers,
   parseAdminShipperApplications,
   parseAdminShipperFinance,
 } from "@/lib/data/shipper";
@@ -43,6 +45,7 @@ type AdminPageProps = {
     status?: string | string[];
     page?: string | string[];
     catalog?: string | string[];
+    view?: string | string[];
   }>;
 };
 
@@ -306,6 +309,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const params = await searchParams;
   const requestedTab = firstParam(params.tab) as AdminTab;
   let tab = ADMIN_TABS.includes(requestedTab) ? requestedTab : "overview";
+  let managementView: "list" | "applications" =
+    firstParam(params.view) === "applications" ? "applications" : "list";
+  // Giữ tương thích các bookmark cũ trước khi hồ sơ mở quán được gom vào Nhà hàng.
+  if (tab === "applications") {
+    tab = "restaurants";
+    managementView = "applications";
+  }
+  if (tab !== "restaurants" && tab !== "shippers") managementView = "list";
   if (tab === "media" && !user.permissions.includes("site_media.manage")) {
     tab = "overview";
   }
@@ -318,11 +329,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   if (tab === "vouchers" && !user.permissions.includes("vouchers.manage")) {
     tab = "overview";
   }
-  if (tab === "applications" && !user.permissions.includes("restaurants.verify")) {
-    tab = "overview";
+  if (tab === "restaurants" && managementView === "applications" && !user.permissions.includes("restaurants.verify")) {
+    managementView = "list";
   }
   if (tab === "shippers" && !user.permissions.includes("shippers.verify")) {
     tab = "overview";
+    managementView = "list";
   }
   if (tab === "shipper_finance" && !user.permissions.includes("shippers.finance.manage")) {
     tab = "overview";
@@ -343,15 +355,15 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         p_search: search || null, p_limit: limit, p_offset: offset,
       });
     }
-    if (tab === "applications") {
-      return supabase.rpc("api_list_restaurant_applications", {
-        p_status: status || null, p_limit: limit, p_offset: offset,
-      });
-    }
     if (tab === "shippers") {
-      return supabase.rpc("api_list_admin_shipper_applications", {
-        p_status: status || null, p_limit: limit, p_offset: offset,
-      });
+      return managementView === "applications"
+        ? supabase.rpc("api_list_admin_shipper_applications", {
+            p_status: status || null, p_limit: limit, p_offset: offset,
+          })
+        : supabase.rpc("api_list_admin_shippers", {
+            p_status: status || null, p_search: search || null,
+            p_limit: limit, p_offset: offset,
+          });
     }
     if (tab === "shipper_finance") {
       return supabase.rpc("api_list_admin_shipper_finance", {
@@ -365,9 +377,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       p_status: status || null, p_search: search || null, p_limit: limit, p_offset: offset,
     });
     if (tab === "restaurants") {
-      return supabase.rpc("api_list_admin_restaurants", {
-        p_status: status || null, p_search: search || null, p_limit: limit, p_offset: offset,
-      });
+      return managementView === "applications"
+        ? supabase.rpc("api_list_restaurant_applications", {
+            p_status: status || null, p_limit: limit, p_offset: offset,
+          })
+        : supabase.rpc("api_list_admin_restaurants", {
+            p_status: status || null, p_search: search || null,
+            p_limit: limit, p_offset: offset,
+          });
     }
     if (tab === "refunds") {
       return supabase.rpc("api_list_admin_refunds", {
@@ -416,15 +433,17 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     <AdminDashboard
       user={user}
       tab={tab}
+      managementView={managementView}
       searchTerm={search}
       statusFilter={status}
       stats={parseStats(dashboardResult.data)}
       users={tab === "users" ? parseUsers(contentResult.data) : EMPTY_USERS}
-      applications={tab === "applications" ? parseApplications(contentResult.data) : EMPTY_APPLICATIONS}
-      shipperApplications={tab === "shippers" ? parseAdminShipperApplications(contentResult.data) : EMPTY_SHIPPER_APPLICATIONS}
+      applications={tab === "restaurants" && managementView === "applications" ? parseApplications(contentResult.data) : EMPTY_APPLICATIONS}
+      shippers={tab === "shippers" && managementView === "list" ? parseAdminShippers(contentResult.data) : EMPTY_ADMIN_SHIPPERS}
+      shipperApplications={tab === "shippers" && managementView === "applications" ? parseAdminShipperApplications(contentResult.data) : EMPTY_SHIPPER_APPLICATIONS}
       shipperFinance={tab === "shipper_finance" ? parseAdminShipperFinance(contentResult.data) : EMPTY_ADMIN_SHIPPER_FINANCE}
       orders={tab === "orders" ? parseAdminOrders(contentResult.data) : EMPTY_ORDERS}
-      restaurants={tab === "restaurants" ? parseRestaurants(contentResult.data) : EMPTY_RESTAURANTS}
+      restaurants={tab === "restaurants" && managementView === "list" ? parseRestaurants(contentResult.data) : EMPTY_RESTAURANTS}
       refunds={tab === "refunds" ? parseRefunds(contentResult.data) : EMPTY_REFUNDS}
       vouchers={tab === "vouchers" ? parseVoucherManagement(contentResult.data) : EMPTY_VOUCHER_MANAGEMENT}
       catalogKind={catalogKind}
@@ -441,7 +460,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       media={tab === "media" ? parseSiteMedia(contentResult.data) : EMPTY_MEDIA}
       finance={tab === "finance" ? parseAdminFinance(contentResult.data) : EMPTY_FINANCE}
       audit={tab === "overview" || tab === "audit" ? parseAudit(contentResult.data) : EMPTY_AUDIT}
-      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra các migration, gồm SQL 32–34 cho Voucher." : undefined}
+      loadError={errors.length ? "Chưa thể tải đầy đủ dữ liệu. Hãy kiểm tra các migration, gồm SQL 37 cho quản lý tài xế." : undefined}
     />
   );
 }

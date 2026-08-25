@@ -149,7 +149,9 @@ export default function AdminRestaurantApplicationsPanel({
         className={statusFilter === value ? "is-active" : ""}
         aria-pressed={statusFilter === value}
         onClick={() => router.push(
-          value ? `/admin?tab=applications&status=${value}` : "/admin?tab=applications"
+          value
+            ? `/admin?tab=restaurants&view=applications&status=${value}`
+            : "/admin?tab=restaurants&view=applications"
         )}
       >
         {label}

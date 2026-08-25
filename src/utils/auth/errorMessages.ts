@@ -56,16 +56,16 @@ export function mapSignupAuthError(error: SupabaseAuthErrorLike) {
     return "Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.";
   }
 
-  if (error.status && error.status >= 500) {
-    return "Supabase Auth đang trả lỗi 500. Vui lòng báo Bảo kiểm tra Auth logs, database trigger/profile hoặc email provider.";
-  }
-
   if (
     errorText.includes("database") ||
     errorText.includes("saving new user") ||
     errorText.includes("trigger")
   ) {
-    return "Không thể tạo hồ sơ người dùng trong database. Vui lòng báo Bảo kiểm tra trigger/profile ở Supabase.";
+    return "Không thể tạo hồ sơ người dùng. Hãy kiểm tra số điện thoại đã được dùng hoặc chạy migration sửa trigger đăng ký.";
+  }
+
+  if (error.status && error.status >= 500) {
+    return "Dịch vụ đăng ký đang tạm thời gặp lỗi. Vui lòng thử lại; nếu vẫn lỗi, kiểm tra Supabase Auth logs và email provider.";
   }
 
   return "Không thể tạo tài khoản lúc này. Vui lòng thử lại sau.";
@@ -75,10 +75,6 @@ export function logSupabaseAuthError(
   context: string,
   error: SupabaseAuthErrorLike
 ) {
-  if (process.env.NODE_ENV === "production") {
-    return;
-  }
-
   console.error(`[auth.${context}]`, {
     status: error.status,
     code: error.code,
