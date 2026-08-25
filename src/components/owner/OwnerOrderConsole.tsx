@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { confirmShipperPickupAction, transitionOwnerOrderAction } from "@/app/owner/actions";
 import type { OwnerActionResult, OwnerOrderItem, OwnerOrderList } from "@/types/owner";
 import { createClient } from "@/utils/supabase/client";
+import OrderJourneyTimeline from "@/components/order/OrderJourneyTimeline";
 
 const STATUS: Record<string, string> = { pending: "Đơn mới", confirmed: "Đã nhận", preparing: "Đang chuẩn bị",
   ready: "Sẵn sàng giao", delivering: "Đang giao", completed: "Hoàn thành", cancelled: "Đã hủy" };
@@ -39,14 +40,27 @@ export default function OwnerOrderConsole({ restaurantId, data, canReject }: { r
   const [pickupFeedback, setPickupFeedback] = useState<PickupFeedback | null>(null);
   useEffect(() => {
     const supabase = createClient();
+    let refreshTimer: number | undefined;
+    let fallbackTimer: number | undefined;
+    const refresh = () => {
+      window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => router.refresh(), 300);
+    };
     const channel = supabase.channel(`restaurant-orders-${restaurantId}`).on("postgres_changes", {
       event: "INSERT", schema: "public", table: "order_events", filter: `restaurant_id=eq.${restaurantId}`,
     }, () => {
       if (sound) { const audio = new AudioContext(); const oscillator = audio.createOscillator();
         oscillator.connect(audio.destination); oscillator.frequency.value = 880; oscillator.start(); oscillator.stop(audio.currentTime + .12); }
-      router.refresh();
-    }).subscribe();
-    return () => { void supabase.removeChannel(channel); };
+      refresh();
+    }).subscribe((status) => {
+      window.clearInterval(fallbackTimer);
+      if (status !== "SUBSCRIBED") fallbackTimer = window.setInterval(refresh, 20_000);
+    });
+    return () => {
+      window.clearTimeout(refreshTimer);
+      window.clearInterval(fallbackTimer);
+      void supabase.removeChannel(channel);
+    };
   }, [restaurantId, router, sound]);
   const items = useMemo(() => data.items.filter((item) => {
     const matchesSearch = !search.trim() || `${item.code} ${item.receiverName} ${item.receiverPhone}`.toLowerCase().includes(search.trim().toLowerCase());
@@ -99,6 +113,7 @@ export default function OwnerOrderConsole({ restaurantId, data, canReject }: { r
       <header><div><span>{item.code}</span><h3>{item.receiverName}</h3><small>{time(item.createdAt)} · {item.receiverPhone}</small></div><div><b>{STATUS[item.status] || item.status}</b><em>{DELIVERY[item.deliveryStatus] || item.deliveryStatus}</em></div></header>
       {item.incidentStatus === "open" && <div className="owner-order-incident"><strong>Cần hỗ trợ</strong><span>{item.incidentReason || "Đơn đang được Admin kiểm tra."}</span></div>}
       {item.deliveryStatus === "arrived_at_restaurant" && item.pickupConfirmationRequestedAt && <div className="owner-order-pickup"><strong>Tài xế đang chờ xác nhận lấy món</strong><span>Kiểm tra đúng tài xế và biển số trước khi xác nhận bàn giao.</span></div>}
+      <OrderJourneyTimeline orderStatus={item.status} deliveryStatus={item.deliveryStatus} events={item.events} />
       <div className="owner-order-card__body"><div><h4>Món ăn</h4>{item.items.map((food,index) => <p key={`${food.name}-${index}`}><strong>{food.quantity}× {food.name}{food.size ? ` · ${food.size}` : ""}</strong><span>{money(food.lineTotal)}</span>{food.note && <small>{food.note}</small>}</p>)}</div><dl><div><dt>Giao đến</dt><dd>{item.deliveryAddress}</dd></div><div><dt>Thanh toán</dt><dd>{item.payment.method.toUpperCase()} · {item.payment.status}</dd></div><div><dt>Tổng tiền</dt><dd>{money(item.totalPrice)}</dd></div>{item.status === "pending" && item.responseDueAt && <div><dt>Phản hồi trước</dt><dd>{time(item.responseDueAt)}</dd></div>}{item.status === "confirmed" && !item.shipper && <div><dt>Thời hạn tìm tài xế</dt><dd>{time(searchDeadline(item))}</dd></div>}{item.shipper && <div><dt>Tài xế</dt><dd>{item.shipper.name} · {item.shipper.plateNumber}</dd></div>}{item.preparationDueAt && <div><dt>Dự kiến xong</dt><dd>{time(item.preparationDueAt)}</dd></div>}</dl></div>
       {item.note && <blockquote>Ghi chú khách: {item.note}</blockquote>}
       <details><summary>Lịch sử trạng thái ({item.events.length})</summary><ol>{item.events.map((event) => <li key={event.id}><span>{event.toOrderStatus || event.toDeliveryStatus || event.eventType}</span><small>{event.source} · {time(event.createdAt)}{event.note ? ` · ${event.note}` : ""}</small></li>)}</ol></details>

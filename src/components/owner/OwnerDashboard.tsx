@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 
 import {
@@ -39,6 +39,7 @@ const STATE_HELP: Record<string, string> = {
   UNPUBLISHED: "Nhà hàng chưa được xuất bản công khai.",
 };
 type Tab = "overview" | "orders" | "profile" | "menu" | "vouchers" | "hours" | "media" | "staff" | "wallet";
+const VALID_TABS: Tab[] = ["overview", "orders", "profile", "menu", "vouchers", "hours", "media", "staff", "wallet"];
 const BUCKET = "restaurant-media";
 const MAX_BYTES = 5 * 1024 * 1024;
 const TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" };
@@ -51,7 +52,9 @@ export default function OwnerDashboard({
   userId, restaurants, data, menu, orders, vouchers,
 }: { userId: string; restaurants: ManagedRestaurantSummary[]; data: OwnerDashboardData; menu: OwnerMenuData; orders: OwnerOrderList; vouchers: VoucherManagementData }) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("overview");
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get("tab") as Tab | null;
+  const [tab, setTab] = useState<Tab>(requestedTab && VALID_TABS.includes(requestedTab) ? requestedTab : "overview");
   const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState<{ ok: boolean; message: string } | null>(null);
   const permissions = new Set(data.permissions);

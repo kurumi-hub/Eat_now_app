@@ -80,6 +80,27 @@ select {
     padding-inline: 16px;
   }
 }
+
+/* Shared real-time order journey */
+.order-journey { display: grid; gap: 12px; margin: 0 18px 16px; padding: 14px; border: 1px solid #e7e8ea; border-radius: 13px; background: #fafbfb; }
+.shipper-active-job > .order-journey { margin: 0 0 16px; }
+.order-journey__lane { min-width: 0; }
+.order-journey__lane > strong { display: block; margin-bottom: 8px; color: #555e62; font-size: 12px; }
+.order-journey__lane ol { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(74px, 1fr); gap: 0; margin: 0; padding: 0; overflow-x: auto; list-style: none; }
+.order-journey__lane li { position: relative; display: grid; justify-items: center; gap: 4px; min-width: 74px; color: #8a9095; font-size: 10px; text-align: center; }
+.order-journey__lane li::before { content: ""; position: absolute; z-index: 0; top: 6px; right: 50%; left: -50%; height: 2px; background: #dfe3e4; }
+.order-journey__lane li:first-child::before { display: none; }
+.order-journey__lane li i { z-index: 1; width: 13px; height: 13px; border: 2px solid #cfd5d6; border-radius: 50%; background: white; }
+.order-journey__lane li.is-done { color: #1a6e52; font-weight: 700; }
+.order-journey__lane li.is-done::before, .order-journey__lane li.is-done i { border-color: #1d9a69; background: #1d9a69; }
+.order-journey__lane li.is-active i { box-shadow: 0 0 0 4px #1d9a6922; }
+.order-journey__lane li small { color: #778086; font-size: 9px; }
+.order-journey__lane p { margin: 8px 0 0; color: #a13b2d; font-size: 11px; }
+
+@media (max-width: 640px) {
+  .order-journey { margin-inline: 11px; padding: 12px 8px; }
+  .shipper-active-job > .order-journey { margin-inline: 0; }
+}
 /* Shared Google Maps selector for restaurant application and Owner profile. */
 .restaurant-address-field { display: grid; gap: 10px; }
 .restaurant-address-field__selection { display: flex; align-items: flex-start; gap: 11px; padding: 13px; }

@@ -31,6 +31,7 @@ import type { PublicUser } from "@/types/auth";
 import { hasAnyRole, hasRole } from "@/utils/roles";
 import { useCartStore } from "@/store/cartStore";
 import { useCartSession } from "@/store/useCartSession";
+import NotificationCenter from "@/components/notifications/NotificationCenter";
 
 type CustomerHeaderProps = {
   user: PublicUser | null;
@@ -147,6 +148,7 @@ export default function CustomerHeader({
         </nav>
 
         <div className="home-actions-top">
+          {user ? <NotificationCenter user={user} /> : null}
           {user ? (
             <IconButton
               aria-label="Giỏ hàng"
