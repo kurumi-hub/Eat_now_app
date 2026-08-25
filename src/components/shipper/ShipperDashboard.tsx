@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition, type FormEvent } from "reac
 
 import {
   acceptDeliveryAction, acceptDeliveryOfferAction, rejectDeliveryOfferAction,
+  createDeliveryProofUploadTicketAction, discardDeliveryProofUploadAction,
   releaseDeliveryAction, requestPickupConfirmationAction, setShipperOnlineAction, submitDeliveryProofAction,
   submitShipperApplicationAction, updateDeliveryAction, updateShipperLocationAction,
 } from "@/app/shipper/actions";
@@ -61,7 +62,7 @@ export default function ShipperDashboard({ user, data }: { user: PublicUser; dat
       {data.activeDeliveries.length > 0 && <LiveTracking onNotice={setNotice} />}
       {data.offers.length > 0 && <OfferList data={data} pending={pending} run={run} />}
       {data.route.length > 0 && <RoutePlan stops={data.route} count={data.activeDeliveries.length} />}
-      {data.activeDeliveries.map((delivery) => <ActiveDeliveryCard key={delivery.orderId} delivery={delivery} profileId={data.profile!.id} pending={pending} run={run} onNotice={setNotice} onRefresh={() => router.refresh()} />)}
+      {data.activeDeliveries.map((delivery) => <ActiveDeliveryCard key={delivery.orderId} delivery={delivery} pending={pending} run={run} onNotice={setNotice} onRefresh={() => router.refresh()} />)}
       {data.activeDeliveries.length < 2 && <AvailableList data={data} pending={pending} run={run} onRefresh={() => router.refresh()} />}
       <ShipperWalletPlaceholder />
       <section className="shipper-panel"><div className="shipper-panel__heading"><div><p>20 chuyến gần nhất</p><h2>Lịch sử giao hàng</h2></div></div><div className="shipper-history">{data.history.length ? data.history.map((item) => <article key={item.orderId}><div><strong>{item.code}</strong><span>{item.restaurantName}</span></div><div><b>{money(item.earning)}</b><span>{DELIVERY_STATUS[item.deliveryStatus] || item.deliveryStatus} · {date(item.completedAt)}</span></div></article>) : <div className="shipper-empty">Chưa có chuyến đã hoàn thành.</div>}</div></section>
@@ -100,45 +101,67 @@ function AvailableList({ data, pending, run, onRefresh }: { data: ShipperDashboa
   return <section className="shipper-panel"><div className="shipper-panel__heading"><div><p>{data.activeDeliveries.length ? "Đơn tương thích với tuyến hiện tại" : "Tự chọn chuyến dự phòng"}</p><h2>{data.activeDeliveries.length ? "Ghép thêm 1 đơn" : "Chuyến đang chờ tài xế"}</h2><span>Đơn chỉ vào danh sách sau khi không còn đề xuất tự động hiệu lực.</span></div><button disabled={pending} onClick={onRefresh}>Làm mới</button></div>{!data.profile?.isOnline ? <div className="shipper-empty"><strong>Bạn đang offline</strong><span>Bật trạng thái online để xem và nhận chuyến.</span></div> : <div className="shipper-job-list">{data.available.length ? data.available.map((item) => <article key={item.orderId}><div className="shipper-job__route"><span>Nhận tại</span><strong>{item.restaurantName}</strong><p>{item.restaurantAddress}</p><span>Giao đến</span><strong>{item.deliveryArea}</strong></div><dl><div><dt>Đến quán</dt><dd>{item.pickupDistanceKm == null ? "Chưa xác định" : `${item.pickupDistanceKm.toFixed(1)} km`}</dd></div><div><dt>Quãng giao</dt><dd>{item.deliveryDistanceKm == null ? "—" : `${item.deliveryDistanceKm.toFixed(1)} km`}</dd></div><div><dt>Thu nhập dự kiến</dt><dd>{money(item.earning)}</dd></div></dl><div className="shipper-job__actions"><small>{item.code} · {date(item.createdAt)}</small><button disabled={pending} onClick={() => run(() => acceptDeliveryAction(item.orderId))}>{item.canBatch ? "Ghép đơn" : "Nhận chuyến"}</button></div></article>) : <div className="shipper-empty"><strong>Chưa có chuyến phù hợp</strong><span>Hãy cập nhật vị trí hoặc làm mới sau ít phút.</span></div>}</div>}</section>;
 }
 
-function ActiveDeliveryCard({ delivery, profileId, pending, run, onNotice, onRefresh }: { delivery: ActiveDelivery; profileId: string; pending: boolean; run: (task: () => Promise<ShipperActionResult>) => void; onNotice: (notice: ShipperActionResult) => void; onRefresh: () => void }) {
+function ActiveDeliveryCard({ delivery, pending, run, onNotice, onRefresh }: { delivery: ActiveDelivery; pending: boolean; run: (task: () => Promise<ShipperActionResult>) => void; onNotice: (notice: ShipperActionResult) => void; onRefresh: () => void }) {
   const next = NEXT_STEP[delivery.deliveryStatus]; const [uploading, setUploading] = useState(false);
+  const [proofNotice, setProofNotice] = useState<ShipperActionResult | null>(null);
+  const proofFormRef = useRef<HTMLFormElement>(null);
   const pickupRequested = Boolean(delivery.pickupConfirmationRequestedAt);
   const release = () => { const reason = window.prompt("Lý do trả chuyến về danh sách (ít nhất 5 ký tự):"); if (reason) run(() => releaseDeliveryAction(delivery.orderId, reason)); };
-  const uploadProof = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
+  const uploadProof = async () => {
+    if (uploading) return;
+    const form = proofFormRef.current;
+    if (!form) {
+      setProofNotice({ ok: false, message: "Không tìm thấy biểu mẫu ảnh. Hãy tải lại trang." });
+      return;
+    }
     const values = new FormData(form);
     const file = values.get("photo");
     if (!(file instanceof File) || !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 8 * 1024 * 1024) {
-      onNotice({ ok: false, message: "Chọn ảnh JPG, PNG hoặc WebP không quá 8 MB." });
+      setProofNotice({ ok: false, message: "Hãy chọn ảnh JPG, PNG hoặc WebP không quá 8 MB." });
       return;
     }
     setUploading(true);
-    const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-    const objectPath = `orders/${delivery.orderId}/${profileId}/${crypto.randomUUID()}.${ext}`;
+    setProofNotice({ ok: true, message: "Đang khởi tạo phiên tải ảnh..." });
     const supabase = createClient();
+    let objectPath: string | null = null;
     try {
-      const upload = await supabase.storage.from("delivery-proof").upload(objectPath, file, {
-        cacheControl: "31536000", contentType: file.type, upsert: false,
-      });
+      const ticket = await createDeliveryProofUploadTicketAction(delivery.orderId, file.type);
+      if (!ticket.ok) {
+        setProofNotice(ticket);
+        onNotice(ticket);
+        return;
+      }
+      objectPath = ticket.objectPath;
+      setProofNotice({ ok: true, message: "Đang tải ảnh giao hàng..." });
+      const upload = await supabase.storage.from("delivery-proof").uploadToSignedUrl(
+        ticket.objectPath, ticket.token, file, {
+          cacheControl: "31536000", contentType: file.type, upsert: false,
+        }
+      );
       if (upload.error) {
         console.error("[shipper] Upload bằng chứng giao hàng thất bại", upload.error);
-        onNotice({ ok: false, message: "Không thể tải ảnh giao hàng. Kiểm tra bucket delivery-proof và trạng thái chuyến." });
+        await discardDeliveryProofUploadAction(delivery.orderId, ticket.objectPath);
+        const failure = { ok: false, message: `Không thể tải ảnh giao hàng (${upload.error.message}).` } as const;
+        setProofNotice(failure);
+        onNotice(failure);
         return;
       }
       const result = await submitDeliveryProofAction(
-        delivery.orderId, objectPath, String(values.get("note") || "")
+        delivery.orderId, ticket.objectPath, String(values.get("note") || "")
       );
-      if (!result.ok) await supabase.storage.from("delivery-proof").remove([objectPath]);
+      if (!result.ok) await discardDeliveryProofUploadAction(delivery.orderId, ticket.objectPath);
+      setProofNotice(result);
       onNotice(result);
       if (result.ok) { form.reset(); onRefresh(); }
     } catch (error) {
       console.error("[shipper] Luồng gửi bằng chứng bị gián đoạn", error);
-      await supabase.storage.from("delivery-proof").remove([objectPath]);
-      onNotice({ ok: false, message: "Kết nối bị gián đoạn khi gửi ảnh. Vui lòng thử lại." });
+      if (objectPath) await discardDeliveryProofUploadAction(delivery.orderId, objectPath);
+      const failure = { ok: false, message: "Kết nối bị gián đoạn khi gửi ảnh. Vui lòng thử lại." } as const;
+      setProofNotice(failure);
+      onNotice(failure);
     } finally {
       setUploading(false);
     }
   };
-  return <section className="shipper-panel shipper-active-job"><div className="shipper-panel__heading"><div><p>Đơn đang thực hiện · {delivery.code}</p><h2>{pickupRequested && delivery.deliveryStatus === "arrived_at_restaurant" ? "Chờ nhà hàng xác nhận bàn giao" : DELIVERY_STATUS[delivery.deliveryStatus] || delivery.deliveryStatus}</h2></div><strong>{money(delivery.earning)}</strong></div><div className="shipper-active-grid"><article><span>Điểm lấy món</span><h3>{delivery.restaurant.name}</h3><p>{delivery.restaurant.address}</p>{delivery.restaurant.phone && <a href={`tel:${delivery.restaurant.phone}`}>Gọi nhà hàng: {delivery.restaurant.phone}</a>}<a target="_blank" rel="noreferrer" href={mapHref(delivery.restaurant.address, delivery.restaurant.lat, delivery.restaurant.lon)}>Mở chỉ đường đến quán</a></article><article><span>Người nhận</span><h3>{delivery.customer.name}</h3><p>{delivery.customer.address}</p><a href={`tel:${delivery.customer.phone}`}>Gọi khách: {delivery.customer.phone}</a><a target="_blank" rel="noreferrer" href={mapHref(delivery.customer.address, delivery.customer.lat, delivery.customer.lon)}>Mở chỉ đường đến khách</a>{delivery.customer.note && <blockquote>Ghi chú: {delivery.customer.note}</blockquote>}</article></div><div className="shipper-pickup-items"><h3>Món cần nhận</h3>{delivery.items.map((item, index) => <div key={`${item.name}-${index}`}><strong>{item.quantity}× {item.name}{item.size ? ` · ${item.size}` : ""}</strong>{item.note && <span>{item.note}</span>}</div>)}</div>{delivery.deliveryStatus === "delivering" && <form className="shipper-proof-form" onSubmit={uploadProof} noValidate><div><strong>Ảnh xác nhận đã giao</strong><span>Chọn ảnh trước, sau đó gửi để khách xác nhận đã nhận hàng.</span></div><label className="shipper-proof-file">Ảnh giao hàng<input name="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" /></label><textarea name="note" maxLength={300} placeholder="Ghi chú cho khách (không bắt buộc)" /><button type="submit" disabled={uploading}>{uploading ? "Đang gửi ảnh..." : "Gửi ảnh và chờ khách xác nhận"}</button></form>}{["proof_submitted", "awaiting_customer_confirmation"].includes(delivery.deliveryStatus) && <div className="shipper-proof-wait"><strong>Ảnh đã được gửi</strong><span>Đơn chỉ hoàn tất sau khi khách bấm “Đã nhận hàng”.</span></div>}{["delivery_review", "disputed"].includes(delivery.deliveryStatus) && <div className="shipper-proof-wait is-error"><strong>Khách báo chưa nhận hàng</strong><span>Giữ nguyên ảnh và liên hệ bộ phận hỗ trợ để xử lý tranh chấp.</span></div>}{pickupRequested && delivery.deliveryStatus === "arrived_at_restaurant" && <div className="shipper-proof-wait"><strong>Đã gửi yêu cầu bàn giao</strong><span>Nhà hàng cần xác nhận đã giao món cho bạn trước khi bắt đầu giao khách.</span></div>}<div className="shipper-active-actions">{["assigned", "arrived_at_restaurant"].includes(delivery.deliveryStatus) && !pickupRequested && <button type="button" className="is-secondary" disabled={pending} onClick={release}>Trả chuyến</button>}{delivery.deliveryStatus === "arrived_at_restaurant" && delivery.orderStatus === "ready" && !pickupRequested && <button type="button" disabled={pending} onClick={() => run(() => requestPickupConfirmationAction(delivery.orderId))}>Tôi đã nhận món · Gửi quán xác nhận</button>}{next && <button type="button" disabled={pending} onClick={() => run(() => updateDeliveryAction(delivery.orderId, next.status))}>{next.label}</button>}</div>{delivery.deliveryStatus === "arrived_at_restaurant" && delivery.orderStatus !== "ready" && <p className="shipper-field-note">Bạn chỉ có thể yêu cầu xác nhận lấy món sau khi nhà hàng chuyển đơn sang “Sẵn sàng”.</p>}</section>;
+  return <section className="shipper-panel shipper-active-job"><div className="shipper-panel__heading"><div><p>Đơn đang thực hiện · {delivery.code}</p><h2>{pickupRequested && delivery.deliveryStatus === "arrived_at_restaurant" ? "Chờ nhà hàng xác nhận bàn giao" : DELIVERY_STATUS[delivery.deliveryStatus] || delivery.deliveryStatus}</h2></div><strong>{money(delivery.earning)}</strong></div><div className="shipper-active-grid"><article><span>Điểm lấy món</span><h3>{delivery.restaurant.name}</h3><p>{delivery.restaurant.address}</p>{delivery.restaurant.phone && <a href={`tel:${delivery.restaurant.phone}`}>Gọi nhà hàng: {delivery.restaurant.phone}</a>}<a target="_blank" rel="noreferrer" href={mapHref(delivery.restaurant.address, delivery.restaurant.lat, delivery.restaurant.lon)}>Mở chỉ đường đến quán</a></article><article><span>Người nhận</span><h3>{delivery.customer.name}</h3><p>{delivery.customer.address}</p><a href={`tel:${delivery.customer.phone}`}>Gọi khách: {delivery.customer.phone}</a><a target="_blank" rel="noreferrer" href={mapHref(delivery.customer.address, delivery.customer.lat, delivery.customer.lon)}>Mở chỉ đường đến khách</a>{delivery.customer.note && <blockquote>Ghi chú: {delivery.customer.note}</blockquote>}</article></div><div className="shipper-pickup-items"><h3>Món cần nhận</h3>{delivery.items.map((item, index) => <div key={`${item.name}-${index}`}><strong>{item.quantity}× {item.name}{item.size ? ` · ${item.size}` : ""}</strong>{item.note && <span>{item.note}</span>}</div>)}</div>{delivery.deliveryStatus === "delivering" && <form ref={proofFormRef} className="shipper-proof-form" onSubmit={(event) => event.preventDefault()} noValidate><div><strong>Ảnh xác nhận đã giao</strong><span>Chọn ảnh trước, sau đó gửi để khách xác nhận đã nhận hàng.</span></div><label className="shipper-proof-file">Ảnh giao hàng<input name="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={() => setProofNotice(null)} /></label><textarea name="note" maxLength={300} placeholder="Ghi chú cho khách (không bắt buộc)" /><button type="button" disabled={uploading} onClick={uploadProof}>{uploading ? "Đang gửi ảnh..." : "Gửi ảnh và chờ khách xác nhận"}</button>{proofNotice && <div className={`shipper-proof-inline ${proofNotice.ok ? "is-success" : "is-error"}`} role="status">{proofNotice.message}</div>}</form>}{["proof_submitted", "awaiting_customer_confirmation"].includes(delivery.deliveryStatus) && <div className="shipper-proof-wait"><strong>Ảnh đã được gửi</strong><span>Đơn chỉ hoàn tất sau khi khách bấm “Đã nhận hàng”.</span></div>}{["delivery_review", "disputed"].includes(delivery.deliveryStatus) && <div className="shipper-proof-wait is-error"><strong>Khách báo chưa nhận hàng</strong><span>Giữ nguyên ảnh và liên hệ bộ phận hỗ trợ để xử lý tranh chấp.</span></div>}{pickupRequested && delivery.deliveryStatus === "arrived_at_restaurant" && <div className="shipper-proof-wait"><strong>Đã gửi yêu cầu bàn giao</strong><span>Nhà hàng cần xác nhận đã giao món cho bạn trước khi bắt đầu giao khách.</span></div>}<div className="shipper-active-actions">{["assigned", "arrived_at_restaurant"].includes(delivery.deliveryStatus) && !pickupRequested && <button type="button" className="is-secondary" disabled={pending} onClick={release}>Trả chuyến</button>}{delivery.deliveryStatus === "arrived_at_restaurant" && delivery.orderStatus === "ready" && !pickupRequested && <button type="button" disabled={pending} onClick={() => run(() => requestPickupConfirmationAction(delivery.orderId))}>Tôi đã nhận món · Gửi quán xác nhận</button>}{next && <button type="button" disabled={pending} onClick={() => run(() => updateDeliveryAction(delivery.orderId, next.status))}>{next.label}</button>}</div>{delivery.deliveryStatus === "arrived_at_restaurant" && delivery.orderStatus !== "ready" && <p className="shipper-field-note">Bạn chỉ có thể yêu cầu xác nhận lấy món sau khi nhà hàng chuyển đơn sang “Sẵn sàng”.</p>}</section>;
 }

@@ -4,9 +4,16 @@ import { revalidatePath } from "next/cache";
 
 import type { DeliveryStatus, ShipperActionResult, ShipperApplicationInput } from "@/types/shipper";
 import { requireAnyRole, requireCurrentUser } from "@/utils/auth/guards";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const DELIVERY_PROOF_BUCKET = "delivery-proof";
+const DELIVERY_PROOF_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
 
 function message(error: { code?: string; message?: string } | null, fallback: string) {
   if (!error) return fallback;
@@ -19,6 +26,63 @@ function message(error: { code?: string; message?: string } | null, fallback: st
 
 function refresh() {
   revalidatePath("/shipper"); revalidatePath("/admin"); revalidatePath("/orders", "layout");
+}
+
+async function getDeliveryProofContext(orderId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("api_get_shipper_dashboard");
+  if (error || !data || typeof data !== "object" || Array.isArray(data)) return null;
+  const source = data as Record<string, unknown>;
+  const profile = source.profile && typeof source.profile === "object" && !Array.isArray(source.profile)
+    ? source.profile as Record<string, unknown> : null;
+  const shipperId = typeof profile?.id === "string" ? profile.id : null;
+  const deliveries = Array.isArray(source.active_deliveries) ? source.active_deliveries : [];
+  const delivery = deliveries.find((value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    const item = value as Record<string, unknown>;
+    return item.order_id === orderId && item.delivery_status === "delivering";
+  });
+  return shipperId && delivery ? { shipperId } : null;
+}
+
+export async function createDeliveryProofUploadTicketAction(orderId: string, mimeType: string): Promise<
+  | { ok: true; objectPath: string; token: string }
+  | { ok: false; message: string }
+> {
+  await requireAnyRole(["SHIPPER"]);
+  if (!UUID.test(orderId) || !DELIVERY_PROOF_TYPES[mimeType]) {
+    return { ok: false, message: "Đơn hàng hoặc định dạng ảnh không hợp lệ." };
+  }
+  const context = await getDeliveryProofContext(orderId);
+  if (!context) {
+    return { ok: false, message: "Đơn không ở trạng thái đang giao hoặc không thuộc tài xế hiện tại." };
+  }
+  const objectPath = `orders/${orderId}/${context.shipperId}/${crypto.randomUUID()}.${DELIVERY_PROOF_TYPES[mimeType]}`;
+  try {
+    const { data, error } = await createAdminClient().storage.from(DELIVERY_PROOF_BUCKET)
+      .createSignedUploadUrl(objectPath);
+    if (error || !data?.token) {
+      console.error("[shipper] Không thể tạo vé tải ảnh giao hàng", error);
+      return { ok: false, message: "Không thể khởi tạo phiên tải ảnh giao hàng." };
+    }
+    return { ok: true, objectPath, token: data.token };
+  } catch (error) {
+    console.error("[shipper] Không thể khởi tạo Storage cho ảnh giao hàng", error);
+    return { ok: false, message: "Server chưa đọc được SUPABASE_SECRET_KEY." };
+  }
+}
+
+export async function discardDeliveryProofUploadAction(orderId: string, objectPath: string): Promise<void> {
+  await requireAnyRole(["SHIPPER"]);
+  if (!UUID.test(orderId) || !objectPath.startsWith(`orders/${orderId}/`) || objectPath.includes("..")) return;
+  const context = await getDeliveryProofContext(orderId);
+  if (!context || !objectPath.startsWith(`orders/${orderId}/${context.shipperId}/`)) return;
+  try {
+    const { error } = await createAdminClient().storage.from(DELIVERY_PROOF_BUCKET).remove([objectPath]);
+    if (error) console.error("[shipper] Chưa dọn được ảnh giao hàng chưa gắn bằng chứng", error);
+  } catch (error) {
+    console.error("[shipper] Không thể khởi tạo cleanup ảnh giao hàng", error);
+  }
 }
 
 export async function submitShipperApplicationAction(input: ShipperApplicationInput): Promise<ShipperActionResult> {
