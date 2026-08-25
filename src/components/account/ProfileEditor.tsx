@@ -19,6 +19,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { useRouter } from "next/navigation";
 import {
   useMemo,
   useRef,
@@ -30,12 +31,15 @@ import {
 } from "react";
 
 import {
+  createAvatarUploadTicketAction,
+  discardAvatarUploadAction,
   updateProfileAction,
   type ProfileActionState,
 } from "@/app/account/profile/actions";
 import type { ProfileFormValues } from "@/types/account";
 import type { PublicUser, UserStatus } from "@/types/auth";
 import { formatRole, getUserRoles } from "@/utils/roles";
+import { createClient } from "@/utils/supabase/client";
 import type { ProfileField, ValidationErrors } from "@/utils/validation";
 import { validateProfileValues } from "@/utils/validation";
 
@@ -100,6 +104,7 @@ type ProfileEditorProps = {
 };
 
 export default function ProfileEditor({ user }: ProfileEditorProps) {
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [actionState, setActionState] =
     useState<ProfileActionState>(initialActionState);
@@ -115,7 +120,7 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const isSaving = isTransitionPending;
   const roles = useMemo(() => getUserRoles(user).map(formatRole), [user]);
-  const avatarSource = values.avatarUrl || user.avatarUrl || "";
+  const avatarSource = values.avatarUrl || "";
   const displayUser = actionState.user || user;
 
   const handleEdit = () => {
@@ -227,14 +232,45 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
     const formData = new FormData();
     formData.set("fullName", validation.normalized.fullName);
     formData.set("phone", validation.normalized.phone);
-    formData.set(
-      "avatarUrl",
-      values.avatarUrl?.startsWith("data:")
-        ? user.avatarUrl || ""
-        : values.avatarUrl || ""
-    );
+    const shouldRemoveAvatar =
+      !values.avatarFile && !values.avatarUrl && Boolean(displayUser.avatarUrl);
+    const avatarFile = values.avatarFile;
 
     startTransition(async () => {
+      let uploadedObjectPath = "";
+
+      if (avatarFile) {
+        const ticket = await createAvatarUploadTicketAction(avatarFile.type);
+        if (!ticket.ok) {
+          setFeedback({ severity: "error", message: ticket.message });
+          return;
+        }
+
+        uploadedObjectPath = ticket.objectPath;
+        const supabase = createClient();
+        const { error: uploadError } = await supabase.storage
+          .from("user-avatars")
+          .uploadToSignedUrl(
+            ticket.objectPath,
+            ticket.token,
+            avatarFile,
+            { contentType: avatarFile.type, upsert: false }
+          );
+
+        if (uploadError) {
+          await discardAvatarUploadAction(ticket.objectPath);
+          setFeedback({
+            severity: "error",
+            message: "Không thể tải ảnh đại diện lên. Vui lòng thử lại.",
+          });
+          return;
+        }
+
+        formData.set("avatarObjectPath", ticket.objectPath);
+      } else if (shouldRemoveAvatar) {
+        formData.set("removeAvatar", "true");
+      }
+
       const result = await updateProfileAction(actionState, formData);
 
       setActionState(result);
@@ -247,14 +283,14 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
           message: result.message || "Cập nhật hồ sơ thành công.",
         });
 
-        if (result.user) {
-          setValues((currentValues) => ({
-            ...getInitialValues(result.user as PublicUser),
-            avatarUrl: currentValues.avatarUrl || result.user?.avatarUrl || "",
-          }));
-        }
+        if (result.user) setValues(getInitialValues(result.user));
+        router.refresh();
 
         return;
+      }
+
+      if (uploadedObjectPath) {
+        await discardAvatarUploadAction(uploadedObjectPath);
       }
 
       setFieldErrors(result.fieldErrors || {});
@@ -433,7 +469,8 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
       >
         <DialogTitle id="delete-avatar-title">Xóa ảnh đại diện?</DialogTitle>
         <DialogContent>
-          Ảnh đại diện sẽ được gỡ khỏi phần xem trước hồ sơ của bạn.
+          Ảnh đại diện sẽ bị xóa khỏi hồ sơ và Storage sau khi bạn bấm
+          “Lưu thay đổi”.
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setIsDeleteDialogOpen(false)}>Hủy</Button>
