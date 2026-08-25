@@ -57,7 +57,7 @@ function fallbackJourney(order: RawOrderDetail, deliveryStatus: string): Custome
 
 export default async function OrderDetailRoute({ params }: OrderDetailRouteProps) {
   const { orderId } = await params;
-  const user = await requireCurrentUser();
+  await requireCurrentUser();
   const supabase = await createClient();
   const [detailResult, journeyResult, deliveryResult] = await Promise.all([
     supabase.rpc("get_order_detail", { p_order_id: orderId }),
@@ -150,5 +150,5 @@ export default async function OrderDetailRoute({ params }: OrderDetailRouteProps
     } : null,
   } : null;
 
-  return <CustomerOrderDetailPage user={user} order={view} journey={journey} deliveryPanel={deliveryPanel} />;
+  return <CustomerOrderDetailPage order={view} journey={journey} deliveryPanel={deliveryPanel} />;
 }

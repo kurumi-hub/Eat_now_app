@@ -6,10 +6,9 @@ import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
-import SiteFooter from "@/components/common/SiteFooter";
-import CustomerHeader from "@/components/home/CustomerHeader";
+import { cancelPendingOrderAction } from "@/app/orders/actions";
 import { customerOrderStatus } from "@/lib/data/customerOrders";
 import type { PublicUser } from "@/types/auth";
 import type { CustomerOrderList, CustomerOrderSummary } from "@/types/customerOrders";
@@ -63,6 +62,8 @@ export default function CustomerOrderHistoryPage({
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
   const [notice, setNotice] = useState(paymentNotice || loadError || "");
+  const [cancellingId, setCancellingId] = useState("");
+  const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     const supabase = createClient();
@@ -78,11 +79,18 @@ export default function CustomerOrderHistoryPage({
       && (!query || order.code.toLocaleLowerCase("vi").includes(query)
         || order.restaurant.name.toLocaleLowerCase("vi").includes(query)));
   }, [data.items, filter, search]);
-  const featuredId = visible.find((order) => !["completed", "cancelled"].includes(order.status))?.id;
-  const placeholder = (message: string) => setNotice(message);
+  const cancelOrder = (order: CustomerOrderSummary) => {
+    if (!window.confirm(`Hủy đơn #${order.code}? Nhà hàng chưa xác nhận nên bạn có thể hủy ngay.`)) return;
+    setCancellingId(order.id);
+    startTransition(async () => {
+      const result = await cancelPendingOrderAction(order.id);
+      setNotice(result.message);
+      setCancellingId("");
+      if (result.ok) router.refresh();
+    });
+  };
 
   return <div className="customer-orders-page">
-    <CustomerHeader user={user} onPlaceholder={placeholder} onSectionNavigate={(id) => router.push(`/#${id}`)} />
     <main className="customer-orders-main">
       <header className="customer-orders-title">
         <div><span>Hành trình của bạn</span><h1>Đơn hàng của tôi</h1><p>Theo dõi đơn đang xử lý và xem lại lịch sử đặt món.</p></div>
@@ -95,20 +103,21 @@ export default function CustomerOrderHistoryPage({
       </div>
       {visible.length ? <section className="customer-order-grid">{visible.map((order) => {
         const status = customerOrderStatus(order);
-        const featured = order.id === featuredId;
         const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
-        return <article key={order.id} className={`customer-order-card${featured ? " is-featured" : ""}`}>
+        return <article key={order.id} className="customer-order-card">
           <div className="customer-order-card__media">{order.restaurant.imageUrl ? <img src={order.restaurant.imageUrl} alt={order.restaurant.name} /> : <StorefrontOutlinedIcon />}</div>
           <div className="customer-order-card__content">
             <div className="customer-order-card__top"><span className={`customer-order-status is-${status.tone}`}>{status.label}</span><strong>{money(order.pricing.total)}</strong></div>
             <div><h2>{order.restaurant.name}</h2><p>#{order.code} · {date(order.createdAt)}</p></div>
             <p className="customer-order-card__items">{order.items.slice(0, 3).map((item) => `${item.quantity}× ${item.name}`).join(" · ")}{order.items.length > 3 ? ` · +${order.items.length - 3} món` : ""}</p>
             <div className="customer-order-card__meta"><span>{itemCount} món</span><span>{PAYMENT_METHODS[order.payment.method] || order.payment.method}</span></div>
-            <div className="customer-order-card__actions"><Link href={`/orders/${order.id}`}>{featured ? <><LocalShippingOutlinedIcon fontSize="small" /> Theo dõi hành trình</> : "Xem chi tiết"}</Link>{order.restaurant.slug && <Link className="is-secondary" href={`/restaurants/${order.restaurant.slug}`}>Xem nhà hàng</Link>}</div>
+            <div className="customer-order-card__actions">
+              <div>{order.restaurant.slug && <Link className="is-secondary" href={`/restaurants/${order.restaurant.slug}`}>Xem chi tiết nhà hàng</Link>}</div>
+              <div>{order.status === "pending" && <button type="button" className="is-danger" disabled={pending} onClick={() => cancelOrder(order)}>{cancellingId === order.id ? "Đang hủy..." : "Hủy đơn"}</button>}<Link className="is-primary" href={`/orders/${order.id}`}><LocalShippingOutlinedIcon fontSize="small" /> Theo dõi hành trình</Link></div>
+            </div>
           </div>
         </article>;
       })}</section> : <section className="customer-orders-empty"><StorefrontOutlinedIcon /><h2>Không có đơn hàng phù hợp</h2><p>Thử chọn bộ lọc khác hoặc đặt món đầu tiên của bạn.</p><Link href="/">Khám phá nhà hàng</Link></section>}
     </main>
-    <SiteFooter onPlaceholder={placeholder} />
   </div>;
 }

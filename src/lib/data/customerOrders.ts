@@ -69,7 +69,7 @@ export function customerOrderStatus(order: Pick<CustomerOrderSummary, "status" |
     return { label: "Chờ bạn xác nhận", tone: "active" } as const;
   }
   const delivery: Record<string, string> = {
-    assigned: "Đã có tài xế", arrived_at_restaurant: "Tài xế đã đến quán",
+    searching: "Đang tìm tài xế", assigned: "Đã có tài xế", arrived_at_restaurant: "Tài xế đã đến quán",
     picked_up: "Tài xế đã lấy món", delivering: "Đang giao đến bạn", delivered: "Đã giao",
   };
   if (delivery[order.deliveryStatus]) {

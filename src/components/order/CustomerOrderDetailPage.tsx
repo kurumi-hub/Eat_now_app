@@ -11,13 +11,11 @@ import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 
-import SiteFooter from "@/components/common/SiteFooter";
-import CustomerHeader from "@/components/home/CustomerHeader";
+import { cancelPendingOrderAction } from "@/app/orders/actions";
 import CustomerDeliveryPanel, { type CustomerDeliveryData } from "@/components/order/CustomerDeliveryPanel";
 import { customerOrderStatus } from "@/lib/data/customerOrders";
-import type { PublicUser } from "@/types/auth";
 import type { CustomerOrderJourney } from "@/types/customerOrders";
 
 export type CustomerOrderDetailView = {
@@ -70,9 +68,11 @@ function stages(journey: CustomerOrderJourney) {
   return [
     { id: "placed", title: "Đã đặt hàng", description: "EatNow đã ghi nhận đơn hàng.", at: journey.createdAt, reached: true },
     { id: "accepted", title: "Nhà hàng xác nhận", description: "Nhà hàng đã tiếp nhận đơn.", at: journey.acceptedAt, reached: Boolean(journey.acceptedAt) },
+    { id: "searching", title: "Đang tìm tài xế", description: "EatNow tìm tài xế trong tối đa 30 phút.", at: journey.acceptedAt, reached: Boolean(journey.acceptedAt) },
+    { id: "assigned", title: "Tài xế nhận chuyến", description: "Có tài xế nhận chuyến thì nhà hàng mới bắt đầu chuẩn bị.", at: journey.shipperAssignedAt, reached: Boolean(journey.shipperAssignedAt) },
     { id: "preparing", title: "Đang chuẩn bị món", description: "Bếp đang chuẩn bị các món trong đơn.", at: journey.preparingAt, reached: Boolean(journey.preparingAt) },
     { id: "ready", title: "Món đã sẵn sàng", description: "Đơn đang chờ tài xế nhận món.", at: journey.readyAt, reached: Boolean(journey.readyAt) },
-    { id: "assigned", title: "Tài xế nhận chuyến", description: "Tài xế đang di chuyển đến nhà hàng.", at: journey.shipperAssignedAt, reached: Boolean(journey.shipperAssignedAt) },
+    { id: "arrived", title: "Tài xế đã đến nhà hàng", description: "Tài xế đang chờ món tại nhà hàng.", at: journey.shipperArrivedAt, reached: Boolean(journey.shipperArrivedAt) },
     { id: "picked", title: "Đã nhận món", description: "Nhà hàng đã xác nhận bàn giao món.", at: journey.pickupConfirmedAt || journey.pickedUpAt, reached: Boolean(journey.pickupConfirmedAt || journey.pickedUpAt) },
     { id: "delivering", title: "Đang giao đến bạn", description: "Tài xế đang di chuyển đến địa chỉ nhận hàng.", at: deliveryStarted ? journey.events.find((event) => event.toDeliveryStatus === "delivering")?.createdAt : undefined, reached: deliveryStarted },
     { id: "proof", title: "Chờ xác nhận nhận hàng", description: "Tài xế đã gửi ảnh giao hàng.", at: journey.proofSubmittedAt, reached: Boolean(journey.proofSubmittedAt) },
@@ -85,29 +85,36 @@ function statusDescription(order: CustomerOrderDetailView) {
   if (["delivery_review", "disputed"].includes(order.deliveryStatus)) return "Phản hồi của bạn đã được ghi nhận và đang được EatNow xử lý.";
   if (order.status === "cancelled") return "Đơn hàng đã dừng. Xem lý do trong hành trình bên dưới.";
   if (order.status === "completed") return "Đơn đã được giao thành công. Cảm ơn bạn đã sử dụng EatNow.";
+  if (order.status === "confirmed" && order.deliveryStatus === "searching") return "Hệ thống đang tìm tài xế. Đơn sẽ tự hủy nếu không tìm được trong 30 phút.";
   if (order.deliveryStatus === "delivering") return "Tài xế đang trên đường giao món đến bạn.";
   return "Trạng thái được cập nhật tự động khi nhà hàng và tài xế xử lý đơn.";
 }
 
 export default function CustomerOrderDetailPage({
-  user, order, journey, deliveryPanel,
+  order, journey, deliveryPanel,
 }: {
-  user: PublicUser;
   order: CustomerOrderDetailView;
   journey: CustomerOrderJourney;
   deliveryPanel: CustomerDeliveryData | null;
 }) {
   const router = useRouter();
   const [notice, setNotice] = useState("");
+  const [pending, startTransition] = useTransition();
   const presentation = customerOrderStatus({ status: order.status, deliveryStatus: order.deliveryStatus });
   const timeline = stages(journey);
   const lastReached = timeline.reduce((last, step, index) => step.reached ? index : last, 0);
   const extraFees = order.pricing.packagingFee + order.pricing.serviceFee + order.pricing.smallOrderFee
     + order.pricing.paymentFee + order.pricing.otherFee + order.pricing.taxAmount + order.pricing.tipAmount;
-  const placeholder = (message: string) => setNotice(message);
+  const cancelOrder = () => {
+    if (!window.confirm(`Hủy đơn #${order.code}? Nhà hàng chưa xác nhận nên bạn có thể hủy ngay.`)) return;
+    startTransition(async () => {
+      const result = await cancelPendingOrderAction(order.id);
+      setNotice(result.message);
+      if (result.ok) router.refresh();
+    });
+  };
 
   return <div className="customer-order-detail-page">
-    <CustomerHeader user={user} onPlaceholder={placeholder} onSectionNavigate={(id) => router.push(`/#${id}`)} />
     <main className="customer-order-detail-main">
       <header className="customer-order-detail-title"><Link href="/orders" aria-label="Quay lại danh sách đơn"><ArrowBackOutlinedIcon /></Link><div><span>#{order.code}</span><h1>Hành trình đơn hàng</h1><p>Đặt lúc {time(order.createdAt)}</p></div></header>
       {notice && <div className="customer-orders-notice" role="status"><span>{notice}</span><button type="button" onClick={() => setNotice("")}>×</button></div>}
@@ -115,6 +122,7 @@ export default function CustomerOrderDetailPage({
         <section className="customer-order-detail-content">
           <article className={`customer-order-hero is-${presentation.tone}`}>
             <div><span>Trạng thái hiện tại</span><h2>{presentation.label}</h2><p>{statusDescription(order)}</p></div>
+            {order.status === "pending" && <button type="button" className="customer-order-cancel-button" disabled={pending} onClick={cancelOrder}>{pending ? "Đang hủy..." : "Hủy đơn"}</button>}
             {presentation.tone === "completed" ? <CheckCircleOutlinedIcon /> : presentation.tone === "cancelled" || presentation.tone === "issue" ? <ScheduleOutlinedIcon /> : <LocalShippingOutlinedIcon />}
           </article>
           <article className="customer-order-section">
@@ -142,6 +150,5 @@ export default function CustomerOrderDetailPage({
         </aside>
       </div>
     </main>
-    <SiteFooter onPlaceholder={placeholder} />
   </div>;
 }
