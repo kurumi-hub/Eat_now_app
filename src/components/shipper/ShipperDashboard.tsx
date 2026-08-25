@@ -1,7 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 
 import {
   acceptDeliveryAction, acceptDeliveryOfferAction, rejectDeliveryOfferAction,
@@ -13,6 +12,7 @@ import type { PublicUser } from "@/types/auth";
 import type { ActiveDelivery, DeliveryRouteStop, DeliveryStatus, ShipperActionResult, ShipperApplicationInput, ShipperDashboardData } from "@/types/shipper";
 import { createClient } from "@/utils/supabase/client";
 import OrderJourneyTimeline from "@/components/order/OrderJourneyTimeline";
+import { parseShipperDashboard } from "@/lib/data/shipper";
 
 const APPLICATION_STATUS: Record<string, { label: string; message: string }> = {
   SUBMITTED: { label: "Chờ tiếp nhận", message: "Hồ sơ đã được gửi và đang chờ Admin tiếp nhận." },
@@ -37,50 +37,83 @@ function date(value?: string) { if (!value) return "—"; const parsed = new Dat
 function mapHref(address: string, lat?: number, lon?: number) { const destination = lat != null && lon != null ? `${lat},${lon}` : address; return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`; }
 function routeHref(stops: DeliveryRouteStop[]) { const pending = stops.filter((stop) => stop.status === "pending"); const points = (pending.length ? pending : stops).map((stop) => stop.lat != null && stop.lon != null ? `${stop.lat},${stop.lon}` : stop.address); if (!points.length) return "https://www.google.com/maps"; const destination = points.at(-1)!; const waypoints = points.slice(0, -1); return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}${waypoints.length ? `&waypoints=${encodeURIComponent(waypoints.join("|"))}` : ""}`; }
 
-export default function ShipperDashboard({ user, data }: { user: PublicUser; data: ShipperDashboardData }) {
-  const router = useRouter(); const [pending, startTransition] = useTransition();
+export default function ShipperDashboard({ user, data: initialData }: { user: PublicUser; data: ShipperDashboardData }) {
+  const [data, setData] = useState(initialData); const [pending, startTransition] = useTransition();
+  const [realtimeState, setRealtimeState] = useState<"connecting" | "live" | "retrying">("connecting");
   const [notice, setNotice] = useState<ShipperActionResult | null>(null); const application = data.application;
   // Hồ sơ tài xế đã được tạo mới là nguồn xác nhận quyền vận hành. Không để
   // trạng thái application cũ/stale kéo người đã duyệt quay lại luồng xét duyệt.
   const dashboardReady = Boolean(data.profile?.isActive);
   const canEditApplication = !data.profile && (!application || ["NEEDS_CHANGES", "REJECTED"].includes(application.status));
-  const run = (task: () => Promise<ShipperActionResult>) => startTransition(async () => { const result = await task(); setNotice(result); if (result.ok) router.refresh(); });
-  useEffect(() => { if (!data.offers.length) return; const nextExpiry = Math.min(...data.offers.map((offer) => new Date(offer.expiresAt).getTime())); const timer = window.setTimeout(() => router.refresh(), Math.max(250, nextExpiry - Date.now() + 250)); return () => window.clearTimeout(timer); }, [data.offers, router]);
-  useEffect(() => {
+  const syncDashboard = useCallback(async () => {
     const supabase = createClient();
-    const activeOrderIds = new Set(data.activeDeliveries.map((delivery) => delivery.orderId));
+    const { data: next, error } = await supabase.rpc("api_get_shipper_dashboard");
+    if (error) {
+      setRealtimeState("retrying");
+      return;
+    }
+    setData(parseShipperDashboard(next));
+  }, []);
+  useEffect(() => setData(initialData), [initialData]);
+  const run = (task: () => Promise<ShipperActionResult>) => startTransition(async () => { const result = await task(); setNotice(result); if (result.ok) await syncDashboard(); });
+  useEffect(() => { if (!data.offers.length) return; const nextExpiry = Math.min(...data.offers.map((offer) => new Date(offer.expiresAt).getTime())); const timer = window.setTimeout(() => void syncDashboard(), Math.max(250, nextExpiry - Date.now() + 250)); return () => window.clearTimeout(timer); }, [data.offers, syncDashboard]);
+  useEffect(() => {
+    const shipperId = data.profile?.id;
+    if (!shipperId) return;
+    const supabase = createClient();
     let refreshTimer: number | undefined;
-    let fallbackTimer: number | undefined;
     const refresh = () => {
       window.clearTimeout(refreshTimer);
-      refreshTimer = window.setTimeout(() => router.refresh(), 300);
+      refreshTimer = window.setTimeout(() => void syncDashboard(), 200);
     };
-    const channel = supabase.channel(`shipper-orders-${user.id}`)
-      .on("postgres_changes", {
-        event: "INSERT", schema: "public", table: "notifications", filter: `receiver_id=eq.${user.id}`,
-      }, refresh)
-      .on("postgres_changes", {
-        event: "INSERT", schema: "public", table: "order_events",
-      }, (payload) => {
-        const orderId = String((payload.new as { order_id?: string }).order_id || "");
-        if (activeOrderIds.has(orderId)) refresh();
-      })
+    const announceOffer = () => {
+      setNotice({ ok: true, message: "Có đơn giao mới. Danh sách đang được cập nhật…" });
+      navigator.vibrate?.([180, 80, 180]);
+      try {
+        const audio = new AudioContext();
+        const oscillator = audio.createOscillator();
+        oscillator.connect(audio.destination);
+        oscillator.frequency.value = 920;
+        oscillator.start();
+        oscillator.stop(audio.currentTime + .18);
+      } catch { /* Trình duyệt có thể chặn âm thanh trước tương tác đầu tiên. */ }
+      refresh();
+    };
+    const pollTimer = window.setInterval(refresh, 15_000);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener("online", refresh);
+    const updateConnection = (status: string) => {
+      if (status === "SUBSCRIBED") setRealtimeState("live");
+      else if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) setRealtimeState("retrying");
+    };
+    const offerChannel = supabase
+      .channel(`shipper:${shipperId}:offers`, { config: { private: true } })
+      .on("broadcast", { event: "offer_created" }, announceOffer)
+      .on("broadcast", { event: "offer_changed" }, refresh)
+      .on("broadcast", { event: "offer_removed" }, refresh)
+      .subscribe(updateConnection);
+    const orderChannel = supabase
+      .channel(`shipper:${shipperId}:orders`, { config: { private: true } })
+      .on("broadcast", { event: "order_changed" }, refresh)
       .subscribe((status) => {
-        window.clearInterval(fallbackTimer);
-        if (status !== "SUBSCRIBED" && data.activeDeliveries.length) {
-          fallbackTimer = window.setInterval(refresh, 20_000);
-        }
+        updateConnection(status);
       });
     return () => {
       window.clearTimeout(refreshTimer);
-      window.clearInterval(fallbackTimer);
-      void supabase.removeChannel(channel);
+      window.clearInterval(pollTimer);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("online", refresh);
+      void supabase.removeChannel(offerChannel);
+      void supabase.removeChannel(orderChannel);
     };
-  }, [data.activeDeliveries, router, user.id]);
+  }, [data.profile?.id, syncDashboard]);
   const updateLocation = () => { if (!navigator.geolocation) { setNotice({ ok: false, message: "Trình duyệt không hỗ trợ định vị." }); return; } navigator.geolocation.getCurrentPosition((position) => run(() => updateShipperLocationAction(position.coords.latitude, position.coords.longitude)), () => setNotice({ ok: false, message: "Không thể lấy vị trí. Hãy cấp quyền định vị cho trình duyệt." }), { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }); };
 
   return <main className="shipper-page">
-    <header className="shipper-hero"><div><p>Kênh tài xế EatNow</p><h1>{data.profile?.fullName || user.fullName}</h1><span>Nhận đề xuất tự động, ghép tối đa 2 đơn và đi theo tuyến đã tối ưu.</span></div>{data.profile && <div className="shipper-availability"><span className={data.profile.isActive ? data.profile.isOnline ? "is-online" : "is-offline" : "is-suspended"}>{data.profile.isActive ? data.profile.isOnline ? "Đang online" : "Đang offline" : "Đã tạm khóa"}</span>{data.profile.isActive && <button disabled={pending || data.activeDeliveries.length > 0} onClick={() => run(() => setShipperOnlineAction(!data.profile!.isOnline))}>{data.profile.isOnline ? "Chuyển offline" : "Bắt đầu nhận chuyến"}</button>}</div>}</header>
+    <header className="shipper-hero"><div><p>Kênh tài xế EatNow</p><h1>{data.profile?.fullName || user.fullName}</h1><span>Nhận đề xuất tự động, ghép tối đa 2 đơn và đi theo tuyến đã tối ưu.</span><small className={`realtime-status is-${realtimeState}`}>{realtimeState === "live" ? "Đơn mới đang cập nhật trực tiếp" : realtimeState === "retrying" ? "Đang kết nối lại Realtime" : "Đang kết nối Realtime"}</small></div>{data.profile && <div className="shipper-availability"><span className={data.profile.isActive ? data.profile.isOnline ? "is-online" : "is-offline" : "is-suspended"}>{data.profile.isActive ? data.profile.isOnline ? "Đang online" : "Đang offline" : "Đã tạm khóa"}</span>{data.profile.isActive && <button disabled={pending || data.activeDeliveries.length > 0} onClick={() => run(() => setShipperOnlineAction(!data.profile!.isOnline))}>{data.profile.isOnline ? "Chuyển offline" : "Bắt đầu nhận chuyến"}</button>}</div>}</header>
     {notice && <div className={`shipper-notice ${notice.ok ? "is-success" : "is-error"}`} role="status"><span>{notice.message}</span><button onClick={() => setNotice(null)}>×</button></div>}
     {canEditApplication ? <ApplicationForm user={user} data={application} pending={pending} onSubmit={(input) => run(() => submitShipperApplicationAction(input))} /> : null}
     {!data.profile && application && !canEditApplication && application.status !== "APPROVED" ? <section className="shipper-status-card"><span className={`shipper-status is-${application.status.toLowerCase()}`}>{APPLICATION_STATUS[application.status]?.label}</span><h2>Hồ sơ tài xế phiên bản {application.revision}</h2><p>{APPLICATION_STATUS[application.status]?.message}</p>{application.reviewNote && <blockquote>{application.reviewNote}</blockquote>}<small>Gửi lúc {date(application.submittedAt)}</small></section> : null}
@@ -91,8 +124,8 @@ export default function ShipperDashboard({ user, data }: { user: PublicUser; dat
       {data.activeDeliveries.length > 0 && <LiveTracking onNotice={setNotice} />}
       {data.offers.length > 0 && <OfferList data={data} pending={pending} run={run} />}
       {data.route.length > 0 && <RoutePlan stops={data.route} count={data.activeDeliveries.length} />}
-      {data.activeDeliveries.map((delivery) => <ActiveDeliveryCard key={delivery.orderId} delivery={delivery} pending={pending} run={run} onNotice={setNotice} onRefresh={() => router.refresh()} />)}
-      {data.activeDeliveries.length < 2 && <AvailableList data={data} pending={pending} run={run} onRefresh={() => router.refresh()} />}
+      {data.activeDeliveries.map((delivery) => <ActiveDeliveryCard key={delivery.orderId} delivery={delivery} pending={pending} run={run} onNotice={setNotice} onRefresh={() => void syncDashboard()} />)}
+      {data.activeDeliveries.length < 2 && <AvailableList data={data} pending={pending} run={run} onRefresh={() => void syncDashboard()} />}
       <ShipperWalletPlaceholder />
       <section className="shipper-panel"><div className="shipper-panel__heading"><div><p>20 chuyến gần nhất</p><h2>Lịch sử giao hàng</h2></div></div><div className="shipper-history">{data.history.length ? data.history.map((item) => <article key={item.orderId}><div><strong>{item.code}</strong><span>{item.restaurantName}</span></div><div><b>{money(item.earning)}</b><span>{DELIVERY_STATUS[item.deliveryStatus] || item.deliveryStatus} · {date(item.completedAt)}</span></div></article>) : <div className="shipper-empty">Chưa có chuyến đã hoàn thành.</div>}</div></section>
     </> : null}

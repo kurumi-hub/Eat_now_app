@@ -3,7 +3,7 @@
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import { Alert, Badge, IconButton, Menu, Snackbar } from "@mui/material";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { PublicUser } from "@/types/auth";
 import { createClient } from "@/utils/supabase/client";
@@ -41,48 +41,61 @@ export default function NotificationCenter({ user }: { user: PublicUser }) {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [toast, setToast] = useState<NotificationItem | null>(null);
   const [unread, setUnread] = useState(0);
+  const [error, setError] = useState("");
+  const [realtimeState, setRealtimeState] = useState<"connecting" | "live" | "retrying">("connecting");
+  const lastTopId = useRef("");
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (showToast = false) => {
     const supabase = createClient();
-    const [listResult, countResult] = await Promise.all([
-      supabase
-        .from("notifications")
-        .select("id,title,content,ref_type,ref_id,is_read,created_at")
-        .eq("receiver_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(30),
-      supabase
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("receiver_id", user.id)
-        .eq("is_read", false),
-    ]);
-    if (!listResult.error) setItems((listResult.data || []) as NotificationItem[]);
-    if (!countResult.error) setUnread(countResult.count || 0);
-  }, [user.id]);
+    const { data, error: rpcError } = await supabase.rpc("api_list_my_notifications", {
+      p_limit: 30,
+      p_before: null,
+    });
+    if (rpcError) {
+      setError("Không thể tải thông báo. Hãy kiểm tra SQL 46 và kết nối Realtime.");
+      return;
+    }
+    const response = data && typeof data === "object" && !Array.isArray(data)
+      ? data as { items?: unknown; unread_count?: unknown }
+      : {};
+    const nextItems = Array.isArray(response.items)
+      ? response.items as NotificationItem[]
+      : [];
+    const nextTopId = nextItems[0]?.id || "";
+    if (showToast && nextTopId && lastTopId.current && nextTopId !== lastTopId.current) {
+      setToast(nextItems[0]);
+    }
+    lastTopId.current = nextTopId;
+    setItems(nextItems);
+    setUnread(Math.max(0, Number(response.unread_count) || 0));
+    setError("");
+  }, []);
 
   useEffect(() => {
-    void load();
+    void load(false);
     const supabase = createClient();
+    const refreshTimer = window.setInterval(() => void load(false), 20_000);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void load(false);
+    };
+    document.addEventListener("visibilitychange", refreshWhenVisible);
     const channel = supabase
-      .channel(`notification-center-${user.id}`)
+      .channel(`user:${user.id}:notifications`, { config: { private: true } })
       .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `receiver_id=eq.${user.id}`,
-        },
-        (payload) => {
-          const next = payload.new as NotificationItem;
-          setItems((current) => [next, ...current.filter((item) => item.id !== next.id)].slice(0, 30));
-          if (!next.is_read) setUnread((value) => value + 1);
-          setToast(next);
-        }
+        "broadcast",
+        { event: "notification_changed" },
+        () => void load(true)
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          setRealtimeState("live");
+        } else if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
+          setRealtimeState("retrying");
+        }
+      });
     return () => {
+      window.clearInterval(refreshTimer);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
       void supabase.removeChannel(channel);
     };
   }, [load, user.id]);
@@ -92,7 +105,13 @@ export default function NotificationCenter({ user }: { user: PublicUser }) {
       setItems((current) => current.map((value) => value.id === item.id ? { ...value, is_read: true } : value));
       setUnread((value) => Math.max(0, value - 1));
       const supabase = createClient();
-      await supabase.from("notifications").update({ is_read: true }).eq("id", item.id).eq("receiver_id", user.id);
+      const { error: markError } = await supabase.rpc("api_mark_notification_read", {
+        p_notification_id: item.id,
+      });
+      if (markError) {
+        setError("Không thể đánh dấu thông báo đã đọc.");
+        void load(false);
+      }
     }
     setAnchor(null);
     router.push(notificationHref(user, item));
@@ -102,7 +121,11 @@ export default function NotificationCenter({ user }: { user: PublicUser }) {
     setItems((current) => current.map((item) => ({ ...item, is_read: true })));
     setUnread(0);
     const supabase = createClient();
-    await supabase.from("notifications").update({ is_read: true }).eq("receiver_id", user.id).eq("is_read", false);
+    const { error: markError } = await supabase.rpc("api_mark_all_notifications_read");
+    if (markError) {
+      setError("Không thể đánh dấu tất cả thông báo đã đọc.");
+      void load(false);
+    }
   };
 
   return (
@@ -125,10 +148,11 @@ export default function NotificationCenter({ user }: { user: PublicUser }) {
         slotProps={{ paper: { className: "notification-menu" } }}
       >
         <div className="notification-menu__heading">
-          <div><strong>Thông báo</strong><span>{unread ? `${unread} chưa đọc` : "Đã đọc hết"}</span></div>
+          <div><strong>Thông báo</strong><span>{unread ? `${unread} chưa đọc` : "Đã đọc hết"} · {realtimeState === "live" ? "Trực tiếp" : realtimeState === "retrying" ? "Đang kết nối lại" : "Đang kết nối"}</span></div>
           {unread ? <button type="button" onClick={markAllRead}>Đọc tất cả</button> : null}
         </div>
         <div className="notification-menu__list">
+          {error ? <div className="notification-menu__error" role="alert">{error}<button type="button" onClick={() => void load(false)}>Thử lại</button></div> : null}
           {items.length ? items.map((item) => (
             <button
               type="button"

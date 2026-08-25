@@ -976,3 +976,5 @@
 .notification-menu__list > button span span { color: #5f666c; font-size: 12px; line-height: 1.45; }
 .notification-menu__list > button small { color: #92979b; font-size: 10px; }
 .notification-menu__list > p { margin: 0; padding: 32px 16px; color: #7b8288; text-align: center; }
+.notification-menu__error { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; background: #fff0ed; color: #a63d2d; font-size: 11px; }
+.notification-menu__error button { flex: 0 0 auto; border: 0; border-radius: 8px; padding: 6px 8px; background: #a63d2d; color: white; font: inherit; font-weight: 700; cursor: pointer; }

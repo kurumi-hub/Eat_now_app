@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { confirmShipperPickupAction, transitionOwnerOrderAction } from "@/app/owner/actions";
 import type { OwnerActionResult, OwnerOrderItem, OwnerOrderList } from "@/types/owner";
 import { createClient } from "@/utils/supabase/client";
 import OrderJourneyTimeline from "@/components/order/OrderJourneyTimeline";
+import { parseOwnerOrders } from "@/lib/data/owner";
 
 const STATUS: Record<string, string> = { pending: "Đơn mới", confirmed: "Đã nhận", preparing: "Đang chuẩn bị",
   ready: "Sẵn sàng giao", delivering: "Đang giao", completed: "Hoàn thành", cancelled: "Đã hủy" };
@@ -32,36 +33,88 @@ type PickupFeedback = {
   message: string;
 };
 
-export default function OwnerOrderConsole({ restaurantId, data, canReject }: { restaurantId: string; data: OwnerOrderList; canReject: boolean }) {
+export default function OwnerOrderConsole({ restaurantId, data: initialData, canReject }: { restaurantId: string; data: OwnerOrderList; canReject: boolean }) {
   const router = useRouter(); const [pending, startTransition] = useTransition();
+  const [data, setData] = useState(initialData);
   const [filter, setFilter] = useState<(typeof FILTERS)[number][0]>("all"); const [search, setSearch] = useState("");
   const [notice, setNotice] = useState<OwnerActionResult | null>(null); const [sound, setSound] = useState(false);
+  const [realtimeState, setRealtimeState] = useState<"connecting" | "live" | "retrying">("connecting");
   const [confirmingOrderId, setConfirmingOrderId] = useState("");
   const [pickupFeedback, setPickupFeedback] = useState<PickupFeedback | null>(null);
+  const syncOrders = useCallback(async () => {
+    const supabase = createClient();
+    const { data: next, error } = await supabase.rpc("api_list_restaurant_orders", {
+      p_restaurant_id: restaurantId,
+      p_status: null,
+      p_search: null,
+      p_limit: 100,
+      p_offset: 0,
+    });
+    if (error) {
+      setRealtimeState("retrying");
+      return;
+    }
+    setData(parseOwnerOrders(next));
+  }, [restaurantId]);
+  useEffect(() => setData(initialData), [initialData]);
   useEffect(() => {
     const supabase = createClient();
     let refreshTimer: number | undefined;
-    let fallbackTimer: number | undefined;
     const refresh = () => {
       window.clearTimeout(refreshTimer);
-      refreshTimer = window.setTimeout(() => router.refresh(), 300);
+      refreshTimer = window.setTimeout(() => void syncOrders(), 200);
     };
-    const channel = supabase.channel(`restaurant-orders-${restaurantId}`).on("postgres_changes", {
-      event: "INSERT", schema: "public", table: "order_events", filter: `restaurant_id=eq.${restaurantId}`,
-    }, () => {
+    const pollTimer = window.setInterval(refresh, 15_000);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener("online", refresh);
+    const channel = supabase
+      .channel(`restaurant:${restaurantId}:orders`, { config: { private: true } })
+      .on("broadcast", { event: "order_changed" }, (message) => {
+      const event = message.payload as {
+        order_id?: string;
+        to_order_status?: string;
+        to_delivery_status?: string;
+        event_id?: string | number;
+        event_type?: string;
+        created_at?: string;
+      };
+      if (event.order_id) {
+        setData((current) => ({
+          ...current,
+          items: current.items.map((item) => item.id !== event.order_id ? item : {
+            ...item,
+            status: event.to_order_status || item.status,
+            deliveryStatus: event.to_delivery_status || item.deliveryStatus,
+            events: event.event_id ? [...item.events, {
+              id: String(event.event_id),
+              eventType: event.event_type || "order_changed",
+              toOrderStatus: event.to_order_status,
+              toDeliveryStatus: event.to_delivery_status,
+              source: "realtime",
+              createdAt: event.created_at || new Date().toISOString(),
+            }] : item.events,
+          }),
+        }));
+      }
       if (sound) { const audio = new AudioContext(); const oscillator = audio.createOscillator();
         oscillator.connect(audio.destination); oscillator.frequency.value = 880; oscillator.start(); oscillator.stop(audio.currentTime + .12); }
       refresh();
-    }).subscribe((status) => {
-      window.clearInterval(fallbackTimer);
-      if (status !== "SUBSCRIBED") fallbackTimer = window.setInterval(refresh, 20_000);
-    });
+    })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") setRealtimeState("live");
+        else if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) setRealtimeState("retrying");
+      });
     return () => {
       window.clearTimeout(refreshTimer);
-      window.clearInterval(fallbackTimer);
+      window.clearInterval(pollTimer);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("online", refresh);
       void supabase.removeChannel(channel);
     };
-  }, [restaurantId, router, sound]);
+  }, [restaurantId, sound, syncOrders]);
   const items = useMemo(() => data.items.filter((item) => {
     const matchesSearch = !search.trim() || `${item.code} ${item.receiverName} ${item.receiverPhone}`.toLowerCase().includes(search.trim().toLowerCase());
     const matchesFilter = filter === "all" || filter === "new" && item.status === "pending" ||
@@ -74,7 +127,7 @@ export default function OwnerOrderConsole({ restaurantId, data, canReject }: { r
     if (action === "accept") { const raw = window.prompt("Thời gian chuẩn bị dự kiến sau khi có tài xế (phút):", "25"); if (!raw) return; etaMinutes = Number(raw); }
     if (action === "reject") { reason = window.prompt("Lý do từ chối đơn (ít nhất 5 ký tự):") || ""; if (!reason) return; }
     startTransition(async () => { const result = await transitionOwnerOrderAction({ restaurantId, orderId: item.id,
-      action, reason, etaMinutes, expectedVersion: item.version }); setNotice(result); if (result.ok) router.refresh(); });
+      action, reason, etaMinutes, expectedVersion: item.version }); setNotice(result); if (result.ok) { await syncOrders(); router.refresh(); } });
   };
   const confirmPickup = (item: OwnerOrderItem) => {
     if (pending || confirmingOrderId) return;
@@ -91,7 +144,7 @@ export default function OwnerOrderConsole({ restaurantId, data, canReject }: { r
           state: result.ok ? "success" : "error",
           message: result.message,
         });
-        if (result.ok) router.refresh();
+        if (result.ok) { await syncOrders(); router.refresh(); }
       } catch (error) {
         console.error("[owner] Không thể gọi thao tác xác nhận bàn giao", error);
         const result: OwnerActionResult = {
@@ -106,7 +159,7 @@ export default function OwnerOrderConsole({ restaurantId, data, canReject }: { r
     });
   };
   return <section className="owner-orders">
-    <div className="owner-orders__heading"><div><p>Điều hành theo thời gian thực</p><h2>Đơn hàng nhà hàng</h2><span>{data.total} đơn · thao tác được khóa phiên bản để tránh xử lý trùng</span></div><button type="button" className={sound ? "is-on" : ""} onClick={() => setSound((value) => !value)}>{sound ? "Âm báo đang bật" : "Bật âm báo"}</button></div>
+    <div className="owner-orders__heading"><div><p>Điều hành theo thời gian thực</p><h2>Đơn hàng nhà hàng</h2><span>{data.total} đơn · <b className={`realtime-status is-${realtimeState}`}>{realtimeState === "live" ? "Đang trực tiếp" : realtimeState === "retrying" ? "Đang kết nối lại" : "Đang kết nối"}</b></span></div><button type="button" className={sound ? "is-on" : ""} onClick={() => setSound((value) => !value)}>{sound ? "Âm báo đang bật" : "Bật âm báo"}</button></div>
     {notice && <div className={`owner-notice ${notice.ok ? "is-success" : "is-error"}`}><span>{notice.message}</span><button type="button" onClick={() => setNotice(null)}>×</button></div>}
     <div className="owner-orders__tools"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm mã đơn, khách hoặc số điện thoại"/><div>{FILTERS.map(([value,label]) => <button type="button" key={value} className={filter === value ? "is-active" : ""} onClick={() => setFilter(value)}>{label}</button>)}</div></div>
     <div className="owner-order-list">{items.length ? items.map((item) => <article key={item.id} className={`owner-order-card${item.incidentStatus === "open" ? " has-incident" : ""}`}>

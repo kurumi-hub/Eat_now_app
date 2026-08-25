@@ -109,3 +109,10 @@ select {
 .restaurant-address-field__selection span { color: #555d67; font-size: 13px; line-height: 1.5; }
 .restaurant-address-field__selection small { color: #8a9098; }
 .restaurant-address-field > .MuiButton-root { justify-self: start; }
+
+.realtime-status { display: inline-flex !important; width: fit-content; align-items: center; gap: 6px; font-size: 11px !important; font-weight: 750; }
+.realtime-status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #d08a25; }
+.realtime-status.is-live { color: #137a52 !important; }
+.realtime-status.is-live::before { background: #16a36d; box-shadow: 0 0 0 4px #16a36d22; }
+.realtime-status.is-retrying { color: #b2452c !important; }
+.realtime-status.is-retrying::before { background: #d95638; }
