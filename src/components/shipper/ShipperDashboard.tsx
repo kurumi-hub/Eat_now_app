@@ -80,6 +80,14 @@ function ShipperWalletPlaceholder() {
 
 function LiveTracking({ onNotice }: { onNotice: (notice: ShipperActionResult) => void }) {
   const [enabled, setEnabled] = useState(false); const [sentAt, setSentAt] = useState<string>(); const lastSent = useRef(0);
+  useEffect(() => {
+    if (!navigator.permissions) return;
+    let active = true;
+    navigator.permissions.query({ name: "geolocation" }).then((permission) => {
+      if (active && permission.state === "granted") setEnabled(true);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
   useEffect(() => { if (!enabled || !navigator.geolocation) return; const supabase = createClient(); const watch = navigator.geolocation.watchPosition(async (position) => { if (Date.now() - lastSent.current < 8000) return; lastSent.current = Date.now(); const { error } = await supabase.rpc("api_track_shipper_location", { p_lat: position.coords.latitude, p_lon: position.coords.longitude, p_accuracy: position.coords.accuracy, p_heading: position.coords.heading, p_speed: position.coords.speed, p_device_at: new Date(position.timestamp).toISOString() }); if (error) { setEnabled(false); onNotice({ ok: false, message: error.message || "Không thể chia sẻ vị trí." }); } else setSentAt(new Date().toISOString()); }, () => { setEnabled(false); onNotice({ ok: false, message: "Không thể theo dõi vị trí. Hãy cấp quyền định vị." }); }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }); return () => navigator.geolocation.clearWatch(watch); }, [enabled, onNotice]);
   return <section className={`shipper-tracking ${enabled ? "is-live" : ""}`}><div><strong>{enabled ? "Đang chia sẻ vị trí trực tiếp" : "Tracking đang tắt"}</strong><span>{enabled ? `Khách nhận cập nhật khoảng 8 giây/lần${sentAt ? ` · ${date(sentAt)}` : ""}.` : "Chỉ chia sẻ trong lúc có chuyến đang hoạt động."}</span></div><button onClick={() => setEnabled((value) => !value)}>{enabled ? "Dừng chia sẻ" : "Bật tracking"}</button></section>;
 }

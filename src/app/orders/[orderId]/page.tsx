@@ -130,6 +130,8 @@ export default async function OrderDetailRoute({ params }: OrderDetailRouteProps
 
   const proofSource = object(deliverySource.proof);
   const locationSource = object(deliverySource.latest_location);
+  const restaurantLocationSource = object(deliverySource.restaurant_location);
+  const destinationLocationSource = object(deliverySource.destination_location);
   let proofUrl: string | undefined;
   const proofObjectPath = typeof proofSource.object_path === "string"
     ? proofSource.object_path : "";
@@ -149,6 +151,10 @@ export default async function OrderDetailRoute({ params }: OrderDetailRouteProps
     }
   }
   const lat = Number(locationSource.lat); const lon = Number(locationSource.lon);
+  const restaurantLat = Number(restaurantLocationSource.lat);
+  const restaurantLon = Number(restaurantLocationSource.lon);
+  const destinationLat = Number(destinationLocationSource.lat);
+  const destinationLon = Number(destinationLocationSource.lon);
   const deliveryPanel: CustomerDeliveryData | null = typeof deliverySource.delivery_status === "string" ? {
     orderId, deliveryStatus: deliverySource.delivery_status,
     canConfirm: deliverySource.can_confirm === true,
@@ -159,8 +165,16 @@ export default async function OrderDetailRoute({ params }: OrderDetailRouteProps
     proofUrl,
     latestLocation: Number.isFinite(lat) && Number.isFinite(lon) ? {
       lat, lon, accuracyM: locationSource.accuracy_m == null ? undefined : Number(locationSource.accuracy_m),
+      heading: locationSource.heading == null ? undefined : Number(locationSource.heading),
+      speedMps: locationSource.speed_mps == null ? undefined : Number(locationSource.speed_mps),
       recordedAt: String(locationSource.recorded_at || ""),
     } : null,
+    restaurantLocation: Number.isFinite(restaurantLat) && Number.isFinite(restaurantLon)
+      ? { lat: restaurantLat, lon: restaurantLon }
+      : null,
+    destinationLocation: Number.isFinite(destinationLat) && Number.isFinite(destinationLon)
+      ? { lat: destinationLat, lon: destinationLon }
+      : null,
   } : null;
 
   return <CustomerOrderDetailPage order={view} journey={journey} deliveryPanel={deliveryPanel} />;
