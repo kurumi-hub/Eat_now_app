@@ -30,12 +30,10 @@ test("Next.js App Router contains the Phase 3 route skeleton", async () => {
   );
 });
 
-test("Owner and Admin routes remain lightweight placeholders", async () => {
+test("Admin route remains a lightweight placeholder until its dashboard phase", async () => {
   const expected = "Trang này sẽ được triển khai ở Sprint tiếp theo.";
-  const ownerPage = await readFile(join(appRoot, "owner", "page.tsx"), "utf8");
   const adminPage = await readFile(join(appRoot, "admin", "page.tsx"), "utf8");
 
-  assert.match(ownerPage, new RegExp(expected));
   assert.match(adminPage, new RegExp(expected));
 });
 

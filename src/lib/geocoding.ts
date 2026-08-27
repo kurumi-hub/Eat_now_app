@@ -137,10 +137,17 @@ export function distanceKm(
 export async function verifyGoogleAddressSelection(input: {
   address: string;
   placeId?: string;
-  lat: number;
-  lon: number;
+  lat?: number;
+  lon?: number;
 }) {
-  if (!input.address.trim() || !isValidCoordinate(input.lat, input.lon)) {
+  const hasClientCoordinate = input.lat != null || input.lon != null;
+  if (!input.address.trim()) {
+    throw new Error("Địa chỉ hoặc tọa độ Google Maps không hợp lệ.");
+  }
+  if (
+    hasClientCoordinate &&
+    !isValidCoordinate(Number(input.lat), Number(input.lon))
+  ) {
     throw new Error("Địa chỉ hoặc tọa độ Google Maps không hợp lệ.");
   }
   const geo = input.placeId?.trim()
@@ -149,7 +156,10 @@ export async function verifyGoogleAddressSelection(input: {
   if (!geo) {
     throw new Error("Không tìm thấy địa chỉ nhà hàng trên Google Maps.");
   }
-  if (distanceKm(geo.lat, geo.lon, input.lat, input.lon) > 1.5) {
+  if (
+    hasClientCoordinate &&
+    distanceKm(geo.lat, geo.lon, Number(input.lat), Number(input.lon)) > 1.5
+  ) {
     throw new Error("Vị trí ghim cách địa chỉ Google quá xa. Hãy chọn lại vị trí.");
   }
   return geo;

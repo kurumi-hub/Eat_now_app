@@ -14,11 +14,11 @@ export type SellerApplicationInput = {
   restaurantName: string;
   description: string;
   address: string;
-  googlePlaceId: string;
+  googlePlaceId?: string;
   phone: string;
-  lat: number;
-  lon: number;
-  timezone: string;
+  lat?: number;
+  lon?: number;
+  timezone?: string;
   businessLicenseNumber: string;
   taxCode: string;
   legalRepresentativeName: string;
@@ -50,8 +50,10 @@ export async function saveSellerApplicationAction(
   if (name.length < 2 || name.length > 160) return { ok: false, message: "Tên quán phải từ 2 đến 160 ký tự." };
   if (address.length < 5 || address.length > 500) return { ok: false, message: "Địa chỉ chưa hợp lệ." };
   if (phone.length < 8 || phone.length > 20) return { ok: false, message: "Số điện thoại chưa hợp lệ." };
-  if (!Number.isFinite(input.lat) || input.lat < -90 || input.lat > 90 ||
-      !Number.isFinite(input.lon) || input.lon < -180 || input.lon > 180) {
+  const hasClientCoordinate = input.lat != null || input.lon != null;
+  if (hasClientCoordinate && (
+      !Number.isFinite(input.lat) || Number(input.lat) < -90 || Number(input.lat) > 90 ||
+      !Number.isFinite(input.lon) || Number(input.lon) < -180 || Number(input.lon) > 180)) {
     return { ok: false, message: "Tọa độ nhà hàng chưa hợp lệ." };
   }
   if (input.applicationId && !UUID.test(input.applicationId)) {
@@ -77,8 +79,8 @@ export async function saveSellerApplicationAction(
     p_description: input.description.trim() || null,
     p_address: verifiedAddress.formattedAddress || address,
     p_phone: phone,
-    p_lat: input.lat,
-    p_lon: input.lon,
+    p_lat: verifiedAddress.lat,
+    p_lon: verifiedAddress.lon,
     p_timezone: input.timezone || "Asia/Ho_Chi_Minh",
     p_application_id: input.applicationId || null,
     p_business_license_number: input.businessLicenseNumber.trim() || null,

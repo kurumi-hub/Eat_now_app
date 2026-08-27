@@ -349,6 +349,440 @@
   line-height: 22px;
 }
 
+.seller-application-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.seller-hero-panel,
+.seller-portal-card,
+.seller-application-form,
+.seller-checklist-card,
+.seller-timeline-card {
+  border: 1px solid rgba(221, 193, 180, 0.42);
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(119, 87, 77, 0.08);
+}
+
+.seller-hero-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 22px;
+  align-items: stretch;
+  padding: 28px;
+  overflow: hidden;
+}
+
+.seller-hero-panel__copy {
+  min-width: 0;
+}
+
+.seller-hero-panel__icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 18px;
+  border-radius: 16px;
+  color: #7a3000;
+  background: #fff0eb;
+}
+
+.seller-hero-panel__icon svg {
+  font-size: 28px;
+}
+
+.seller-hero-panel__eyebrow,
+.seller-section-eyebrow {
+  margin: 0 0 6px;
+  color: #d94720;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.seller-hero-panel h2,
+.seller-form-section h2,
+.seller-portal-card h2,
+.seller-timeline-card h2 {
+  margin: 0;
+  color: #1a1c1e;
+  font-family: var(--font-baloo), var(--font-be-vietnam), sans-serif;
+  font-weight: 800;
+}
+
+.seller-hero-panel h2 {
+  font-size: 30px;
+  line-height: 38px;
+}
+
+.seller-form-section h2,
+.seller-portal-card h2,
+.seller-timeline-card h2 {
+  font-size: 22px;
+  line-height: 30px;
+}
+
+.seller-hero-panel p,
+.seller-portal-card p,
+.seller-status-card p,
+.seller-empty-note,
+.seller-timeline p {
+  color: #70645d;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.seller-hero-panel__copy > p:last-child {
+  max-width: 620px;
+  margin: 10px 0 0;
+}
+
+.seller-status-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 18px;
+  background: #fff8f5;
+}
+
+.seller-status-card__label {
+  color: #3b2016;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 18px;
+}
+
+.seller-status-chip.MuiChip-root {
+  width: fit-content;
+  height: 30px;
+  border-radius: 999px;
+  color: #3b2016;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.seller-status-chip--neutral.MuiChip-root {
+  background: #f1ebe7;
+}
+
+.seller-status-chip--warning.MuiChip-root {
+  background: #ffe4b8;
+}
+
+.seller-status-chip--success.MuiChip-root {
+  color: #0f5132;
+  background: #ccebd8;
+}
+
+.seller-status-chip--error.MuiChip-root {
+  color: #8a1c1c;
+  background: #ffd8d8;
+}
+
+.seller-status-card p,
+.seller-status-card__note {
+  margin: 0;
+}
+
+.seller-status-card__note {
+  padding-top: 8px;
+  border-top: 1px solid rgba(221, 193, 180, 0.6);
+}
+
+.seller-feedback.MuiAlert-root {
+  border-radius: 16px;
+}
+
+.seller-portal-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 22px 24px;
+}
+
+.seller-portal-card p {
+  margin: 8px 0 0;
+}
+
+.seller-portal-card__restaurants {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.seller-portal-card__restaurants span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 12px;
+  color: #7a3000;
+  background: #fff0eb;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.seller-portal-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  grid-column: 2;
+  border-radius: 14px;
+  padding: 10px 16px;
+  color: #ffffff;
+  background: #7a3000;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.seller-portal-link:hover {
+  background: #9a3b00;
+}
+
+.seller-application-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+  align-items: start;
+}
+
+.seller-application-form {
+  overflow: hidden;
+}
+
+.seller-form-section {
+  padding: 26px 28px;
+  border-bottom: 1px solid rgba(221, 193, 180, 0.5);
+}
+
+.seller-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.seller-section-heading > svg {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #7a3000;
+}
+
+.seller-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.seller-form-grid__wide {
+  grid-column: 1 / -1;
+}
+
+.seller-form-grid .MuiOutlinedInput-root {
+  min-height: 54px;
+  border-radius: 16px;
+  background: #fffdfc;
+}
+
+.seller-form-grid .MuiOutlinedInput-notchedOutline {
+  border-color: #ddc1b4;
+}
+
+.seller-form-grid .MuiInputBase-input,
+.seller-form-grid .MuiInputBase-inputMultiline {
+  color: #3b2016;
+}
+
+.seller-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 22px 28px 26px;
+}
+
+.seller-form-actions .MuiButton-root {
+  min-height: 44px;
+  border-radius: 14px;
+  text-transform: none;
+  font-weight: 800;
+}
+
+.seller-side-column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.seller-checklist-card,
+.seller-timeline-card {
+  padding: 22px;
+}
+
+.seller-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.seller-checklist__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.seller-checklist__item span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  color: #8a7267;
+  background: #f3f3f6;
+}
+
+.seller-checklist__item span.is-done {
+  color: #ffffff;
+  background: #0f8a4c;
+}
+
+.seller-checklist__item p {
+  margin: 0;
+  color: #3b2016;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.seller-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seller-timeline li {
+  position: relative;
+  padding-left: 18px;
+}
+
+.seller-timeline li::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #d94720;
+}
+
+.seller-timeline span,
+.seller-timeline time {
+  display: block;
+}
+
+.seller-timeline span {
+  color: #3b2016;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 20px;
+}
+
+.seller-timeline time {
+  color: #8a7267;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.seller-timeline p {
+  margin: 4px 0 0;
+}
+
+.seller-empty-note {
+  margin: 0;
+}
+
+@media (max-width: 1024px) {
+  .seller-hero-panel,
+  .seller-application-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .seller-status-card {
+    justify-content: flex-start;
+  }
+
+  .seller-portal-card {
+    grid-template-columns: 1fr;
+  }
+
+  .seller-portal-card__restaurants {
+    justify-content: flex-start;
+  }
+
+  .seller-portal-link {
+    width: fit-content;
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .seller-hero-panel,
+  .seller-form-section,
+  .seller-form-actions,
+  .seller-checklist-card,
+  .seller-timeline-card,
+  .seller-portal-card {
+    padding: 20px;
+  }
+
+  .seller-hero-panel h2 {
+    font-size: 26px;
+    line-height: 34px;
+  }
+
+  .seller-form-section h2,
+  .seller-portal-card h2,
+  .seller-timeline-card h2 {
+    font-size: 20px;
+    line-height: 28px;
+  }
+
+  .seller-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .seller-form-actions {
+    flex-direction: column;
+  }
+
+  .seller-form-actions .MuiButton-root,
+  .seller-portal-link {
+    width: 100%;
+  }
+}
+
 @media (max-width: 1024px) {
   .account-layout-grid {
     grid-template-columns: 250px minmax(0, 1fr);
