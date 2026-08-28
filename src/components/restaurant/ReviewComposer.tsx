@@ -118,7 +118,7 @@ export default function ReviewComposer({
           minRows={3}
           value={comment}
           onChange={(event) => setComment(event.target.value)}
-          inputProps={{ maxLength: 1000 }}
+          slotProps={{ htmlInput: { maxLength: 1000 } }}
           helperText={`${comment.trim().length}/1000 ký tự`}
         />
         {notice ? <Alert severity={notice.error ? "error" : "success"}>{notice.message}</Alert> : null}
