@@ -25,8 +25,10 @@ import {
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
 
+import { claimVoucherAction } from "@/app/vouchers/actions";
 import { useCartStore } from "@/store/cartStore";
 import type { RestaurantDetail, RestaurantMenuItem } from "./restaurantDetailData";
 
@@ -35,14 +37,19 @@ const FoodOptionsModal = dynamic(
   { ssr: false }
 );
 
-type RestaurantDetailPageProps = { restaurant: RestaurantDetail };
-type SnackbarState = { open: boolean; message: string };
+type RestaurantDetailPageProps = {
+  restaurant: RestaurantDetail;
+  isAuthenticated: boolean;
+};
+type SnackbarState = { open: boolean; message: string; error: boolean };
 type CartSelection = {
   size?: { id: string; name: string; price: number };
   toppings: { id: string; name: string; price: number }[];
   note?: string;
   quantity: number;
 };
+
+const FOOD_PAGE_SIZE = 10;
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("vi-VN", {
@@ -57,12 +64,23 @@ function formatReviewDate(value: string) {
   return Number.isNaN(date.getTime()) ? "Gần đây" : date.toLocaleDateString("vi-VN");
 }
 
-export default function RestaurantDetailPage({ restaurant }: RestaurantDetailPageProps) {
-  const [activeCategory, setActiveCategory] = useState(
-    restaurant.menuCategories[0]?.id || ""
-  );
+export default function RestaurantDetailPage({
+  restaurant,
+  isAuthenticated,
+}: RestaurantDetailPageProps) {
+  const router = useRouter();
+  const [activeCategory, setActiveCategory] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [snackbar, setSnackbar] = useState<SnackbarState>({ open: false, message: "" });
+  const [foodPage, setFoodPage] = useState(1);
+  const [voucherDialogOpen, setVoucherDialogOpen] = useState(false);
+  const [claimingVoucherId, setClaimingVoucherId] = useState("");
+  const [savedVoucherIds, setSavedVoucherIds] = useState<Set<string>>(new Set());
+  const [isClaimPending, startVoucherClaim] = useTransition();
+  const [snackbar, setSnackbar] = useState<SnackbarState>({
+    open: false,
+    message: "",
+    error: false,
+  });
   const [selectedFood, setSelectedFood] = useState<RestaurantMenuItem | null>(null);
   const [optionsModalOpen, setOptionsModalOpen] = useState(false);
   const [pendingConflictSelection, setPendingConflictSelection] = useState<{
@@ -74,27 +92,76 @@ export default function RestaurantDetailPage({ restaurant }: RestaurantDetailPag
   const hasConflictingRestaurant = useCartStore((state) => state.hasConflictingRestaurant);
   const clearCart = useCartStore((state) => state.clearCart);
 
-  const visibleCategories = useMemo(() => {
-    const query = searchTerm.trim().toLocaleLowerCase("vi");
-    if (!query) return restaurant.menuCategories;
-    return restaurant.menuCategories
-      .map((category) => ({
-        ...category,
-        items: category.items.filter((item) =>
-          item.name.toLocaleLowerCase("vi").includes(query) ||
-          item.description.toLocaleLowerCase("vi").includes(query)
-        ),
-      }))
-      .filter((category) => category.items.length > 0);
-  }, [restaurant.menuCategories, searchTerm]);
+  const allMenuItems = useMemo(() => restaurant.menuCategories.flatMap((category) =>
+    category.items.map((item) => ({
+      item,
+      categoryId: category.id,
+      categoryLabel: category.label,
+    }))
+  ), [restaurant.menuCategories]);
 
-  const showNotice = (message: string) => setSnackbar({ open: true, message });
+  const filteredMenuItems = useMemo(() => {
+    const query = searchTerm.trim().toLocaleLowerCase("vi");
+    return allMenuItems.filter(({ item, categoryId }) => {
+      const inCategory = activeCategory === "all" || categoryId === activeCategory;
+      const matchesSearch = !query ||
+        item.name.toLocaleLowerCase("vi").includes(query) ||
+        item.description.toLocaleLowerCase("vi").includes(query);
+      return inCategory && matchesSearch;
+    });
+  }, [activeCategory, allMenuItems, searchTerm]);
+
+  const foodPageCount = Math.max(1, Math.ceil(filteredMenuItems.length / FOOD_PAGE_SIZE));
+  const currentFoodPage = Math.min(foodPage, foodPageCount);
+  const paginatedMenuItems = filteredMenuItems.slice(
+    (currentFoodPage - 1) * FOOD_PAGE_SIZE,
+    currentFoodPage * FOOD_PAGE_SIZE
+  );
+  const activeCategoryLabel = activeCategory === "all"
+    ? "Tất cả món ăn"
+    : restaurant.menuCategories.find((category) => category.id === activeCategory)?.label || "Món ăn";
+
+  const showNotice = (message: string, error = false) => {
+    setSnackbar({ open: true, message, error });
+  };
 
   const handleCategoryClick = (categoryId: string) => {
     setActiveCategory(categoryId);
-    document.getElementById(categoryId)?.scrollIntoView({
+    setFoodPage(1);
+    document.getElementById("restaurant-menu-list")?.scrollIntoView({
       behavior: "smooth",
       block: "start",
+    });
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setFoodPage(1);
+  };
+
+  const handleFoodPageChange = (page: number) => {
+    setFoodPage(Math.min(Math.max(page, 1), foodPageCount));
+    document.getElementById("restaurant-menu-list")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
+  const handleClaimVoucher = (voucherId: string) => {
+    if (!isAuthenticated) {
+      router.push(`/login?next=${encodeURIComponent(`/restaurants/${restaurant.slug}`)}`);
+      return;
+    }
+    if (savedVoucherIds.has(voucherId)) return;
+    setClaimingVoucherId(voucherId);
+    startVoucherClaim(async () => {
+      const result = await claimVoucherAction(voucherId);
+      setClaimingVoucherId("");
+      showNotice(result.message, !result.ok);
+      if (result.ok) {
+        setSavedVoucherIds((current) => new Set(current).add(voucherId));
+        router.refresh();
+      }
     });
   };
 
@@ -217,14 +284,16 @@ export default function RestaurantDetailPage({ restaurant }: RestaurantDetailPag
           <section className="restaurant-voucher-section" aria-labelledby="restaurant-vouchers-title">
             <div className="restaurant-section-heading">
               <h2 id="restaurant-vouchers-title">Ưu đãi của quán</h2>
-              <Link href="/vouchers">Xem tất cả</Link>
+              <button type="button" onClick={() => setVoucherDialogOpen(true)}>
+                Xem tất cả
+              </button>
             </div>
             <div className="restaurant-voucher-strip">
-              {restaurant.restaurantVouchers.map((voucher) => (
+              {restaurant.restaurantVouchers.slice(0, 3).map((voucher) => (
                 <article className="restaurant-voucher-card" key={voucher.id}>
                   <LocalOfferOutlinedIcon />
                   <div><strong>{voucher.title}</strong><span>{voucher.subtitle}</span><small>{voucher.code}</small></div>
-                  <Link href="/vouchers">Xem mã</Link>
+                  <button type="button" onClick={() => setVoucherDialogOpen(true)}>Xem mã</button>
                 </article>
               ))}
             </div>
@@ -237,11 +306,18 @@ export default function RestaurantDetailPage({ restaurant }: RestaurantDetailPag
             <input
               type="search"
               value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
+              onChange={(event) => handleSearchChange(event.target.value)}
               placeholder="Tìm món trong nhà hàng"
             />
           </label>
           <nav className="restaurant-category-pills" aria-label="Danh mục món ăn">
+            <button
+              type="button"
+              className={activeCategory === "all" ? "is-active" : ""}
+              onClick={() => handleCategoryClick("all")}
+            >
+              Tất cả
+            </button>
             {restaurant.menuCategories.map((category) => (
               <button
                 key={category.id}
@@ -255,60 +331,99 @@ export default function RestaurantDetailPage({ restaurant }: RestaurantDetailPag
           </nav>
         </section>
 
-        <div className="restaurant-menu-column">
-          {visibleCategories.map((category) => (
-            <section key={category.id} id={category.id} className="restaurant-menu-section">
-              <h2>{category.label}</h2>
+        <div className="restaurant-menu-column" id="restaurant-menu-list">
+          {paginatedMenuItems.length ? (
+            <section className="restaurant-menu-section">
+              <div className="restaurant-menu-section__heading">
+                <h2>{activeCategoryLabel}</h2>
+                <span>{filteredMenuItems.length} món</span>
+              </div>
               <div className="restaurant-menu-grid">
-                {category.items.map((item) => (
+                {paginatedMenuItems.map(({ item, categoryLabel }) => (
                   <article
                     key={item.id}
                     className={`restaurant-menu-card${!item.isAvailable ? " is-unavailable" : ""}`}
                   >
-                    <div className="restaurant-menu-card__content">
-                      <div className="restaurant-menu-card__title-row">
-                        <h3>{item.name}</h3>
-                        {item.isPopular ? <span className="restaurant-menu-card__badge">Bán chạy</span> : null}
-                      </div>
-                      <p>{item.description}</p>
-                      <div className="restaurant-menu-card__footer">
-                        <strong>{formatCurrency(item.price)}</strong>
-                        {!item.isAvailable ? (
-                          <span className="restaurant-menu-card__unavailable">Tạm hết món</span>
+                    <Link
+                      className="restaurant-menu-card__main"
+                      href={`/restaurants/${restaurant.slug}/foods/${item.id}`}
+                      aria-label={`Xem chi tiết ${item.name}`}
+                    >
+                      <div className="restaurant-menu-card__media">
+                        {item.image ? (
+                          <Image src={item.image} alt={item.name} fill unoptimized sizes="120px" />
                         ) : (
-                          <IconButton
-                            aria-label={`Thêm ${item.name}`}
-                            className="restaurant-add-button"
-                            onClick={() => handleAddItem(item)}
-                            disabled={!restaurant.isOpen}
-                          >
-                            <AddOutlinedIcon fontSize="small" />
-                          </IconButton>
+                          <div className="restaurant-image-placeholder restaurant-image-placeholder--food">
+                            <RestaurantMenuOutlinedIcon /><span>Chưa có ảnh</span>
+                          </div>
                         )}
                       </div>
-                    </div>
-                    <div className="restaurant-menu-card__media">
-                      {item.image ? (
-                        <Image src={item.image} alt={item.name} fill unoptimized sizes="120px" />
-                      ) : (
-                        <div className="restaurant-image-placeholder restaurant-image-placeholder--food">
-                          <RestaurantMenuOutlinedIcon /><span>Chưa có ảnh</span>
+                      <div className="restaurant-menu-card__content">
+                        <span className="restaurant-menu-card__category">{categoryLabel}</span>
+                        <div className="restaurant-menu-card__title-row">
+                          <h3>{item.name}</h3>
+                          {item.isPopular ? <span className="restaurant-menu-card__badge">Bán chạy</span> : null}
                         </div>
-                      )}
-                    </div>
+                        <p>{item.description}</p>
+                        <div className="restaurant-menu-card__footer">
+                          <strong>{formatCurrency(item.price)}</strong>
+                          {!item.isAvailable ? (
+                            <span className="restaurant-menu-card__unavailable">Tạm hết món</span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </Link>
+                    {item.isAvailable ? (
+                      <IconButton
+                        aria-label={`Thêm ${item.name}`}
+                        className="restaurant-add-button"
+                        onClick={() => handleAddItem(item)}
+                        disabled={!restaurant.isOpen}
+                      >
+                        <AddOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    ) : null}
                   </article>
                 ))}
               </div>
+              {foodPageCount > 1 ? (
+                <nav className="restaurant-menu-pagination" aria-label="Phân trang món ăn">
+                  <button
+                    type="button"
+                    disabled={currentFoodPage === 1}
+                    onClick={() => handleFoodPageChange(currentFoodPage - 1)}
+                  >
+                    Trước
+                  </button>
+                  {Array.from({ length: foodPageCount }, (_, index) => index + 1).map((page) => (
+                    <button
+                      key={page}
+                      type="button"
+                      className={page === currentFoodPage ? "is-active" : ""}
+                      aria-current={page === currentFoodPage ? "page" : undefined}
+                      onClick={() => handleFoodPageChange(page)}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={currentFoodPage === foodPageCount}
+                    onClick={() => handleFoodPageChange(currentFoodPage + 1)}
+                  >
+                    Sau
+                  </button>
+                </nav>
+              ) : null}
             </section>
-          ))}
-          {!visibleCategories.length ? (
+          ) : (
             <div className="restaurant-menu-empty">
               <SearchOutlinedIcon />
               <h2>Không tìm thấy món phù hợp</h2>
               <p>Thử tìm bằng tên món hoặc mô tả khác.</p>
-              <button type="button" onClick={() => setSearchTerm("")}>Xóa tìm kiếm</button>
+              <button type="button" onClick={() => handleSearchChange("")}>Xóa tìm kiếm</button>
             </div>
-          ) : null}
+          )}
         </div>
 
         {restaurant.restaurantReviews?.length ? (
@@ -333,14 +448,6 @@ export default function RestaurantDetailPage({ restaurant }: RestaurantDetailPag
           </section>
         ) : null}
 
-        <section className="restaurant-info-section" aria-labelledby="restaurant-info-title">
-          <h2 id="restaurant-info-title">Thông tin nhà hàng</h2>
-          <div className="restaurant-info-grid">
-            <article><LocationOnOutlinedIcon /><div><strong>Địa chỉ</strong><span>{restaurant.address}</span></div></article>
-            <article><AccessTimeOutlinedIcon /><div><strong>Giờ hoạt động</strong><span>{restaurant.openUntil ? `Phục vụ đến ${restaurant.openUntil.slice(0, 5)}` : "Theo lịch của nhà hàng"}</span></div></article>
-            <article><LocalShippingOutlinedIcon /><div><strong>Giao hàng</strong><span>{restaurant.deliveryTime} · {restaurant.deliveryFee}</span></div></article>
-          </div>
-        </section>
       </main>
 
       <nav className="restaurant-bottom-nav" aria-label="Điều hướng nhanh">
@@ -348,6 +455,64 @@ export default function RestaurantDetailPage({ restaurant }: RestaurantDetailPag
         <Link className="is-active" href="/restaurants"><RestaurantMenuOutlinedIcon /><span>Khám phá</span></Link>
         <Link href="/orders"><ReceiptLongOutlinedIcon /><span>Đơn hàng</span></Link>
       </nav>
+
+      <Dialog
+        open={voucherDialogOpen}
+        onClose={() => setVoucherDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Ưu đãi của {restaurant.name}</DialogTitle>
+        <DialogContent dividers>
+          <DialogContentText className="restaurant-voucher-dialog__intro">
+            Lưu voucher cần nhận vào kho để dùng khi thanh toán. Voucher tự động
+            sẽ được hệ thống kiểm tra trực tiếp trên đơn hàng.
+          </DialogContentText>
+          <div className="restaurant-voucher-dialog__list">
+            {restaurant.restaurantVouchers?.map((voucher) => {
+              const isSaved = savedVoucherIds.has(voucher.id);
+              const isClaiming = isClaimPending && claimingVoucherId === voucher.id;
+              const canClaim = voucher.distributionMode === "claim";
+              return (
+                <article className="restaurant-voucher-dialog__card" key={voucher.id}>
+                  <div className="restaurant-voucher-dialog__icon"><LocalOfferOutlinedIcon /></div>
+                  <div className="restaurant-voucher-dialog__body">
+                    <span>{canClaim ? "Voucher cần lưu" : "Tự động áp dụng"}</span>
+                    <strong>{voucher.title}</strong>
+                    <p>{voucher.subtitle}</p>
+                    <small>
+                      Mã {voucher.code} · HSD {new Date(voucher.expiredAt).toLocaleDateString("vi-VN")}
+                    </small>
+                  </div>
+                  {canClaim ? (
+                    <button
+                      type="button"
+                      disabled={isSaved || isClaiming}
+                      onClick={() => handleClaimVoucher(voucher.id)}
+                    >
+                      {isSaved
+                        ? "Đã lưu"
+                        : isClaiming
+                          ? "Đang lưu..."
+                          : isAuthenticated
+                            ? "Lưu vào kho"
+                            : "Đăng nhập để lưu"}
+                    </button>
+                  ) : (
+                    <span className="restaurant-voucher-dialog__automatic">Sẵn sàng dùng</span>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setVoucherDialogOpen(false)}>Đóng</Button>
+          <Button component={Link} href="/vouchers" variant="outlined">
+            Mở kho voucher
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <FoodOptionsModal
         open={optionsModalOpen}
@@ -375,7 +540,7 @@ export default function RestaurantDetailPage({ restaurant }: RestaurantDetailPag
         onClose={closeSnackbar}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert severity="info" variant="filled" onClose={closeSnackbar}>
+        <Alert severity={snackbar.error ? "error" : "info"} variant="filled" onClose={closeSnackbar}>
           {snackbar.message}
         </Alert>
       </Snackbar>

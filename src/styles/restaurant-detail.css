@@ -141,20 +141,27 @@
 .restaurant-availability-alert { margin-top: 16px; border-radius: 13px !important; }
 
 .restaurant-voucher-section,
-.restaurant-review-section,
-.restaurant-info-section { margin-top: 32px; }
+.restaurant-review-section { margin-top: 32px; }
 
 .restaurant-section-heading { justify-content: space-between; gap: 16px; margin-bottom: 14px; }
 .restaurant-section-heading h2,
-.restaurant-menu-section h2,
-.restaurant-info-section > h2 {
+.restaurant-menu-section h2 {
   margin: 0;
   color: #23150f;
   font-size: 23px;
   font-weight: 800;
 }
 
-.restaurant-section-heading > a { color: #a04100; font-size: 13px; font-weight: 800; text-decoration: none; }
+.restaurant-section-heading > button {
+  border: 0;
+  background: transparent;
+  color: #a04100;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 5px 0;
+}
 .restaurant-section-heading > span { display: inline-flex; align-items: center; gap: 4px; color: #a04100; font-weight: 800; }
 
 .restaurant-voucher-strip {
@@ -183,15 +190,17 @@
 .restaurant-voucher-card strong { color: #7a3000; font-size: 14px; }
 .restaurant-voucher-card span { color: #60483d; font-size: 12px; line-height: 18px; }
 .restaurant-voucher-card small { color: #a04100; font-weight: 900; letter-spacing: .04em; }
-.restaurant-voucher-card > a {
+.restaurant-voucher-card > button {
   flex: 0 0 auto;
+  border: 0;
   border-radius: 999px;
   background: #a04100;
   color: #fff;
+  cursor: pointer;
+  font: inherit;
   font-size: 11px;
   font-weight: 800;
   padding: 7px 10px;
-  text-decoration: none;
 }
 
 .restaurant-menu-tools { margin-top: 30px; }
@@ -254,7 +263,14 @@
 
 .restaurant-menu-column { display: grid; gap: 28px; margin-top: 20px; }
 .restaurant-menu-section { scroll-margin-top: 142px; }
-.restaurant-menu-section h2 { margin-bottom: 14px; }
+.restaurant-menu-section__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.restaurant-menu-section__heading > span { color: #80685c; font-size: 13px; font-weight: 700; }
 
 .restaurant-menu-grid {
   display: grid;
@@ -263,14 +279,12 @@
 }
 
 .restaurant-menu-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 122px;
-  gap: 14px;
+  position: relative;
   min-height: 150px;
   border: 1px solid #e8dcd6;
   border-radius: 15px;
   background: #fff;
-  padding: 14px;
+  padding: 13px;
   box-shadow: 0 8px 20px rgba(75, 48, 36, 0.07);
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
@@ -282,7 +296,22 @@
 }
 
 .restaurant-menu-card.is-unavailable { opacity: .65; }
+.restaurant-menu-card__main {
+  display: grid;
+  grid-template-columns: 122px minmax(0, 1fr);
+  gap: 14px;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
 .restaurant-menu-card__content { display: grid; min-width: 0; gap: 8px; }
+.restaurant-menu-card__category {
+  color: #947466;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
 .restaurant-menu-card__title-row { flex-wrap: wrap; gap: 7px; }
 .restaurant-menu-card h3 { margin: 0; color: #23150f; font-size: 16px; font-weight: 800; line-height: 22px; }
 .restaurant-menu-card p {
@@ -308,7 +337,7 @@
 
 .restaurant-menu-card__badge { background: #ffdbcc; color: #7a3000; }
 .restaurant-menu-card__unavailable { background: #ffdad6; color: #93000a; }
-.restaurant-menu-card__footer { justify-content: space-between; gap: 10px; margin-top: auto; }
+.restaurant-menu-card__footer { justify-content: space-between; gap: 10px; margin-top: auto; padding-right: 42px; }
 .restaurant-menu-card__footer > strong { color: #a04100; font-size: 16px; }
 
 .restaurant-menu-card__media {
@@ -323,6 +352,10 @@
 .restaurant-menu-card:hover .restaurant-menu-card__media img { transform: scale(1.04); }
 
 .restaurant-add-button {
+  position: absolute !important;
+  right: 13px;
+  bottom: 13px;
+  z-index: 2;
   width: 34px !important;
   height: 34px !important;
   border: 1px solid #a04100 !important;
@@ -331,6 +364,37 @@
 }
 
 .restaurant-add-button:hover { background: #7a3000 !important; }
+
+.restaurant-menu-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 24px;
+}
+
+.restaurant-menu-pagination button {
+  min-width: 38px;
+  min-height: 38px;
+  border: 1px solid #d5c2b9;
+  border-radius: 10px;
+  background: #fff;
+  color: #54382d;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 7px 11px;
+}
+
+.restaurant-menu-pagination button.is-active {
+  border-color: #a04100;
+  background: #a04100;
+  color: #fff;
+}
+
+.restaurant-menu-pagination button:disabled { cursor: default; opacity: .42; }
 
 .restaurant-menu-empty {
   display: grid;
@@ -360,15 +424,13 @@
   padding: 9px 16px;
 }
 
-.restaurant-review-grid,
-.restaurant-info-grid {
+.restaurant-review-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 15px;
 }
 
-.restaurant-review-card,
-.restaurant-info-grid article {
+.restaurant-review-card {
   border: 1px solid #e8dcd6;
   border-radius: 15px;
   background: #fff;
@@ -395,30 +457,171 @@
 .restaurant-review-stars svg.is-filled { color: #a04100; }
 .restaurant-review-card p { margin: 9px 0 0; color: #604a40; font-size: 13px; line-height: 20px; }
 
-.restaurant-info-section > h2 { margin-bottom: 14px; }
-.restaurant-info-grid article { display: flex; gap: 11px; }
-.restaurant-info-grid article > svg { flex: 0 0 auto; color: #a04100; }
-.restaurant-info-grid article > div { display: grid; gap: 5px; }
-.restaurant-info-grid span { color: #685147; font-size: 13px; line-height: 19px; }
+.restaurant-voucher-dialog__intro { margin-bottom: 16px !important; }
+.restaurant-voucher-dialog__list { display: grid; gap: 12px; }
+.restaurant-voucher-dialog__card {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #ead8cf;
+  border-radius: 14px;
+  background: #fff9f6;
+  padding: 13px;
+}
+.restaurant-voucher-dialog__icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 12px;
+  background: #ffdbcc;
+  color: #8d3900;
+}
+.restaurant-voucher-dialog__body { display: grid; min-width: 0; gap: 3px; }
+.restaurant-voucher-dialog__body > span { color: #9b4211; font-size: 10px; font-weight: 900; text-transform: uppercase; }
+.restaurant-voucher-dialog__body > strong { color: #30170d; font-size: 14px; }
+.restaurant-voucher-dialog__body p { margin: 0; color: #664d42; font-size: 12px; line-height: 18px; }
+.restaurant-voucher-dialog__body small { color: #8a6b5d; }
+.restaurant-voucher-dialog__card > button {
+  border: 0;
+  border-radius: 999px;
+  background: #a04100;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 8px 11px;
+}
+.restaurant-voucher-dialog__card > button:disabled { cursor: default; opacity: .58; }
+.restaurant-voucher-dialog__automatic { color: #39714b; font-size: 11px; font-weight: 800; }
+
+.food-detail-main {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  padding: 24px 24px 72px;
+}
+
+.food-detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  color: #7a3000;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.food-detail-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.02fr) minmax(360px, .98fr);
+  overflow: hidden;
+  border: 1px solid #eadbd4;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(75, 48, 36, .1);
+}
+
+.food-detail-hero__media {
+  position: relative;
+  min-height: 500px;
+  background: #eee5e1;
+}
+
+.food-detail-hero__media img { object-fit: cover; }
+
+.food-detail-hero__content {
+  display: grid;
+  align-content: center;
+  gap: 17px;
+  padding: clamp(26px, 5vw, 54px);
+}
+
+.food-detail-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+.food-detail-hero h1 {
+  margin: 0;
+  color: #25140d;
+  font-size: clamp(32px, 4vw, 46px);
+  font-weight: 800;
+  line-height: 1.12;
+}
+.food-detail-description { margin: 0; color: #6b5146; font-size: 15px; line-height: 24px; }
+.food-detail-price { color: #a04100; font-size: 29px; }
+.food-detail-restaurant {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-top: 1px solid #eee1db;
+  border-bottom: 1px solid #eee1db;
+  padding: 14px 0;
+}
+.food-detail-restaurant > div { display: grid; gap: 2px; }
+.food-detail-restaurant > div span { color: #8c7063; font-size: 11px; }
+.food-detail-restaurant a { color: #3b2218; font-weight: 800; text-decoration: none; }
+.food-detail-restaurant > span { display: inline-flex; align-items: center; gap: 4px; color: #a04100; font-weight: 900; }
+.food-detail-service-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.food-detail-service-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #67483b;
+  font-size: 12px;
+  font-weight: 700;
+}
+.food-detail-order-button { min-height: 50px !important; border-radius: 13px !important; font-weight: 800 !important; }
+
+.food-detail-options { margin-top: 34px; }
+.food-detail-option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.food-detail-option-grid article {
+  border: 1px solid #e8dcd6;
+  border-radius: 16px;
+  background: #fff;
+  padding: 18px;
+  box-shadow: 0 7px 18px rgba(75, 48, 36, .06);
+}
+.food-detail-option-grid h3 { margin: 0; color: #2d180f; font-size: 17px; }
+.food-detail-option-grid small { display: block; margin-top: 3px; color: #886d61; }
+.food-detail-option-grid ul { display: grid; gap: 9px; margin: 14px 0 0; padding: 0; list-style: none; }
+.food-detail-option-grid li { display: flex; justify-content: space-between; gap: 12px; color: #594239; font-size: 13px; }
+.food-detail-option-grid li strong { color: #8b3a0c; }
+.food-detail-option-grid li.is-unavailable { opacity: .45; text-decoration: line-through; }
+.food-detail-loading {
+  min-height: 520px;
+  border-radius: 22px;
+  background: linear-gradient(100deg, #eee5e1 30%, #f8f2ef 48%, #eee5e1 66%);
+  background-size: 220% 100%;
+  animation: food-detail-loading 1.3s linear infinite;
+}
+@keyframes food-detail-loading { to { background-position-x: -220%; } }
 
 .restaurant-bottom-nav { display: none; }
 
 @media (max-width: 900px) {
   .restaurant-hero { grid-template-columns: 240px minmax(0, 1fr); min-height: 260px; }
   .restaurant-menu-grid { grid-template-columns: 1fr; }
-  .restaurant-review-grid,
-  .restaurant-info-grid { grid-template-columns: 1fr; }
+  .restaurant-review-grid { grid-template-columns: 1fr; }
+  .food-detail-hero { grid-template-columns: 1fr; }
+  .food-detail-hero__media { min-height: 420px; }
 }
 
 @media (max-width: 700px) {
   .restaurant-detail-main { padding: 18px 14px 104px; }
+  .food-detail-main { padding: 18px 14px 80px; }
   .restaurant-hero { grid-template-columns: 1fr; gap: 16px; padding: 14px; }
   .restaurant-hero__media { min-height: 250px; aspect-ratio: 16 / 10; }
   .restaurant-hero h1 { font-size: 30px; }
   .restaurant-category-pills { top: 62px; }
-  .restaurant-menu-card { grid-template-columns: minmax(0, 1fr) 104px; min-height: 132px; padding: 11px; }
+  .restaurant-menu-card { min-height: 132px; padding: 11px; }
+  .restaurant-menu-card__main { grid-template-columns: 104px minmax(0, 1fr); gap: 11px; }
   .restaurant-menu-card__media { width: 104px; height: 104px; }
+  .restaurant-add-button { right: 11px; bottom: 11px; }
   .restaurant-voucher-card { min-width: 270px; }
+  .food-detail-hero__media { min-height: 330px; }
+  .food-detail-hero__content { padding: 24px 19px; }
+  .food-detail-option-grid { grid-template-columns: 1fr; }
   .restaurant-bottom-nav {
     position: fixed;
     right: 10px;
@@ -449,8 +652,13 @@
 
 @media (max-width: 430px) {
   .restaurant-hero__media { min-height: 210px; }
-  .restaurant-menu-card { grid-template-columns: minmax(0, 1fr) 92px; }
+  .restaurant-menu-card__main { grid-template-columns: 92px minmax(0, 1fr); gap: 10px; }
   .restaurant-menu-card__media { width: 92px; height: 92px; }
   .restaurant-menu-card h3 { font-size: 14px; line-height: 19px; }
   .restaurant-menu-card p { font-size: 12px; line-height: 17px; }
+  .restaurant-voucher-dialog__card { grid-template-columns: 38px minmax(0, 1fr); }
+  .restaurant-voucher-dialog__card > button,
+  .restaurant-voucher-dialog__automatic { grid-column: 2; justify-self: start; }
+  .food-detail-hero__media { min-height: 270px; }
+  .food-detail-hero h1 { font-size: 30px; }
 }

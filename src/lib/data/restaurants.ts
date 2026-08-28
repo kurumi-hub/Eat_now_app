@@ -104,6 +104,8 @@ type RestaurantPageExtrasRpc = {
     discount_value: number | string;
     max_discount: number | string | null;
     min_order_value: number | string;
+    distribution_mode: "auto" | "claim" | string;
+    expired_at: string;
   }>;
   reviews?: Array<{
     id: string;
@@ -148,6 +150,8 @@ function mapExtras(extras: RestaurantPageExtrasRpc | null | undefined) {
     code: voucher.code,
     title: voucher.name || voucher.code,
     subtitle: formatVoucherSubtitle(voucher),
+    distributionMode: voucher.distribution_mode || "auto",
+    expiredAt: voucher.expired_at,
   }));
   const reviews: RestaurantReview[] = (extras?.reviews ?? []).map((review) => ({
     id: review.id,
@@ -387,9 +391,9 @@ const fetchRestaurantDetailBySlug = unstable_cache(async (
     restaurantReviews: extras.restaurantReviews,
     menuCategories: categoryOrder.map((id) => categoriesMap.get(id)!),
   };
-}, ["catalog-restaurant-detail-v5-discovery"], {
+}, ["catalog-restaurant-detail-v6-food-vouchers"], {
   revalidate: 60,
-  tags: ["catalog", "restaurants"],
+  tags: ["catalog", "restaurants", "vouchers"],
 });
 
 export async function getRestaurantDetailBySlug(

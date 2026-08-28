@@ -43,6 +43,8 @@ export type RestaurantVoucher = {
   code: string;
   title: string;
   subtitle: string;
+  distributionMode: "auto" | "claim" | string;
+  expiredAt: string;
 };
 
 export type RestaurantReview = {
