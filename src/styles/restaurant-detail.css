@@ -428,6 +428,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 15px;
+  margin-top: 16px;
 }
 
 .restaurant-review-card {
@@ -456,6 +457,57 @@
 .restaurant-review-stars svg { color: #ddd0ca; font-size: 17px; }
 .restaurant-review-stars svg.is-filled { color: #a04100; }
 .restaurant-review-card p { margin: 9px 0 0; color: #604a40; font-size: 13px; line-height: 20px; }
+
+.restaurant-review-composer {
+  display: grid;
+  grid-template-columns: minmax(220px, .7fr) minmax(0, 1.3fr);
+  gap: 22px;
+  border: 1px solid #ead7ce;
+  border-radius: 17px;
+  background: linear-gradient(145deg, #fff9f6, #fff);
+  padding: 19px;
+  box-shadow: 0 8px 20px rgba(75, 48, 36, .06);
+}
+.restaurant-review-composer.is-locked {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+.restaurant-review-composer.is-locked > div,
+.restaurant-review-composer__heading > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+.restaurant-review-composer.is-locked svg,
+.restaurant-review-composer__heading svg { color: #a04100; }
+.restaurant-review-composer.is-locked > div > div,
+.restaurant-review-composer__heading > div > div { display: grid; gap: 4px; }
+.restaurant-review-composer strong { color: #30180e; font-size: 15px; }
+.restaurant-review-composer span { color: #755c50; font-size: 12px; line-height: 18px; }
+.restaurant-review-composer__form { display: grid; gap: 14px; }
+.restaurant-review-composer__rating {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #ddd0ca;
+  border-radius: 10px;
+  background: #fff;
+  padding: 8px 12px;
+}
+.restaurant-review-composer__rating > span { color: #4e352b; font-weight: 700; }
+.restaurant-review-composer__form > button { justify-self: end; min-width: 150px; }
+.restaurant-review-eligibility { border-radius: 13px !important; }
+.restaurant-review-empty {
+  margin-top: 15px;
+  border: 1px dashed #d8c2b7;
+  border-radius: 14px;
+  background: #fff;
+  color: #765e53;
+  font-size: 13px;
+  padding: 18px;
+  text-align: center;
+}
 
 .restaurant-voucher-dialog__intro { margin-bottom: 16px !important; }
 .restaurant-voucher-dialog__list { display: grid; gap: 12px; }
@@ -622,6 +674,9 @@
   .food-detail-hero__media { min-height: 330px; }
   .food-detail-hero__content { padding: 24px 19px; }
   .food-detail-option-grid { grid-template-columns: 1fr; }
+  .restaurant-review-composer,
+  .restaurant-review-composer.is-locked { grid-template-columns: 1fr; }
+  .restaurant-review-composer.is-locked > a { justify-self: start; }
   .restaurant-bottom-nav {
     position: fixed;
     right: 10px;

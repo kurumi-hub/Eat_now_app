@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import RestaurantDetailPage from "@/components/restaurant/RestaurantDetailPage";
 import { getRestaurantDetailBySlug } from "@/lib/data/restaurants";
+import { getReviewEligibleOrders } from "@/lib/data/reviews";
 import { getCurrentPublicUser } from "@/utils/auth/guards";
 
 type RestaurantDetailRouteProps = {
@@ -23,5 +24,15 @@ export default async function RestaurantDetailRoute({
     notFound();
   }
 
-  return <RestaurantDetailPage restaurant={restaurant} isAuthenticated={Boolean(user)} />;
+  const reviewOrders = user
+    ? await getReviewEligibleOrders(restaurant.id)
+    : [];
+
+  return (
+    <RestaurantDetailPage
+      restaurant={restaurant}
+      isAuthenticated={Boolean(user)}
+      reviewOrders={reviewOrders}
+    />
+  );
 }

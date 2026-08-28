@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 
 import FoodDetailPage from "@/components/restaurant/FoodDetailPage";
 import { getRestaurantDetailBySlug } from "@/lib/data/restaurants";
+import { getFoodReviewData, getReviewEligibleOrders } from "@/lib/data/reviews";
+import { getCurrentPublicUser } from "@/utils/auth/guards";
 
 type FoodDetailRouteProps = {
   params: Promise<{
@@ -11,7 +13,10 @@ type FoodDetailRouteProps = {
 };
 
 export default async function FoodDetailRoute({ params }: FoodDetailRouteProps) {
-  const { restaurantId, foodId } = await params;
+  const [{ restaurantId, foodId }, user] = await Promise.all([
+    params,
+    getCurrentPublicUser(),
+  ]);
   const restaurant = await getRestaurantDetailBySlug(restaurantId);
 
   if (!restaurant) notFound();
@@ -23,11 +28,19 @@ export default async function FoodDetailRoute({ params }: FoodDetailRouteProps) 
 
   if (!food || !category) notFound();
 
+  const [reviewData, reviewOrders] = await Promise.all([
+    getFoodReviewData(restaurant.slug, food.id),
+    user ? getReviewEligibleOrders(restaurant.id, food.id) : Promise.resolve([]),
+  ]);
+
   return (
     <FoodDetailPage
       restaurant={restaurant}
       food={food}
       categoryLabel={category.label}
+      reviewData={reviewData}
+      reviewOrders={reviewOrders}
+      isAuthenticated={Boolean(user)}
     />
   );
 }

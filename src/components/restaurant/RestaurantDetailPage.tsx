@@ -30,6 +30,8 @@ import { useMemo, useState, useTransition } from "react";
 
 import { claimVoucherAction } from "@/app/vouchers/actions";
 import { useCartStore } from "@/store/cartStore";
+import ReviewComposer from "./ReviewComposer";
+import type { ReviewEligibleOrder } from "./reviewData";
 import type { RestaurantDetail, RestaurantMenuItem } from "./restaurantDetailData";
 
 const FoodOptionsModal = dynamic(
@@ -40,6 +42,7 @@ const FoodOptionsModal = dynamic(
 type RestaurantDetailPageProps = {
   restaurant: RestaurantDetail;
   isAuthenticated: boolean;
+  reviewOrders: ReviewEligibleOrder[];
 };
 type SnackbarState = { open: boolean; message: string; error: boolean };
 type CartSelection = {
@@ -67,6 +70,7 @@ function formatReviewDate(value: string) {
 export default function RestaurantDetailPage({
   restaurant,
   isAuthenticated,
+  reviewOrders,
 }: RestaurantDetailPageProps) {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState("all");
@@ -377,7 +381,11 @@ export default function RestaurantDetailPage({
                       <IconButton
                         aria-label={`Thêm ${item.name}`}
                         className="restaurant-add-button"
-                        onClick={() => handleAddItem(item)}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          handleAddItem(item);
+                        }}
                         disabled={!restaurant.isOpen}
                       >
                         <AddOutlinedIcon fontSize="small" />
@@ -426,12 +434,20 @@ export default function RestaurantDetailPage({
           )}
         </div>
 
-        {restaurant.restaurantReviews?.length ? (
-          <section className="restaurant-review-section" aria-labelledby="restaurant-reviews-title">
-            <div className="restaurant-section-heading">
-              <h2 id="restaurant-reviews-title">Đánh giá từ khách hàng</h2>
-              <span><StarOutlinedIcon fontSize="small" />{restaurant.rating}</span>
-            </div>
+        <section className="restaurant-review-section" aria-labelledby="restaurant-reviews-title">
+          <div className="restaurant-section-heading">
+            <h2 id="restaurant-reviews-title">Bình luận về nhà hàng</h2>
+            <span><StarOutlinedIcon fontSize="small" />{restaurant.rating}</span>
+          </div>
+          <ReviewComposer
+            targetType="restaurant"
+            targetId={restaurant.id}
+            targetName={restaurant.name}
+            restaurantSlug={restaurant.slug}
+            isAuthenticated={isAuthenticated}
+            eligibleOrders={reviewOrders}
+          />
+          {restaurant.restaurantReviews?.length ? (
             <div className="restaurant-review-grid">
               {restaurant.restaurantReviews.map((review) => (
                 <article className="restaurant-review-card" key={review.id}>
@@ -445,8 +461,12 @@ export default function RestaurantDetailPage({
                 </article>
               ))}
             </div>
-          </section>
-        ) : null}
+          ) : (
+            <div className="restaurant-review-empty">
+              Chưa có bình luận công khai. Hãy là khách hàng đầu tiên chia sẻ trải nghiệm.
+            </div>
+          )}
+        </section>
 
       </main>
 

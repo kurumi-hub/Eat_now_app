@@ -391,9 +391,9 @@ const fetchRestaurantDetailBySlug = unstable_cache(async (
     restaurantReviews: extras.restaurantReviews,
     menuCategories: categoryOrder.map((id) => categoriesMap.get(id)!),
   };
-}, ["catalog-restaurant-detail-v6-food-vouchers"], {
+}, ["catalog-restaurant-detail-v7-comments"], {
   revalidate: 60,
-  tags: ["catalog", "restaurants", "vouchers"],
+  tags: ["catalog", "restaurants", "vouchers", "reviews"],
 });
 
 export async function getRestaurantDetailBySlug(

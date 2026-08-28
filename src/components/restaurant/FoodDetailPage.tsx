@@ -23,6 +23,8 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { useCartStore } from "@/store/cartStore";
+import ReviewComposer from "./ReviewComposer";
+import type { FoodReviewData, ReviewEligibleOrder } from "./reviewData";
 import type { RestaurantDetail, RestaurantMenuItem } from "./restaurantDetailData";
 
 const FoodOptionsModal = dynamic(
@@ -41,6 +43,9 @@ type FoodDetailPageProps = {
   restaurant: RestaurantDetail;
   food: RestaurantMenuItem;
   categoryLabel: string;
+  reviewData: FoodReviewData;
+  reviewOrders: ReviewEligibleOrder[];
+  isAuthenticated: boolean;
 };
 
 function formatCurrency(value: number) {
@@ -51,10 +56,18 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+function formatReviewDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Gần đây" : date.toLocaleDateString("vi-VN");
+}
+
 export default function FoodDetailPage({
   restaurant,
   food,
   categoryLabel,
+  reviewData,
+  reviewOrders,
+  isAuthenticated,
 }: FoodDetailPageProps) {
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [pendingSelection, setPendingSelection] = useState<CartSelection | null>(null);
@@ -228,6 +241,51 @@ export default function FoodDetailPage({
             </div>
           </section>
         ) : null}
+
+        <section className="restaurant-review-section food-review-section" aria-labelledby="food-reviews-title">
+          <div className="restaurant-section-heading">
+            <h2 id="food-reviews-title">Bình luận về món ăn</h2>
+            <span>
+              <StarOutlinedIcon fontSize="small" />
+              {reviewData.ratingCount ? reviewData.ratingAverage.toFixed(1) : "Mới"}
+              {reviewData.ratingCount ? ` · ${reviewData.ratingCount} đánh giá` : ""}
+            </span>
+          </div>
+          <ReviewComposer
+            targetType="food"
+            targetId={food.id}
+            targetName={food.name}
+            restaurantSlug={restaurant.slug}
+            isAuthenticated={isAuthenticated}
+            eligibleOrders={reviewOrders}
+          />
+          {reviewData.reviews.length ? (
+            <div className="restaurant-review-grid">
+              {reviewData.reviews.map((review) => (
+                <article className="restaurant-review-card" key={review.id}>
+                  <header>
+                    <span>{review.initial}</span>
+                    <div><strong>{review.customerName}</strong><small>{formatReviewDate(review.createdAt)}</small></div>
+                  </header>
+                  <div className="restaurant-review-stars" aria-label={`${review.rating} sao`}>
+                    {Array.from({ length: 5 }, (_, index) => (
+                      <StarOutlinedIcon
+                        key={index}
+                        className={index < review.rating ? "is-filled" : ""}
+                        fontSize="small"
+                      />
+                    ))}
+                  </div>
+                  <p>{review.content}</p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="restaurant-review-empty">
+              Chưa có bình luận công khai cho món này.
+            </div>
+          )}
+        </section>
       </main>
 
       <FoodOptionsModal
