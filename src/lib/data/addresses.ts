@@ -32,6 +32,8 @@ function rowToAddress(row: AddressRow): AccountAddress {
     ward: row.ward ?? "",
     district: row.district ?? "",
     city: row.province ?? "",
+    lat: row.lat,
+    lon: row.lon,
     note: row.delivery_note ?? undefined,
     isDefault: row.is_default,
     createdAt: row.created_at,

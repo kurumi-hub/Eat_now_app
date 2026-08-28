@@ -61,7 +61,8 @@
 
 .home-location,
 .home-nav__item,
-.home-section__heading button {
+.home-section__heading button,
+.home-section__all-link {
   border: 0;
   background: transparent;
   cursor: pointer;
@@ -316,16 +317,19 @@
   margin-bottom: 24px;
 }
 
-.home-section__heading button {
+.home-section__heading button,
+.home-section__all-link {
   min-height: 40px;
   border-radius: 999px;
   color: #7a3000;
   font-size: 14px;
   font-weight: 700;
   padding: 8px 12px;
+  text-decoration: none;
 }
 
-.home-section__heading button:hover {
+.home-section__heading button:hover,
+.home-section__all-link:hover {
   background: rgba(122, 48, 0, 0.08);
 }
 

@@ -43,7 +43,7 @@ type CustomerHeaderProps = {
 
 const navItems = [
   { label: "Khám phá", sectionId: "home-hero" },
-  { label: "Nhà hàng", sectionId: "featured-restaurants" },
+  { label: "Nhà hàng", sectionId: "restaurants", href: "/restaurants" },
   { label: "Ưu đãi", sectionId: "vouchers", href: "/vouchers" },
 ];
 

@@ -56,6 +56,8 @@ export default function SiteChrome({
         activeSectionId={
           pathname === "/"
             ? "home-hero"
+            : pathname === "/restaurants" || pathname.startsWith("/restaurants/")
+              ? "restaurants"
             : pathname === "/vouchers"
               ? "vouchers"
               : null

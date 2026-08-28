@@ -48,6 +48,8 @@ export type AccountAddress = {
   ward: string;
   district: string;
   city: string;
+  lat?: number | null;
+  lon?: number | null;
   note?: string;
   isDefault: boolean;
   createdAt?: string;

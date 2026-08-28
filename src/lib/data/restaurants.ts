@@ -6,7 +6,14 @@ import type { HomeRestaurant } from "@/components/home/homeData";
 import type {
   RestaurantDetail,
   RestaurantMenuCategory,
+  RestaurantReview,
+  RestaurantVoucher,
 } from "@/components/restaurant/restaurantDetailData";
+import type {
+  RestaurantDirectory,
+  RestaurantListCategory,
+  RestaurantListItem,
+} from "@/components/restaurant/restaurantPageData";
 import { createPublicClient } from "@/utils/supabase/public";
 
 type FeaturedRestaurantRpcRow = {
@@ -64,11 +71,97 @@ type RestaurantDetailRpc = {
   }>;
 };
 
+type RestaurantDirectoryRpc = {
+  items?: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    address: string;
+    image_url: string | null;
+    image_alt_text?: string | null;
+    rating_average: number | string;
+    rating_count: number;
+    order_state?: string | null;
+    close_at?: string | null;
+    lat?: number | string | null;
+    lon?: number | string | null;
+    has_promotion?: boolean | null;
+    has_freeship?: boolean | null;
+    categories?: Array<{ id: string; name: string }> | null;
+  }>;
+  categories?: Array<{ id: string; name: string }>;
+  total?: number;
+};
+
+type RestaurantPageExtrasRpc = {
+  description?: string | null;
+  vouchers?: Array<{
+    id: string;
+    code: string;
+    name: string;
+    discount_scope: "items" | "shipping" | string;
+    discount_type: "fixed" | "percent" | string;
+    discount_value: number | string;
+    max_discount: number | string | null;
+    min_order_value: number | string;
+  }>;
+  reviews?: Array<{
+    id: string;
+    customer_name: string;
+    rating: number;
+    comment: string | null;
+    created_at: string;
+  }>;
+};
+
 function formatReviewCount(count: number) {
   if (count >= 1000) {
     return `${(count / 1000).toFixed(1).replace(/\.0$/, "")}k+ đánh giá`;
   }
   return `${count}+ đánh giá`;
+}
+
+function directoryAvailability(orderState: string) {
+  return ORDER_STATE_COPY[orderState]?.label ?? ORDER_STATE_COPY.UNAVAILABLE.label;
+}
+
+function toFiniteNumber(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function formatVoucherSubtitle(voucher: NonNullable<RestaurantPageExtrasRpc["vouchers"]>[number]) {
+  const value = Number(voucher.discount_value);
+  const benefit = voucher.discount_scope === "shipping"
+    ? "Phí giao hàng"
+    : voucher.discount_type === "percent"
+      ? `Giảm ${value}%${voucher.max_discount ? ` · tối đa ${Number(voucher.max_discount).toLocaleString("vi-VN")}đ` : ""}`
+      : `Giảm ${value.toLocaleString("vi-VN")}đ`;
+  const minimum = Number(voucher.min_order_value || 0);
+  return minimum > 0 ? `${benefit} · đơn từ ${minimum.toLocaleString("vi-VN")}đ` : benefit;
+}
+
+function mapExtras(extras: RestaurantPageExtrasRpc | null | undefined) {
+  const vouchers: RestaurantVoucher[] = (extras?.vouchers ?? []).map((voucher) => ({
+    id: voucher.id,
+    code: voucher.code,
+    title: voucher.name || voucher.code,
+    subtitle: formatVoucherSubtitle(voucher),
+  }));
+  const reviews: RestaurantReview[] = (extras?.reviews ?? []).map((review) => ({
+    id: review.id,
+    customerName: review.customer_name || "Khách hàng EatNow",
+    initial: (review.customer_name || "E").trim().charAt(0).toUpperCase(),
+    rating: Number(review.rating),
+    content: review.comment?.trim() || "Khách hàng đã đánh giá nhà hàng.",
+    createdAt: review.created_at,
+  }));
+  return {
+    description: extras?.description?.trim() || "",
+    restaurantVouchers: vouchers,
+    restaurantReviews: reviews,
+  };
 }
 
 const ORDER_STATE_COPY: Record<string, { label: string; message: string }> = {
@@ -119,13 +212,95 @@ export async function getFeaturedRestaurants(): Promise<HomeRestaurant[]> {
   }
 }
 
+function mapDirectoryItem(
+  restaurant: NonNullable<RestaurantDirectoryRpc["items"]>[number]
+): RestaurantListItem {
+  const categories = restaurant.categories ?? [];
+  const orderState = restaurant.order_state || "UNAVAILABLE";
+  return {
+    id: restaurant.id,
+    slug: restaurant.slug,
+    name: restaurant.name,
+    address: restaurant.address,
+    image: restaurant.image_url?.trim() || "",
+    imageAlt: restaurant.image_alt_text?.trim() || `Ảnh nhà hàng ${restaurant.name}`,
+    rating: Number(restaurant.rating_average || 0),
+    reviewCount: Number(restaurant.rating_count || 0),
+    categoryIds: categories.map((category) => category.id),
+    categoryLabels: categories.map((category) => category.name),
+    orderState,
+    availabilityLabel: directoryAvailability(orderState),
+    closesAt: restaurant.close_at ?? "",
+    lat: toFiniteNumber(restaurant.lat),
+    lon: toFiniteNumber(restaurant.lon),
+    hasPromotion: restaurant.has_promotion === true,
+    hasFreeship: restaurant.has_freeship === true,
+  };
+}
+
+const fetchRestaurantDirectory = unstable_cache(async (): Promise<RestaurantDirectory> => {
+  const supabase = createPublicClient();
+  const { data, error } = await supabase.rpc("api_list_public_restaurants", {
+    p_limit: 100,
+    p_offset: 0,
+  });
+
+  if (!error && data) {
+    const payload = data as unknown as RestaurantDirectoryRpc;
+    const items = (payload.items ?? []).map(mapDirectoryItem);
+    const categories: RestaurantListCategory[] = (payload.categories ?? []).map(
+      (category) => ({ id: category.id, label: category.name })
+    );
+    return { items, categories, total: Number(payload.total ?? items.length) };
+  }
+
+  const isMissingRpc =
+    error?.code === "PGRST202" ||
+    error?.code === "42883" ||
+    /api_list_public_restaurants/i.test(error?.message ?? "");
+  if (!isMissingRpc) {
+    throw new Error(error?.message ?? "Không thể tải danh sách nhà hàng.");
+  }
+
+  // Cho phép deploy source trước SQL 48. RPC nổi bật không có category/toạ độ,
+  // nhưng trang vẫn hiển thị được dữ liệu thật thay vì rơi về dữ liệu mock.
+  const { data: featured, error: featuredError } = await supabase.rpc(
+    "api_featured_restaurants",
+    { p_limit: 50 }
+  );
+  if (featuredError) throw new Error(featuredError.message);
+  const items = ((featured ?? []) as unknown as FeaturedRestaurantRpcRow[]).map(
+    (restaurant) => mapDirectoryItem({
+      ...restaurant,
+      address: "Địa chỉ đang được cập nhật",
+      order_state: "OPEN",
+      categories: [],
+    })
+  );
+  return { items, categories: [], total: items.length };
+}, ["public-restaurant-directory-v1"], {
+  revalidate: 60,
+  tags: ["catalog", "restaurants", "vouchers"],
+});
+
+export async function getRestaurantDirectory(): Promise<RestaurantDirectory> {
+  try {
+    return await fetchRestaurantDirectory();
+  } catch (error) {
+    console.error("getRestaurantDirectory RPC error:", error);
+    return { items: [], categories: [], total: 0 };
+  }
+}
+
 const fetchRestaurantDetailBySlug = unstable_cache(async (
   slug: string
 ): Promise<RestaurantDetail | undefined> => {
   const supabase = createPublicClient();
-  const { data, error } = await supabase.rpc("api_restaurant_detail", {
-    p_slug: slug,
-  });
+  const [detailResult, extrasResult] = await Promise.all([
+    supabase.rpc("api_restaurant_detail", { p_slug: slug }),
+    supabase.rpc("api_restaurant_page_extras", { p_slug: slug }),
+  ]);
+  const { data, error } = detailResult;
 
   if (error) {
     throw new Error(error.message);
@@ -133,6 +308,16 @@ const fetchRestaurantDetailBySlug = unstable_cache(async (
   if (!data) return undefined;
 
   const restaurant = data as unknown as RestaurantDetailRpc;
+  const extrasMissing =
+    extrasResult.error?.code === "PGRST202" ||
+    extrasResult.error?.code === "42883" ||
+    /api_restaurant_page_extras/i.test(extrasResult.error?.message ?? "");
+  if (extrasResult.error && !extrasMissing) {
+    console.warn("api_restaurant_page_extras error:", extrasResult.error.message);
+  }
+  const extras = mapExtras(
+    extrasResult.error ? null : extrasResult.data as unknown as RestaurantPageExtrasRpc
+  );
   const orderState = restaurant.order_state || (restaurant.is_active ? "OPEN" : "UNAVAILABLE");
   const availability = ORDER_STATE_COPY[orderState] || ORDER_STATE_COPY.UNAVAILABLE;
   const categoryOrder: string[] = [];
@@ -197,9 +382,12 @@ const fetchRestaurantDetailBySlug = unstable_cache(async (
       ? `${availability.message} Lý do: ${restaurant.paused_reason}`
       : availability.message,
     openUntil: restaurant.close_at ?? "",
+    description: extras.description,
+    restaurantVouchers: extras.restaurantVouchers,
+    restaurantReviews: extras.restaurantReviews,
     menuCategories: categoryOrder.map((id) => categoriesMap.get(id)!),
   };
-}, ["catalog-restaurant-detail-v4-real-media"], {
+}, ["catalog-restaurant-detail-v5-discovery"], {
   revalidate: 60,
   tags: ["catalog", "restaurants"],
 });

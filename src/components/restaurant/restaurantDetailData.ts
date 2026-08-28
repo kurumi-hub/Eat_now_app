@@ -38,6 +38,22 @@ export type RestaurantMenuCategory = {
   items: RestaurantMenuItem[];
 };
 
+export type RestaurantVoucher = {
+  id: string;
+  code: string;
+  title: string;
+  subtitle: string;
+};
+
+export type RestaurantReview = {
+  id: string;
+  customerName: string;
+  initial: string;
+  rating: number;
+  content: string;
+  createdAt: string;
+};
+
 export type RestaurantDetail = {
   id: string;
   slug: string;
@@ -54,6 +70,9 @@ export type RestaurantDetail = {
   availabilityLabel?: string;
   availabilityMessage?: string;
   openUntil: string;
+  description?: string;
+  restaurantVouchers?: RestaurantVoucher[];
+  restaurantReviews?: RestaurantReview[];
   menuCategories: RestaurantMenuCategory[];
 };
 

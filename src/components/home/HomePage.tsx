@@ -83,11 +83,7 @@ export default function HomePage({
             <Button
               variant="contained"
               endIcon={<ArrowForwardOutlinedIcon />}
-              onClick={() =>
-                showPlaceholder(
-                  "Chức năng đặt món sẽ được triển khai ở sprint sau."
-                )
-              }
+              onClick={() => router.push("/restaurants")}
             >
               Đặt món ngay
             </Button>
@@ -104,11 +100,7 @@ export default function HomePage({
                   key={category.id}
                   className="home-category-card"
                   type="button"
-                  onClick={() =>
-                    showPlaceholder(
-                      `Danh mục ${category.label} sẽ được mở ở sprint sau.`
-                    )
-                  }
+                  onClick={() => router.push(`/restaurants?category=${encodeURIComponent(category.id)}`)}
                 >
                   <span className="home-category-card__icon">
                     {category.imageUrl ? (
@@ -132,16 +124,9 @@ export default function HomePage({
         <section id="featured-restaurants" className="home-section">
           <div className="home-section__heading">
             <h2>Nhà Hàng Nổi Bật</h2>
-            <button
-              type="button"
-              onClick={() =>
-                showPlaceholder(
-                  "Danh sách nhà hàng sẽ được triển khai ở sprint tiếp theo."
-                )
-              }
-            >
+            <Link href="/restaurants" className="home-section__all-link">
               Xem tất cả
-            </button>
+            </Link>
           </div>
           <div className="home-restaurant-grid">
             {featuredRestaurants.length ? featuredRestaurants.map((restaurant) => (
