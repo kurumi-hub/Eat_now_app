@@ -279,7 +279,10 @@
 }
 
 .restaurant-menu-card {
-  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  align-items: stretch;
+  gap: 10px;
   min-height: 150px;
   border: 1px solid #e8dcd6;
   border-radius: 15px;
@@ -296,6 +299,7 @@
 }
 
 .restaurant-menu-card.is-unavailable { opacity: .65; }
+.restaurant-menu-card.is-unavailable .restaurant-menu-card__main { grid-column: 1 / -1; }
 .restaurant-menu-card__main {
   display: grid;
   grid-template-columns: 122px minmax(0, 1fr);
@@ -337,7 +341,7 @@
 
 .restaurant-menu-card__badge { background: #ffdbcc; color: #7a3000; }
 .restaurant-menu-card__unavailable { background: #ffdad6; color: #93000a; }
-.restaurant-menu-card__footer { justify-content: space-between; gap: 10px; margin-top: auto; padding-right: 42px; }
+.restaurant-menu-card__footer { justify-content: space-between; gap: 10px; margin-top: auto; }
 .restaurant-menu-card__footer > strong { color: #a04100; font-size: 16px; }
 
 .restaurant-menu-card__media {
@@ -352,10 +356,9 @@
 .restaurant-menu-card:hover .restaurant-menu-card__media img { transform: scale(1.04); }
 
 .restaurant-add-button {
-  position: absolute !important;
-  right: 13px;
-  bottom: 13px;
-  z-index: 2;
+  position: static !important;
+  align-self: end;
+  justify-self: end;
   width: 34px !important;
   height: 34px !important;
   border: 1px solid #a04100 !important;
@@ -669,7 +672,6 @@
   .restaurant-menu-card { min-height: 132px; padding: 11px; }
   .restaurant-menu-card__main { grid-template-columns: 104px minmax(0, 1fr); gap: 11px; }
   .restaurant-menu-card__media { width: 104px; height: 104px; }
-  .restaurant-add-button { right: 11px; bottom: 11px; }
   .restaurant-voucher-card { min-width: 270px; }
   .food-detail-hero__media { min-height: 330px; }
   .food-detail-hero__content { padding: 24px 19px; }

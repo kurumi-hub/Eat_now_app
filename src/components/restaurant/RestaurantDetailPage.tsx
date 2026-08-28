@@ -379,6 +379,7 @@ export default function RestaurantDetailPage({
                     </Link>
                     {item.isAvailable ? (
                       <IconButton
+                        type="button"
                         aria-label={`Thêm ${item.name}`}
                         className="restaurant-add-button"
                         onClick={(event) => {
