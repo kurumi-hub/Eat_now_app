@@ -10,6 +10,7 @@ import {
   ownerTopRevenueDishes,
   ownerTransactions,
 } from "@/components/owner/ownerFlowData";
+import * as ownerStyles from "@/components/owner/tailwindClasses";
 
 const metricIcons = [
   AccountBalanceWalletOutlinedIcon,
@@ -20,57 +21,59 @@ const metricIcons = [
 
 export default function OwnerRevenuePage() {
   return (
-    <section className="owner-page owner-revenue-page">
-      <header className="owner-page-header owner-page-header--split">
+    <section className={ownerStyles.pageClassName}>
+      <header className={ownerStyles.splitPageHeaderClassName}>
         <div>
           <h1>Doanh thu &amp; Phân tích</h1>
           <p>Tổng quan về hiệu suất kinh doanh của bạn.</p>
         </div>
-        <select className="owner-period-select" defaultValue="this-month">
+        <select className={ownerStyles.periodSelectClassName} defaultValue="this-month">
           <option value="7-days">7 ngày</option>
           <option value="30-days">30 ngày</option>
           <option value="this-month">Tháng này</option>
         </select>
       </header>
 
-      <div className="owner-metric-grid owner-metric-grid--revenue">
+      <div className={ownerStyles.metricGridClassName}>
         {ownerRevenueMetrics.map((metric, index) => {
           const Icon = metricIcons[index];
 
           return (
             <article
-              className={`owner-card owner-revenue-metric owner-metric--${
-                metric.tone ?? "neutral"
-              }`}
+              className={ownerStyles.revenueMetricCardClassName}
               key={metric.id}
             >
-              <div>
+              <div className={ownerStyles.revenueMetricHeaderClassName}>
                 <span>{metric.label}</span>
-                <Icon />
+                <Icon className={ownerStyles.revenueMetricIconClassName} />
               </div>
-              <strong>{metric.value}</strong>
-              <small>{metric.note}</small>
+              <strong className={ownerStyles.metricValueClassName(metric.tone ?? "neutral")}>
+                {metric.value}
+              </strong>
+              <small className={ownerStyles.metricNoteClassName(metric.tone ?? "neutral")}>
+                {metric.note}
+              </small>
             </article>
           );
         })}
       </div>
 
-      <section className="owner-card owner-chart-card">
-        <div className="owner-card__header">
+      <section className={ownerStyles.chartCardClassName}>
+        <div className={ownerStyles.chartHeaderClassName}>
           <h2>Xu hướng doanh thu</h2>
           <button type="button" aria-label="Tùy chọn biểu đồ">
             <MoreHorizIcon />
           </button>
         </div>
-        <div className="owner-chart">
-          <div className="owner-chart__axis">
+        <div className={ownerStyles.chartClassName}>
+          <div className={ownerStyles.chartAxisClassName}>
             {["30M", "28M", "26M", "24M", "22M", "20M", "18M", "16M", "14M", "12M"].map(
               (label) => (
                 <span key={label}>{label}</span>
               )
             )}
           </div>
-          <svg viewBox="0 0 720 260" role="img" aria-label="Biểu đồ xu hướng doanh thu">
+          <svg className={ownerStyles.chartSvgClassName} viewBox="0 0 720 260" role="img" aria-label="Biểu đồ xu hướng doanh thu">
             <defs>
               <linearGradient id="ownerRevenueArea" x1="0" x2="0" y1="0" y2="1">
                 <stop offset="0%" stopColor="#a04100" stopOpacity="0.3" />
@@ -100,7 +103,7 @@ export default function OwnerRevenuePage() {
               />
             ))}
           </svg>
-          <div className="owner-chart__labels">
+          <div className={ownerStyles.chartLabelsClassName}>
             {ownerRevenueTrend.map((point) => (
               <span key={point.label}>{point.label}</span>
             ))}
@@ -108,11 +111,11 @@ export default function OwnerRevenuePage() {
         </div>
       </section>
 
-      <section className="owner-card owner-table-card">
-        <div className="owner-card__header">
+      <section className={ownerStyles.tableCardClassName}>
+        <div className={ownerStyles.chartHeaderClassName}>
           <h2>Món bán chạy</h2>
         </div>
-        <div className="owner-table-wrap">
+        <div className={ownerStyles.tableWrapClassName}>
           <table>
             <thead>
               <tr>
@@ -134,12 +137,12 @@ export default function OwnerRevenuePage() {
         </div>
       </section>
 
-      <section className="owner-card owner-table-card">
-        <div className="owner-card__header">
+      <section className={ownerStyles.tableCardClassName}>
+        <div className={ownerStyles.chartHeaderClassName}>
           <h2>Giao dịch gần đây</h2>
           <button type="button">Xem tất cả</button>
         </div>
-        <div className="owner-table-wrap">
+        <div className={ownerStyles.tableWrapClassName}>
           <table>
             <thead>
               <tr>
@@ -158,7 +161,7 @@ export default function OwnerRevenuePage() {
                   <td>{transaction.method}</td>
                   <td>{transaction.total}</td>
                   <td>
-                    <mark>{transaction.status}</mark>
+                    <mark className={ownerStyles.tableStatusClassName}>{transaction.status}</mark>
                   </td>
                 </tr>
               ))}

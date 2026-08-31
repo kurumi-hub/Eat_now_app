@@ -8,44 +8,50 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import Link from "next/link";
 
+import * as ownerStyles from "@/components/owner/tailwindClasses";
+
 export default function OwnerAddDishPage() {
   return (
-    <section className="owner-add-dish-page" aria-labelledby="owner-add-dish-title">
-      <div className="owner-add-dish-page__background" aria-hidden="true">
-        <div className="owner-add-dish-page__fake-card" />
-        <div className="owner-add-dish-page__fake-card" />
-        <div className="owner-add-dish-page__fake-card" />
+    <section className={ownerStyles.addDishPageClassName} aria-labelledby="owner-add-dish-title">
+      <div className={ownerStyles.addDishBackgroundClassName} aria-hidden="true">
+        <div className={ownerStyles.addDishFakeCardClassName} />
+        <div className={ownerStyles.addDishFakeCardClassName} />
+        <div className={ownerStyles.addDishFakeCardClassName} />
       </div>
 
-      <article className="owner-add-dish-modal">
-        <header>
-          <h1 id="owner-add-dish-title">Thêm món mới</h1>
-          <Link href="/owner/menu" aria-label="Đóng form thêm món">
+      <article className={ownerStyles.addDishModalClassName}>
+        <header className={ownerStyles.addDishModalHeaderClassName}>
+          <h1 className={ownerStyles.addDishModalTitleClassName} id="owner-add-dish-title">
+            Thêm món mới
+          </h1>
+          <Link className={ownerStyles.addDishModalCloseClassName} href="/owner/menu" aria-label="Đóng form thêm món">
             <CloseIcon />
           </Link>
         </header>
 
-        <div className="owner-add-dish-modal__body">
-          <label className="owner-form-label">Hình ảnh món ăn</label>
-          <button className="owner-upload-box" type="button">
-            <span>
+        <div className={ownerStyles.addDishModalBodyClassName}>
+          <label className={ownerStyles.formLabelClassName}>Hình ảnh món ăn</label>
+          <button className={ownerStyles.uploadBoxClassName} type="button">
+            <span className={ownerStyles.uploadIconClassName}>
               <AddPhotoAlternateOutlinedIcon />
             </span>
             <strong>Kéo thả hoặc nhấp để tải ảnh lên</strong>
-            <small>Ảnh vuông hoặc tỷ lệ 4:3 được khuyến nghị (JPG, PNG)</small>
+            <small className={ownerStyles.uploadHelpClassName}>
+              Ảnh vuông hoặc tỷ lệ 4:3 được khuyến nghị (JPG, PNG)
+            </small>
           </button>
 
-          <div className="owner-form-grid">
-            <label className="owner-form-field">
+          <div className={ownerStyles.formGridClassName}>
+            <label className={ownerStyles.formFieldClassName}>
               <span>
-                Tên món ăn <b>*</b>
+                Tên món ăn <b className={ownerStyles.requiredMarkClassName}>*</b>
               </span>
               <input placeholder="Ví dụ: Cơm Tấm Sườn Bì" />
-              <small>Vui lòng nhập tên món</small>
+              <small className={ownerStyles.formErrorClassName}>Vui lòng nhập tên món</small>
             </label>
-            <label className="owner-form-field">
+            <label className={ownerStyles.formFieldClassName}>
               <span>
-                Danh mục <b>*</b>
+                Danh mục <b className={ownerStyles.requiredMarkClassName}>*</b>
               </span>
               <select defaultValue="">
                 <option value="" disabled>
@@ -59,22 +65,22 @@ export default function OwnerAddDishPage() {
             </label>
           </div>
 
-          <label className="owner-form-field">
+          <label className={ownerStyles.formFieldClassName}>
             <span>
-              Giá cơ bản <b>*</b>
+              Giá cơ bản <b className={ownerStyles.requiredMarkClassName}>*</b>
             </span>
-            <div className="owner-form-field__with-suffix">
+            <div className={ownerStyles.withSuffixClassName}>
               <input defaultValue="65.000" />
-              <em>đ</em>
+              <em className={ownerStyles.suffixClassName}>đ</em>
             </div>
           </label>
 
-          <label className="owner-form-field">
+          <label className={ownerStyles.formFieldClassName}>
             <span>Mô tả món ăn</span>
             <textarea placeholder="Mô tả chi tiết nguyên liệu, hương vị..." rows={3} />
           </label>
 
-          <div className="owner-option-header">
+          <div className={ownerStyles.optionHeaderClassName}>
             <h2>Tuỳ chọn món</h2>
             <button type="button">
               <AddIcon />
@@ -82,51 +88,58 @@ export default function OwnerAddDishPage() {
             </button>
           </div>
 
-          <section className="owner-option-group">
-            <div className="owner-option-group__summary">
+          <section className={ownerStyles.optionGroupClassName}>
+            <div className={ownerStyles.optionGroupSummaryClassName}>
               <div>
                 <strong>Size</strong>
-                <span>Bắt buộc • Chọn một</span>
+                <span className={ownerStyles.optionSummaryMetaClassName}>Bắt buộc • Chọn một</span>
               </div>
               <ExpandLessIcon />
             </div>
             {["Nhỏ (+0đ)", "Vừa (+10.000đ)", "Lớn (+20.000đ)"].map((option) => (
-              <div className="owner-option-row" key={option}>
+              <div className={ownerStyles.optionRowClassName} key={option}>
                 <span>{option}</span>
-                <div>
+                <div className={ownerStyles.optionRowActionsClassName}>
                   <EditOutlinedIcon />
                   <DeleteOutlinedIcon />
                 </div>
               </div>
             ))}
-            <button className="owner-option-group__add" type="button">
+            <button className={ownerStyles.optionGroupAddClassName} type="button">
               <AddIcon />
               Thêm lựa chọn
             </button>
           </section>
 
-          <section className="owner-option-group owner-option-group--collapsed">
-            <div className="owner-option-group__summary">
+          <section className={ownerStyles.optionGroupClassName}>
+            <div className={ownerStyles.optionGroupSummaryClassName}>
               <div>
                 <strong>Topping</strong>
-                <span>3 lựa chọn • Tùy chọn</span>
+                <span className={ownerStyles.optionSummaryMetaClassName}>3 lựa chọn • Tùy chọn</span>
               </div>
               <ExpandMoreIcon />
             </div>
           </section>
 
-          <label className="owner-sell-toggle">
+          <label className={ownerStyles.sellToggleClassName}>
             <span>
               <strong>Sẵn sàng bán</strong>
-              <small>Món ăn sẽ hiển thị với khách hàng khi cửa hàng đang mở.</small>
+              <small className={ownerStyles.sellToggleHelpClassName}>
+                Món ăn sẽ hiển thị với khách hàng khi cửa hàng đang mở.
+              </small>
             </span>
-            <input type="checkbox" defaultChecked />
+            <span className={ownerStyles.switchLabelClassName}>
+              <input className={ownerStyles.switchInputClassName} type="checkbox" defaultChecked />
+              <span className={ownerStyles.switchTrackClassName} />
+            </span>
           </label>
         </div>
 
-        <footer>
-          <Link href="/owner/menu">Huỷ</Link>
-          <button type="button">
+        <footer className={ownerStyles.addDishFooterClassName}>
+          <Link className={ownerStyles.addDishCancelClassName} href="/owner/menu">
+            Huỷ
+          </Link>
+          <button className={ownerStyles.addDishSaveClassName} type="button">
             <SaveOutlinedIcon />
             Lưu món ăn
           </button>

@@ -12,12 +12,13 @@ import {
   ownerRatingDistribution,
   ownerReviews,
 } from "@/components/owner/ownerFlowData";
+import * as ownerStyles from "@/components/owner/tailwindClasses";
 
 const reviewTabs = ["Tất cả", "Mới nhất", "Chưa trả lời", "≤ 4★"];
 
 function RatingStars({ rating }: { rating: number }) {
   return (
-    <span className="owner-stars" aria-label={`${rating} sao`}>
+    <span className={ownerStyles.starsClassName} aria-label={`${rating} sao`}>
       {Array.from({ length: 5 }).map((_, index) =>
         index < rating ? (
           <StarIcon key={index} fontSize="small" />
@@ -31,52 +32,52 @@ function RatingStars({ rating }: { rating: number }) {
 
 export default function OwnerReviewsPage() {
   return (
-    <section className="owner-reviews-page">
-      <header className="owner-reviews-topbar">
-        <label className="owner-search-field owner-search-field--review">
+    <section className={ownerStyles.reviewsPageClassName}>
+      <header className={ownerStyles.reviewsTopbarClassName}>
+        <label className={ownerStyles.reviewSearchFieldClassName}>
           <SearchIcon />
           <input placeholder="Tìm kiếm đánh giá..." />
         </label>
-        <div>
-          <button type="button" aria-label="Thông báo">
+        <div className={ownerStyles.reviewsTopbarActionsClassName}>
+          <button className={ownerStyles.reviewsTopbarButtonClassName} type="button" aria-label="Thông báo">
             <NotificationsNoneOutlinedIcon />
-            <span />
+            <span className={ownerStyles.notificationDotClassName} />
           </button>
-          <button type="button" aria-label="Trợ giúp">
+          <button className={ownerStyles.reviewsTopbarButtonClassName} type="button" aria-label="Trợ giúp">
             <HelpOutlinedIcon />
           </button>
-          <div className="owner-review-avatar">OP</div>
+          <div className={ownerStyles.reviewAvatarClassName}>OP</div>
         </div>
       </header>
 
-      <div className="owner-reviews-layout">
-        <aside className="owner-card owner-rating-card">
+      <div className={ownerStyles.reviewsLayoutClassName}>
+        <aside className={ownerStyles.ratingCardClassName}>
           <div>
-            <h2>Xếp hạng trung bình</h2>
-            <strong>4.8</strong>
+            <h2 className={ownerStyles.ratingTitleClassName}>Xếp hạng trung bình</h2>
+            <strong className={ownerStyles.ratingValueClassName}>4.8</strong>
             <RatingStars rating={5} />
-            <p>Dựa trên 1,245 đánh giá</p>
+            <p className={ownerStyles.ratingNoteClassName}>Dựa trên 1,245 đánh giá</p>
           </div>
-          <div className="owner-rating-bars">
+          <div className={ownerStyles.ratingBarsClassName}>
             {ownerRatingDistribution.map((item) => (
-              <div key={item.stars}>
+              <div className={ownerStyles.ratingBarClassName} key={item.stars}>
                 <span>{item.stars}</span>
                 <StarBorderIcon />
-                <mark>
-                  <i style={{ width: `${item.percent}%` }} />
+                <mark className={ownerStyles.ratingBarTrackClassName}>
+                  <i className={ownerStyles.ratingBarFillClassName} style={{ width: `${item.percent}%` }} />
                 </mark>
               </div>
             ))}
           </div>
         </aside>
 
-        <main className="owner-reviews-content">
-          <div className="owner-page-header owner-page-header--split">
+        <main className={ownerStyles.reviewsContentClassName}>
+          <div className={ownerStyles.splitPageHeaderClassName}>
             <div>
               <h1>Đánh giá từ khách hàng</h1>
               <p>Quản lý phản hồi và tương tác với thực khách.</p>
             </div>
-            <div className="owner-review-actions">
+            <div className={ownerStyles.reviewActionsClassName}>
               <button type="button">
                 <FilterListIcon />
                 Lọc
@@ -88,48 +89,48 @@ export default function OwnerReviewsPage() {
             </div>
           </div>
 
-          <div className="owner-tabs owner-tabs--review">
+          <div className={ownerStyles.reviewTabsClassName}>
             {reviewTabs.map((tab) => (
-              <button className={tab === "Tất cả" ? "is-active" : ""} type="button" key={tab}>
+              <button className={ownerStyles.tabButtonClassName(tab === "Tất cả", true)} type="button" key={tab}>
                 {tab}
               </button>
             ))}
           </div>
 
-          <div className="owner-review-list">
+          <div className={ownerStyles.reviewListClassName}>
             {ownerReviews.map((review) => (
-              <article className="owner-card owner-review-card" key={review.id}>
-                <div className="owner-review-card__top">
-                  <div className="owner-letter-avatar">{review.customerInitial}</div>
+              <article className={ownerStyles.reviewCardClassName} key={review.id}>
+                <div className={ownerStyles.reviewCardTopClassName}>
+                  <div className={ownerStyles.letterAvatarClassName}>{review.customerInitial}</div>
                   <div>
-                    <h2>{review.customerName}</h2>
-                    <p>
+                    <h2 className={ownerStyles.reviewCardTitleClassName}>{review.customerName}</h2>
+                    <p className={ownerStyles.reviewMetaClassName}>
                       <RatingStars rating={review.rating} />
                       <span>•</span>
                       {review.timeAgo}
                     </p>
                   </div>
-                  <div className="owner-review-card__badges">
+                  <div className={ownerStyles.reviewBadgesClassName}>
                     {review.needsReply ? <mark>Cần phản hồi</mark> : null}
                     <span>{review.orderId}</span>
                   </div>
                 </div>
-                <div className="owner-review-dishes">
+                <div className={ownerStyles.reviewDishesClassName}>
                   <RestaurantMenuIcon />
                   {review.dishes}
                 </div>
-                <p className="owner-review-card__comment">{review.comment}</p>
+                <p className={ownerStyles.reviewCommentClassName}>{review.comment}</p>
                 {review.reply ? (
-                  <div className="owner-review-reply">
-                    <div>
+                  <div className={ownerStyles.reviewReplyClassName}>
+                    <div className={ownerStyles.reviewReplyHeaderClassName}>
                       <strong>Phản hồi từ nhà hàng</strong>
                       <span>Hôm qua</span>
                     </div>
-                    <p>{review.reply}</p>
+                    <p className={ownerStyles.reviewReplyTextClassName}>{review.reply}</p>
                   </div>
                 ) : (
-                  <div className="owner-review-card__footer">
-                    <button type="button">
+                  <div className={ownerStyles.reviewFooterClassName}>
+                    <button className={ownerStyles.softPillButtonClassName} type="button">
                       <ReplyIcon />
                       Trả lời
                     </button>
@@ -139,7 +140,7 @@ export default function OwnerReviewsPage() {
             ))}
           </div>
 
-          <button className="owner-load-more" type="button">
+          <button className={ownerStyles.loadMoreClassName} type="button">
             Tải thêm đánh giá
           </button>
         </main>

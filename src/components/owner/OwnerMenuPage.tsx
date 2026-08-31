@@ -12,28 +12,29 @@ import {
   ownerCategories,
   ownerMenuItems,
 } from "@/components/owner/ownerFlowData";
+import * as ownerStyles from "@/components/owner/tailwindClasses";
 
 export default function OwnerMenuPage() {
   return (
-    <section className="owner-page owner-menu-page">
-      <header className="owner-page-header owner-page-header--split">
+    <section className={ownerStyles.pageClassName}>
+      <header className={ownerStyles.splitPageHeaderClassName}>
         <div>
           <h1>Quản lý Thực đơn</h1>
           <p>Quản lý món ăn, danh mục và trạng thái đang bán.</p>
         </div>
-        <Link href="/owner/menu/new" className="owner-primary-button owner-primary-button--pill">
+        <Link href="/owner/menu/new" className={ownerStyles.primaryPillButtonClassName}>
           <AddIcon />
           Thêm món mới
         </Link>
       </header>
 
-      <section className="owner-card owner-menu-toolbar">
-        <label className="owner-search-field owner-search-field--large">
+      <section className={ownerStyles.menuToolbarClassName}>
+        <label className={ownerStyles.menuSearchFieldClassName}>
           <SearchIcon />
           <input placeholder="Tìm kiếm món ăn..." />
         </label>
-        <div className="owner-tabs">
-          <button className="is-active" type="button">
+        <div className={ownerStyles.tabListClassName}>
+          <button className={ownerStyles.tabButtonClassName(true)} type="button">
             Tất cả
           </button>
           <button type="button">Đang bán</button>
@@ -41,59 +42,57 @@ export default function OwnerMenuPage() {
         </div>
       </section>
 
-      <div className="owner-menu-layout">
-        <aside className="owner-card owner-menu-categories">
-          <div className="owner-menu-categories__header">
-            <h2>Danh mục</h2>
+      <div className={ownerStyles.menuLayoutClassName}>
+        <aside className={ownerStyles.menuCategoriesClassName}>
+          <div className={ownerStyles.rowBetweenClassName}>
+            <h2 className={ownerStyles.menuSectionTitleClassName}>Danh mục</h2>
             <button type="button" aria-label="Thêm danh mục">
               <AddCircleOutlinedIcon />
             </button>
           </div>
-          <div className="owner-menu-categories__list">
+          <div className={ownerStyles.categoryListClassName}>
             {ownerCategories.map((category) => (
               <button
-                className={category.active ? "is-active" : ""}
+                className={ownerStyles.categoryButtonClassName(category.active)}
                 type="button"
                 key={category.id}
               >
-                <span>
+                <span className={ownerStyles.categoryLabelClassName}>
                   <DragIndicatorIcon />
                   {category.label}
                 </span>
-                <mark>{category.count}</mark>
+                <mark className={ownerStyles.categoryCountClassName}>{category.count}</mark>
               </button>
             ))}
           </div>
         </aside>
 
-        <section className="owner-menu-items">
-          <h2>Tất cả món</h2>
+        <section className={ownerStyles.menuItemsClassName}>
+          <h2 className={ownerStyles.menuSectionTitleClassName}>Tất cả món</h2>
           {ownerMenuItems.map((item) => (
             <article
-              className={`owner-card owner-menu-item${
-                item.isAvailable ? "" : " is-disabled"
-              }`}
+              className={ownerStyles.menuItemCardClassName(item.isAvailable)}
               key={item.id}
             >
-              <Image src={item.image} alt={item.name} width={150} height={150} />
-              <div className="owner-menu-item__content">
-                <div className="owner-menu-item__top">
-                  <div>
+              <Image className={ownerStyles.menuItemImageClassName} src={item.image} alt={item.name} width={150} height={150} />
+              <div className={ownerStyles.menuItemContentClassName}>
+                <div className={ownerStyles.menuItemTopClassName}>
+                  <div className={ownerStyles.iconButtonGroupClassName}>
                     {item.isPopular ? (
-                      <mark className="owner-hot-badge">
+                      <mark className={ownerStyles.hotBadgeClassName}>
                         <LocalFireDepartmentIcon />
                         Bán chạy
                       </mark>
                     ) : null}
-                    <h3>{item.name}</h3>
+                    <h3 className={ownerStyles.menuItemNameClassName}>{item.name}</h3>
                   </div>
-                  <strong>{item.price}</strong>
+                  <strong className={ownerStyles.menuItemPriceClassName}>{item.price}</strong>
                 </div>
-                <p>{item.description}</p>
-                <div className="owner-menu-item__footer">
-                  <label className="owner-switch">
-                    <input type="checkbox" defaultChecked={item.isAvailable} />
-                    <span />
+                <p className={ownerStyles.menuItemDescriptionClassName}>{item.description}</p>
+                <div className={ownerStyles.menuItemFooterClassName}>
+                  <label className={ownerStyles.switchLabelClassName}>
+                    <input className={ownerStyles.switchInputClassName} type="checkbox" defaultChecked={item.isAvailable} />
+                    <span className={ownerStyles.switchTrackClassName} />
                     {item.isAvailable ? "Đang bán" : "Hết món"}
                   </label>
                   <div>

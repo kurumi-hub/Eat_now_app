@@ -3,6 +3,8 @@
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { useState } from "react";
 
+import * as ownerStyles from "@/components/owner/tailwindClasses";
+
 type StoreStatus = "open" | "paused";
 
 const statusOptions: Array<{
@@ -39,9 +41,6 @@ export default function OwnerStoreStatusControl({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const currentStatus = statusOptions.find((option) => option.id === selectedStatus) ??
     statusOptions[0];
-  const statusToneClass = selectedStatus === "open"
-    ? "owner-live-pill--open"
-    : "owner-live-pill--paused";
 
   const handleSelect = (status: StoreStatus) => {
     setSelectedStatus(status);
@@ -49,34 +48,38 @@ export default function OwnerStoreStatusControl({
   };
 
   return (
-    <div className="owner-live-control">
+    <div className={ownerStyles.liveControlClassName}>
       <button
-        className={`owner-live-pill ${statusToneClass}`}
+        className={ownerStyles.livePillBaseClassName}
         type="button"
         aria-haspopup="menu"
         aria-expanded={isMenuOpen}
         onClick={() => setIsMenuOpen((current) => !current)}
       >
-        <span className="owner-live-pill__light" aria-hidden="true" />
+        <span className={ownerStyles.liveLightClassName(selectedStatus)} aria-hidden="true" />
         <span>{currentStatus.label}</span>
         <KeyboardArrowDownIcon fontSize="small" />
       </button>
 
       {isMenuOpen ? (
-        <div className="owner-live-menu" role="menu">
+        <div className={ownerStyles.liveMenuClassName} role="menu">
           {statusOptions.map((option) => (
             <button
               key={option.id}
-              className={option.id === selectedStatus ? "is-selected" : ""}
+              className={ownerStyles.liveMenuItemClassName(option.id === selectedStatus)}
               type="button"
               role="menuitemradio"
               aria-checked={option.id === selectedStatus}
               onClick={() => handleSelect(option.id)}
             >
-              <span className={`owner-live-menu__light owner-live-menu__light--${option.id}`} />
+              <span className={ownerStyles.liveMenuLightClassName(option.id)} />
               <span>
-                <strong>{option.label}</strong>
-                <small>{option.description}</small>
+                <strong className={ownerStyles.liveMenuTextTitleClassName}>
+                  {option.label}
+                </strong>
+                <small className={ownerStyles.liveMenuTextDescriptionClassName}>
+                  {option.description}
+                </small>
               </span>
             </button>
           ))}

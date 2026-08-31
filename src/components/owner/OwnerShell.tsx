@@ -21,6 +21,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
+import * as ownerStyles from "@/components/owner/tailwindClasses";
 import {
   ordersBadge,
   ownerNavItems,
@@ -67,12 +68,12 @@ function SidebarLink({
   return (
     <Link
       href={item.href}
-      className={`owner-sidebar__link${active ? " is-active" : ""}`}
+      className={ownerStyles.sidebarLinkClassName(active)}
       onClick={onNavigate}
     >
-      <Icon className="owner-sidebar__icon" fontSize="small" />
+      <Icon className={ownerStyles.sidebarIconClassName} fontSize="small" />
       <span>{item.label}</span>
-      {item.badge ? <span className="owner-sidebar__badge">{item.badge}</span> : null}
+      {item.badge ? <span className={ownerStyles.sidebarBadgeClassName}>{item.badge}</span> : null}
     </Link>
   );
 }
@@ -87,17 +88,21 @@ export default function OwnerShell({ children }: OwnerShellProps) {
   const closeMenu = () => setIsMenuOpen(false);
 
   return (
-    <div className={`owner-shell${isMenuOpen ? " is-menu-open" : ""}`}>
-      <aside className="owner-sidebar" aria-label="Restaurant Owner navigation">
-        <div className="owner-sidebar__brand">
-          <StorefrontIcon className="owner-sidebar__brand-icon" />
+    <div className={ownerStyles.shellClassName(isMenuOpen)}>
+      <aside
+        className={ownerStyles.sidebarClassName}
+        data-menu-open={isMenuOpen ? "true" : "false"}
+        aria-label="Restaurant Owner navigation"
+      >
+        <div className={ownerStyles.sidebarBrandClassName}>
+          <StorefrontIcon className={ownerStyles.sidebarBrandIconClassName} />
           <div>
-            <p>EatNow</p>
-            <span>Restaurant Owner</span>
+            <p className={ownerStyles.sidebarBrandTitleClassName}>EatNow</p>
+            <span className={ownerStyles.sidebarBrandSubtitleClassName}>Restaurant Owner</span>
           </div>
         </div>
 
-        <nav className="owner-sidebar__nav" aria-label="Owner main menu">
+        <nav className={ownerStyles.sidebarNavClassName} aria-label="Owner main menu">
           {ownerNavItems.map((item) => (
             <SidebarLink
               key={item.id}
@@ -108,7 +113,7 @@ export default function OwnerShell({ children }: OwnerShellProps) {
           ))}
         </nav>
 
-        <div className="owner-sidebar__bottom">
+        <div className={ownerStyles.sidebarBottomClassName}>
           <SidebarLink
             item={ownerSettingsNavItem}
             active={isActivePath(pathname, ownerSettingsNavItem)}
@@ -116,50 +121,56 @@ export default function OwnerShell({ children }: OwnerShellProps) {
           />
           <Link
             href="/owner/menu/new"
-            className="owner-sidebar__cta"
+            className={ownerStyles.sidebarCtaClassName}
             onClick={closeMenu}
           >
             <AddIcon fontSize="small" />
             <span>Add New Dish</span>
           </Link>
-          <div className="owner-sidebar__profile">
-            <div className="owner-sidebar__avatar" aria-hidden="true">
+          <div className={ownerStyles.sidebarProfileClassName}>
+            <div className={ownerStyles.sidebarAvatarClassName} aria-hidden="true">
               OP
             </div>
             <div>
-              <p>{ownerRestaurant.ownerProfileName}</p>
-              <span>ID: {ownerRestaurant.ownerProfileId}</span>
+              <p className={ownerStyles.sidebarProfileNameClassName}>
+                {ownerRestaurant.ownerProfileName}
+              </p>
+              <span className={ownerStyles.sidebarProfileIdClassName}>
+                ID: {ownerRestaurant.ownerProfileId}
+              </span>
             </div>
           </div>
         </div>
       </aside>
 
       <button
-        className="owner-shell__backdrop"
+        className={ownerStyles.backdropClassName(isMenuOpen)}
         type="button"
         aria-label="Đóng menu"
         onClick={closeMenu}
       />
 
-      <header className="owner-mobile-bar">
+      <header className={ownerStyles.mobileBarClassName}>
         <button
           type="button"
-          className="owner-icon-button"
+          className={ownerStyles.mobileIconButtonClassName}
           aria-label={isMenuOpen ? "Đóng menu" : "Mở menu"}
           onClick={() => setIsMenuOpen((current) => !current)}
         >
           {isMenuOpen ? <CloseIcon /> : <MenuIcon />}
         </button>
         <div>
-          <p>EatNow</p>
-          <span>{activeItem?.label ?? "Dashboard"}</span>
+          <p className={ownerStyles.mobileBrandTitleClassName}>EatNow</p>
+          <span className={ownerStyles.mobileBrandSubtitleClassName}>
+            {activeItem?.label ?? "Dashboard"}
+          </span>
         </div>
-        <span className="owner-mobile-bar__badge">{ordersBadge}</span>
+        <span className={ownerStyles.mobileBadgeClassName}>{ordersBadge}</span>
       </header>
 
-      <main className="owner-main">{children}</main>
+      <main className={ownerStyles.mainClassName}>{children}</main>
 
-      <nav className="owner-bottom-nav" aria-label="Owner mobile menu">
+      <nav className={ownerStyles.bottomNavClassName} aria-label="Owner mobile menu">
         {ownerNavItems.slice(0, 4).map((item) => {
           const active = isActivePath(pathname, item);
           const Icon = active ? iconMap[item.id].filled : iconMap[item.id].outlined;
@@ -168,7 +179,7 @@ export default function OwnerShell({ children }: OwnerShellProps) {
             <Link
               key={item.id}
               href={item.href}
-              className={active ? "is-active" : ""}
+              className={ownerStyles.bottomNavLinkClassName(active)}
             >
               <Icon fontSize="small" />
               <span>{item.id === "dashboard" ? "Home" : item.label}</span>

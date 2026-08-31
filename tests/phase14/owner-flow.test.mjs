@@ -36,16 +36,17 @@ test("Owner flow routes render through a shared guarded layout", async () => {
 
 test("Owner sidebar follows the Restaurants Owner design and is reused by every page", async () => {
   const shell = await readProjectFile("src", "components", "owner", "OwnerShell.tsx");
-  const css = await readProjectFile("src", "styles", "owner.css");
+  const styles = await readProjectFile("src", "components", "owner", "tailwindClasses.ts");
   const layout = await readProjectFile("src", "app", "layout.tsx");
   const data = await readProjectFile("src", "components", "owner", "ownerFlowData.ts");
 
   assert.match(shell, /"use client"/);
+  assert.match(shell, /tailwindClasses/);
   assert.doesNotMatch(shell, /isPreviewMode/);
   assert.doesNotMatch(shell, /basePath/);
   assert.doesNotMatch(shell, /resolveOwnerHref/);
   assert.doesNotMatch(shell, /owner-preview-banner/);
-  assert.doesNotMatch(css, /\.owner-preview-banner/);
+  assert.doesNotMatch(styles, /owner-preview-banner/);
   assert.match(shell, /EatNow/);
   assert.doesNotMatch(shell, /Admin Portal/);
   assert.match(shell, /Restaurant Owner/);
@@ -56,12 +57,13 @@ test("Owner sidebar follows the Restaurants Owner design and is reused by every 
   assert.match(data, /ownerNavItems/);
   assert.match(data, /href:\s*"\/owner\/orders"/);
   assert.match(data, /label:\s*"Đơn hàng"/);
-  assert.match(css, /\.owner-sidebar/);
-  assert.match(css, /\.owner-sidebar__link\.is-active/);
-  assert.match(css, /#ffd3c6/);
-  assert.match(css, /#7a3000/);
-  assert.match(css, /@media \(max-width: 900px\)/);
-  assert.match(layout, /@\/styles\/owner\.css/);
+  assert.match(styles, /sidebarClassName/);
+  assert.match(styles, /sidebarLinkClassName/);
+  assert.match(styles, /data-\[menu-open=true\]:translate-x-0/);
+  assert.match(styles, /#ffd3c6/);
+  assert.match(styles, /#7a3000/);
+  assert.match(styles, /max-lg/);
+  assert.doesNotMatch(layout, /@\/styles\/owner\.css/);
 });
 
 test("Owner dashboard exposes an animated open status control with a temporary close option", async () => {
@@ -72,7 +74,7 @@ test("Owner dashboard exposes an animated open status control with a temporary c
     "owner",
     "OwnerStoreStatusControl.tsx"
   );
-  const css = await readProjectFile("src", "styles", "owner.css");
+  const styles = await readProjectFile("src", "components", "owner", "tailwindClasses.ts");
 
   assert.match(dashboard, /OwnerStoreStatusControl/);
   assert.match(dashboard, /initialStatus=\{ownerRestaurant\.status\}/);
@@ -81,11 +83,11 @@ test("Owner dashboard exposes an animated open status control with a temporary c
   assert.match(statusControl, /Đang mở cửa/);
   assert.match(statusControl, /Tạm đóng cửa/);
   assert.match(statusControl, /aria-expanded/);
-  assert.match(statusControl, /owner-live-menu/);
-  assert.match(statusControl, /owner-live-pill--open/);
-  assert.match(css, /@keyframes ownerLiveGlow/);
-  assert.match(css, /\.owner-live-pill--open \.owner-live-pill__light::after/);
-  assert.match(css, /\.owner-live-menu/);
+  assert.match(statusControl, /liveMenuClassName/);
+  assert.match(statusControl, /liveLightClassName/);
+  assert.match(styles, /ownerLiveGlow/);
+  assert.match(styles, /livePillBaseClassName/);
+  assert.match(styles, /liveMenuClassName/);
 });
 
 test("Owner preview routes are not shipped with the branch", async () => {

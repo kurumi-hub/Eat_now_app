@@ -15,7 +15,6 @@ import "@/styles/search-filter.css";
 import "@/styles/cart.css";
 import "@/styles/order-process.css";
 import "@/styles/voucher.css";
-import "@/styles/owner.css";
 
 const baloo = Baloo_2({
   variable: "--font-baloo",

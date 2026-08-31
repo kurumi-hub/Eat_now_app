@@ -119,3 +119,15 @@ html {
 .animate-marquee {
   animation: marquee-scroll 22s linear infinite;
 }
+
+@keyframes ownerLiveGlow {
+  0%,
+  100% {
+    opacity: 0.28;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.28);
+  }
+}

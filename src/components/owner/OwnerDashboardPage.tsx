@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import OwnerStoreStatusControl from "@/components/owner/OwnerStoreStatusControl";
+import * as ownerStyles from "@/components/owner/tailwindClasses";
 import {
   ownerDashboardMetrics,
   ownerOrders,
@@ -14,29 +15,31 @@ import {
 
 export default function OwnerDashboardPage() {
   return (
-    <section className="owner-page owner-dashboard">
-      <header className="owner-page-header owner-page-header--dashboard">
+    <section className={ownerStyles.pageClassName}>
+      <header className={ownerStyles.pageHeaderClassName}>
         <div>
           <h1>Xin chào, {ownerRestaurant.name}</h1>
           <p>Tổng quan hoạt động kinh doanh hôm nay.</p>
         </div>
-        <div className="owner-dashboard__header-actions">
+        <div className={ownerStyles.headerActionsClassName}>
           <OwnerStoreStatusControl initialStatus={ownerRestaurant.status} />
-          <button className="owner-round-button" type="button" aria-label="Thông báo">
+          <button className={ownerStyles.roundButtonClassName} type="button" aria-label="Thông báo">
             <NotificationsNoneOutlinedIcon />
           </button>
         </div>
       </header>
 
-      <div className="owner-metric-grid">
+      <div className={ownerStyles.metricGridClassName}>
         {ownerDashboardMetrics.map((metric) => (
           <article
-            className={`owner-card owner-metric owner-metric--${metric.tone ?? "neutral"}`}
+            className={ownerStyles.metricCardClassName(metric.tone ?? "neutral")}
             key={metric.id}
           >
             <span>{metric.label}</span>
-            <strong>{metric.value}</strong>
-            <small>
+            <strong className={ownerStyles.metricValueClassName(metric.tone ?? "neutral")}>
+              {metric.value}
+            </strong>
+            <small className={ownerStyles.metricNoteClassName(metric.tone ?? "neutral")}>
               {metric.tone === "success" ? <CheckCircleOutlinedIcon /> : null}
               {metric.tone === "primary" ? <TrendingUpIcon /> : null}
               {metric.note}
@@ -45,22 +48,22 @@ export default function OwnerDashboardPage() {
         ))}
       </div>
 
-      <div className="owner-dashboard__grid">
-        <section className="owner-card owner-card--flush owner-dashboard__orders">
-          <div className="owner-card__header">
+      <div className={ownerStyles.dashboardGridClassName}>
+        <section className={ownerStyles.dashboardPanelClassName}>
+          <div className={ownerStyles.cardHeaderClassName}>
             <h2>Đơn hàng đang xử lý</h2>
             <Link href="/owner/orders">Xem tất cả</Link>
           </div>
-          <div className="owner-dashboard__order-list">
+          <div className={ownerStyles.stackedListClassName}>
             {ownerOrders.map((order) => (
               <article
-                className={`owner-dashboard-order${
-                  order.statusTone === "new" ? " is-highlighted" : ""
-                }`}
+                className={ownerStyles.dashboardOrderClassName(order.statusTone === "new")}
                 key={order.id}
               >
-                <div className="owner-dashboard-order__identity">
-                  <span>{order.id.replace("#EN-98", "#")}</span>
+                <div className={ownerStyles.dashboardOrderIdentityClassName}>
+                  <span className={ownerStyles.dashboardOrderNumberClassName(order.statusTone === "new")}>
+                    {order.id.replace("#EN-98", "#")}
+                  </span>
                   <div>
                     <strong>{order.customerName}</strong>
                     <p>
@@ -68,27 +71,33 @@ export default function OwnerDashboardPage() {
                     </p>
                   </div>
                 </div>
-                <div className="owner-dashboard-order__status">
-                  <mark className={`owner-status owner-status--${order.statusTone}`}>
+                <div className={ownerStyles.dashboardOrderStatusClassName}>
+                  <mark className={ownerStyles.statusChipClassName(order.statusTone)}>
                     {order.status}
                   </mark>
-                  <small>{order.relativeTime}</small>
+                  <small className={ownerStyles.mutedParagraphClassName}>{order.relativeTime}</small>
                 </div>
               </article>
             ))}
           </div>
         </section>
 
-        <section className="owner-card owner-card--flush owner-dashboard__popular">
-          <div className="owner-card__header">
+        <section className={ownerStyles.dashboardPanelClassName}>
+          <div className={ownerStyles.cardHeaderClassName}>
             <h2>Món bán chạy nhất</h2>
           </div>
-          <div className="owner-popular-list">
+          <div className={ownerStyles.stackedListClassName}>
             {ownerPopularDishes.map((dish) => (
-              <article className="owner-popular-item" key={dish.rank}>
-                <div className="owner-popular-item__image">
-                  <Image src={dish.image} alt={dish.name} width={80} height={80} />
-                  <span>{dish.rank}</span>
+              <article className={ownerStyles.popularItemClassName} key={dish.rank}>
+                <div className={ownerStyles.popularImageWrapClassName}>
+                  <Image
+                    className={ownerStyles.imageFillClassName}
+                    src={dish.image}
+                    alt={dish.name}
+                    width={80}
+                    height={80}
+                  />
+                  <span className={ownerStyles.popularRankClassName}>{dish.rank}</span>
                 </div>
                 <div>
                   <strong>{dish.name}</strong>
