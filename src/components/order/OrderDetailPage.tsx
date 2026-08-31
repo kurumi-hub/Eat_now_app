@@ -32,6 +32,7 @@ import {
 type OrderDetailPageProps = {
   orderId: string;
   user: PublicUser | null;
+  deliveryLocationLabel?: string;
 };
 
 type SnackbarState = {
@@ -44,6 +45,7 @@ const pendingStatusLabel = "Chờ xác nhận";
 export default function OrderDetailPage({
   orderId,
   user,
+  deliveryLocationLabel,
 }: OrderDetailPageProps) {
   const router = useRouter();
   const { orderHistory } = useCart();
@@ -72,6 +74,7 @@ export default function OrderDetailPage({
         user={user}
         onPlaceholder={showSnackbar}
         onSectionNavigate={handleSectionNavigate}
+        deliveryLocationLabel={deliveryLocationLabel}
       />
 
       <main className="order-detail-main">

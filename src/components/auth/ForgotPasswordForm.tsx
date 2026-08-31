@@ -19,6 +19,16 @@ import { useActionState, useMemo, useState, type FormEvent } from "react";
 import { requestPasswordReset } from "@/app/auth/actions";
 import { validatePasswordResetRequestValues } from "@/utils/validation";
 
+import {
+  descriptionClassName,
+  iconLinkClassName,
+  recoveryActionsClassName,
+  recoveryFormClassName,
+  formSx,
+  textLinkClassName,
+  titleClassName,
+} from "./tailwindClasses";
+
 export default function ForgotPasswordForm() {
   const [state, formAction, pending] = useActionState(
     requestPasswordReset,
@@ -50,16 +60,17 @@ export default function ForgotPasswordForm() {
     <Box
       component="form"
       action={formAction}
-      className="auth-form auth-form--recovery"
+      className={recoveryFormClassName}
       noValidate
+      sx={formSx}
       onSubmit={handleSubmit}
     >
       <Stack spacing={2.5}>
         <Box>
-          <Typography component="h1" className="auth-title">
+          <Typography component="h1" className={titleClassName}>
             Quên mật khẩu?
           </Typography>
-          <Typography className="auth-description">
+          <Typography className={descriptionClassName}>
             Nhập email đã đăng ký, EatNow sẽ gửi liên kết để bạn tạo mật khẩu mới.
           </Typography>
         </Box>
@@ -110,12 +121,12 @@ export default function ForgotPasswordForm() {
           {pending ? "Đang gửi liên kết..." : "Gửi liên kết đặt lại"}
         </Button>
 
-        <Box className="auth-recovery-actions">
-          <NextLink className="auth-text-link auth-icon-link" href="/login">
+        <Box className={recoveryActionsClassName}>
+          <NextLink className={iconLinkClassName} href="/login">
             <ArrowBackRoundedIcon fontSize="small" />
             Quay lại đăng nhập
           </NextLink>
-          <NextLink className="auth-text-link" href="/reset-password">
+          <NextLink className={textLinkClassName} href="/reset-password">
             Tôi đã có liên kết reset
           </NextLink>
         </Box>

@@ -1,7 +1,6 @@
 "use client";
 
-import { Alert, Button, Snackbar } from "@mui/material";
-import Link from "next/link";
+import { Alert, Snackbar } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
@@ -28,6 +27,7 @@ import {
 
 type VoucherPageProps = {
   user: PublicUser | null;
+  deliveryLocationLabel?: string;
 };
 
 const voucherIconMap: Record<string, React.ReactNode> = {
@@ -40,7 +40,10 @@ const voucherIconMap: Record<string, React.ReactNode> = {
   local_offer: <LocalOfferOutlinedIcon />,
 };
 
-export default function VoucherPage({ user }: VoucherPageProps) {
+export default function VoucherPage({
+  user,
+  deliveryLocationLabel,
+}: VoucherPageProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<VoucherCategory>("all");
@@ -72,6 +75,7 @@ export default function VoucherPage({ user }: VoucherPageProps) {
         user={user}
         onPlaceholder={showSnackbar}
         onSectionNavigate={handleSectionNavigate}
+        deliveryLocationLabel={deliveryLocationLabel}
       />
 
       <main className="voucher-main">

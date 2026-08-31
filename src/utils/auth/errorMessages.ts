@@ -48,6 +48,17 @@ export function mapSignupAuthError(error: SupabaseAuthErrorLike) {
   }
 
   if (
+    errorText.includes("sending confirmation email") ||
+    errorText.includes("email_address_not_authorized") ||
+    errorText.includes("email address not authorized") ||
+    errorText.includes("email provider") ||
+    errorText.includes("smtp") ||
+    errorText.includes("gomail")
+  ) {
+    return "Không thể gửi email xác nhận. Vui lòng dùng email thật hoặc báo Bảo kiểm tra SMTP/Auth email trong Supabase.";
+  }
+
+  if (
     error.status === 429 ||
     errorText.includes("rate_limit") ||
     errorText.includes("too many") ||

@@ -22,6 +22,7 @@ import { mockDeliveryFee } from "./cartData";
 
 type CartPageProps = {
   user: PublicUser | null;
+  deliveryLocationLabel?: string;
 };
 
 type SnackbarState = {
@@ -61,7 +62,10 @@ function groupCartItemsByRestaurant(items: CartItem[]) {
   }, []);
 }
 
-export default function CartPage({ user }: CartPageProps) {
+export default function CartPage({
+  user,
+  deliveryLocationLabel,
+}: CartPageProps) {
   const router = useRouter();
   const {
     cart,
@@ -142,6 +146,7 @@ export default function CartPage({ user }: CartPageProps) {
         user={user}
         onPlaceholder={showSnackbar}
         onSectionNavigate={handleSectionNavigate}
+        deliveryLocationLabel={deliveryLocationLabel}
       />
 
       <main className="cart-main">

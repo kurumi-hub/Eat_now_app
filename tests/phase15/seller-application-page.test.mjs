@@ -29,7 +29,12 @@ test("Seller application UI lets customers apply and approved owners enter the p
     "account",
     "SellerApplicationPage.tsx"
   );
-  const css = await readProjectFile("src", "styles", "account.css");
+  const tailwindClasses = await readProjectFile(
+    "src",
+    "components",
+    "account",
+    "tailwindClasses.ts"
+  );
 
   assert.match(component, /"use client"/);
   assert.match(component, /saveSellerApplicationAction/);
@@ -46,11 +51,12 @@ test("Seller application UI lets customers apply and approved owners enter the p
   assert.match(component, /sellerContext\.timeline/);
   assert.doesNotMatch(component, /user_metadata|app_metadata/);
 
-  assert.match(css, /\.seller-application-page/);
-  assert.match(css, /\.seller-application-form/);
-  assert.match(css, /\.seller-status-card/);
-  assert.match(css, /\.seller-portal-card/);
-  assert.match(css, /@media \(max-width: 760px\)/);
+  assert.match(component, /sellerPageClassName/);
+  assert.match(component, /sellerApplicationFormClassName/);
+  assert.match(component, /sellerStatusCardClassName/);
+  assert.match(component, /sellerPortalCardClassName/);
+  assert.match(tailwindClasses, /sellerApplicationLayoutClassName/);
+  assert.match(tailwindClasses, /max-\[760px\]:grid-cols-1/);
 });
 
 test("Seller application form hides technical location fields from customers", async () => {

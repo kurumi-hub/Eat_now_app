@@ -29,6 +29,15 @@ import { validateLoginValues } from "@/utils/validation";
 
 import OAuthButtons from "./OAuthButtons";
 import PasswordField from "./PasswordField";
+import {
+  descriptionClassName,
+  fieldLabelClassName,
+  fieldRowClassName,
+  formClassName,
+  formSx,
+  textLinkClassName,
+  titleClassName,
+} from "./tailwindClasses";
 
 type LoginFormProps = {
   initialEmail?: string;
@@ -116,17 +125,18 @@ export default function LoginForm({
       <Box
         component="form"
         action={formAction}
-        className="auth-form"
+        className={formClassName}
         noValidate
+        sx={formSx}
         onSubmit={handleSubmit}
       >
         <input type="hidden" name="next" value={nextPath} />
         <Stack spacing={2.5}>
           <Box>
-            <Typography component="h1" className="auth-title">
+            <Typography component="h1" className={titleClassName}>
               Chào mừng bạn trở lại
             </Typography>
-            <Typography className="auth-description">
+            <Typography className={descriptionClassName}>
               Đăng nhập để tiếp tục khám phá món ngon quanh bạn.
             </Typography>
           </Box>
@@ -161,11 +171,11 @@ export default function LoginForm({
           />
 
           <Box>
-            <Box className="auth-field-row">
-              <Typography component="span" className="auth-field-label">
+            <Box className={fieldRowClassName}>
+              <Typography component="span" className={fieldLabelClassName}>
                 Mật khẩu
               </Typography>
-              <NextLink className="auth-text-link" href="/forgot-password">
+              <NextLink className={textLinkClassName} href="/forgot-password">
                 Quên mật khẩu?
               </NextLink>
             </Box>
@@ -204,7 +214,7 @@ export default function LoginForm({
 
           <Typography variant="body2" sx={{ textAlign: "center" }}>
             Chưa có tài khoản?{" "}
-            <NextLink className="auth-text-link" href="/register">
+            <NextLink className={textLinkClassName} href="/register">
               Đăng ký ngay
             </NextLink>
           </Typography>

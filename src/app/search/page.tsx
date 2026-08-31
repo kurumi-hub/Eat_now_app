@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import SearchFilterPage from "@/components/search/SearchFilterPage";
+import { getCurrentDeliveryLocationLabel } from "@/lib/data/deliveryLocation";
 import { getCurrentPublicUser } from "@/utils/auth/guards";
 
 type SearchPageProps = {
@@ -11,12 +12,17 @@ type SearchPageProps = {
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const user = await getCurrentPublicUser();
+  const deliveryLocationLabel = await getCurrentDeliveryLocationLabel(user);
   const params = await searchParams;
   const initialQuery = Array.isArray(params.q) ? params.q[0] : params.q;
 
   return (
     <Suspense fallback={<div className="search-filter-page" />}>
-      <SearchFilterPage user={user} initialQuery={initialQuery} />
+      <SearchFilterPage
+        user={user}
+        initialQuery={initialQuery}
+        deliveryLocationLabel={deliveryLocationLabel}
+      />
     </Suspense>
   );
 }

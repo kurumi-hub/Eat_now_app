@@ -29,6 +29,7 @@ import CustomerFooter from "@/components/home/CustomerFooter";
 import CustomerHeader from "@/components/home/CustomerHeader";
 import { useCart } from "@/contexts/CartContext";
 import type { PublicUser } from "@/types/auth";
+import { DEFAULT_DELIVERY_LOCATION_LABEL } from "@/utils/addressDisplay";
 import {
   areaFilters,
   filterSearchResults,
@@ -49,6 +50,7 @@ import {
 type SearchFilterPageProps = {
   user: PublicUser | null;
   initialQuery?: string;
+  deliveryLocationLabel?: string;
 };
 
 type SnackbarState = {
@@ -120,6 +122,7 @@ function getCurrentPage(searchParams: URLSearchParams) {
 export default function SearchFilterPage({
   user,
   initialQuery,
+  deliveryLocationLabel = DEFAULT_DELIVERY_LOCATION_LABEL,
 }: SearchFilterPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -301,12 +304,7 @@ export default function SearchFilterPage({
     );
   };
 
-  const resultLabel =
-    filterState.type === "food" ? "món ăn" : "nhà hàng";
-  const locationLabel =
-    filterState.areaIds.length === 1
-      ? `${getFilterLabel(filterState.areaIds[0])}, Cần Thơ`
-      : "Cần Thơ";
+  const resultLabel = filterState.type === "food" ? "món ăn" : "nhà hàng";
 
   return (
     <div className="search-filter-page">
@@ -315,6 +313,7 @@ export default function SearchFilterPage({
         searchValue={filterState.query}
         onPlaceholder={showPlaceholder}
         onSectionNavigate={handleSectionNavigate}
+        deliveryLocationLabel={deliveryLocationLabel}
       />
 
       <main className="search-filter-main">
@@ -323,6 +322,7 @@ export default function SearchFilterPage({
             openOnly={filterState.openOnly}
             selectedPriceIds={filterState.priceIds}
             selectedAreaIds={filterState.areaIds}
+            deliveryLocationLabel={deliveryLocationLabel}
             onOpenChange={handleOpenChange}
             onPriceChange={(id, checked) => toggleMultiFilter("price", id, checked)}
             onAreaChange={(id, checked) => toggleMultiFilter("area", id, checked)}
@@ -332,7 +332,7 @@ export default function SearchFilterPage({
         <section className="search-filter-shell" aria-labelledby="search-title">
           <div className="search-heading">
             <p className="search-heading__eyebrow">
-              Tìm kiếm quanh Ninh Kiều, Cần Thơ
+              Tìm kiếm quanh {deliveryLocationLabel}
             </p>
             <h1 id="search-title">
               {filterState.query
@@ -340,7 +340,7 @@ export default function SearchFilterPage({
                 : "Kết quả tìm kiếm"}
             </h1>
             <p>
-              Tìm thấy {filteredResults.length} {resultLabel} tại {locationLabel}
+              Tìm thấy {filteredResults.length} {resultLabel} tại {deliveryLocationLabel}
             </p>
           </div>
 
@@ -349,6 +349,7 @@ export default function SearchFilterPage({
               openOnly={filterState.openOnly}
               selectedPriceIds={filterState.priceIds}
               selectedAreaIds={filterState.areaIds}
+              deliveryLocationLabel={deliveryLocationLabel}
               onOpenChange={handleOpenChange}
               onPriceChange={(id, checked) => toggleMultiFilter("price", id, checked)}
               onAreaChange={(id, checked) => toggleMultiFilter("area", id, checked)}
@@ -491,6 +492,7 @@ type FilterPanelProps = {
   openOnly: boolean;
   selectedPriceIds: PriceFilterId[];
   selectedAreaIds: AreaFilterId[];
+  deliveryLocationLabel: string;
   onOpenChange: (checked: boolean) => void;
   onPriceChange: (id: PriceFilterId, checked: boolean) => void;
   onAreaChange: (id: AreaFilterId, checked: boolean) => void;
@@ -501,6 +503,7 @@ function FilterPanel({
   openOnly,
   selectedPriceIds,
   selectedAreaIds,
+  deliveryLocationLabel,
   onOpenChange,
   onPriceChange,
   onAreaChange,
@@ -543,7 +546,7 @@ function FilterPanel({
       </div>
 
       <div className="search-filter-group">
-        <h3>Khu vực (Cần Thơ)</h3>
+        <h3>Khu vực ({deliveryLocationLabel})</h3>
         {areaFilters.map((filter) => (
           <FormControlLabel
             key={filter.id}

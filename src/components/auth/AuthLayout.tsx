@@ -2,6 +2,12 @@ import { Box, Paper } from "@mui/material";
 import type { ReactNode } from "react";
 
 import AuthBrandPanel from "./AuthBrandPanel";
+import {
+  cardClassNames,
+  formContentClassNames,
+  formPanelClassNames,
+  pageShellClassName,
+} from "./tailwindClasses";
 
 type AuthVariant = "login" | "register";
 
@@ -36,12 +42,16 @@ export default function AuthLayout({
   const brand = contentByVariant[variant];
 
   return (
-    <main className="auth-page">
-      <Paper component="section" className={`auth-card auth-card--${variant}`}>
+    <main className={pageShellClassName}>
+      <Paper
+        component="section"
+        className={cardClassNames[variant]}
+        elevation={0}
+      >
         <AuthBrandPanel {...brand} />
-        <Box className="auth-form-panel">
+        <Box className={formPanelClassNames[variant]}>
           <AuthBrandPanel {...brand} compact />
-          <Box className="auth-form-content">{children}</Box>
+          <Box className={formContentClassNames[variant]}>{children}</Box>
         </Box>
       </Paper>
     </main>

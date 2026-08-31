@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+@theme inline {
+  --color-eatnow-primary: var(--eatnow-primary);
+  --color-eatnow-primary-dark: var(--eatnow-primary-dark);
+  --color-eatnow-secondary: var(--eatnow-secondary);
+  --color-eatnow-accent: var(--eatnow-accent);
+  --color-eatnow-background: var(--eatnow-background);
+  --color-eatnow-surface: var(--eatnow-surface);
+  --color-eatnow-text-primary: var(--eatnow-text-primary);
+  --color-eatnow-text-secondary: var(--eatnow-text-secondary);
+  --color-eatnow-border: var(--eatnow-border);
+  --color-eatnow-success: var(--eatnow-success);
+  --color-eatnow-warning: var(--eatnow-warning);
+  --color-eatnow-error: var(--eatnow-error);
+  --color-eatnow-info: var(--eatnow-info);
+  --font-display: var(--font-baloo);
+  --font-sans: var(--font-be-vietnam);
+}
+
 :root {
   --background: #fff6f8;
   --foreground: #3a1f2b;
@@ -13,22 +31,6 @@
   --mint: #a8e6c3;
   --ink: #3a1f2b;
   --ink-soft: #8c6b78;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-pink-50: var(--pink-50);
-  --color-pink-100: var(--pink-100);
-  --color-pink-300: var(--pink-300);
-  --color-pink-500: var(--pink-500);
-  --color-pink-600: var(--pink-600);
-  --color-mango: var(--mango);
-  --color-mint: var(--mint);
-  --color-ink: var(--ink);
-  --color-ink-soft: var(--ink-soft);
-  --font-display: var(--font-baloo);
-  --font-sans: var(--font-be-vietnam);
 }
 
 body {

@@ -18,7 +18,7 @@ test("Account route layout delegates to migrated account components", async () =
     "layout.tsx"
   );
 
-  assert.match(rootLayout, /@\/styles\/account\.css/);
+  assert.doesNotMatch(rootLayout, /@\/styles\/account\.css/);
   assert.match(accountRouteLayout, /@\/components\/account\/AccountLayout/);
   assert.match(accountRouteLayout, /requireCurrentUser/);
   assert.doesNotMatch(accountRouteLayout, /react-router-dom/);

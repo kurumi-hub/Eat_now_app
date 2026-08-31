@@ -31,9 +31,9 @@ import {
 
 export type AuthState = AuthActionState | null;
 
-const SIGNUP_OTP_REGEX = /^\d{6}$/;
+const SIGNUP_OTP_REGEX = /^\d{8}$/;
 const SIGNUP_OTP_EMPTY_ERROR = "Vui lòng nhập mã xác nhận.";
-const SIGNUP_OTP_FORMAT_ERROR = "Vui lòng nhập mã xác nhận gồm 6 chữ số.";
+const SIGNUP_OTP_FORMAT_ERROR = "Vui lòng nhập mã xác nhận gồm 8 chữ số.";
 
 function formString(formData: FormData, name: string) {
   return String(formData.get(name) || "");
@@ -69,6 +69,20 @@ async function getRequestOrigin() {
   return host ? `${protocol}://${host}` : "";
 }
 
+async function getAuthConfirmCallbackUrl() {
+  const origin = await getRequestOrigin();
+
+  if (!origin) {
+    return "";
+  }
+
+  try {
+    return new URL("/auth/confirm", origin).toString();
+  } catch {
+    return "";
+  }
+}
+
 export async function login(
   _prevState: AuthState,
   formData: FormData
@@ -99,9 +113,13 @@ export async function login(
 
     // Gửi lại (hoặc gửi mới) mã OTP kích hoạt cho tài khoản này rồi đưa
     // người dùng sang trang xác nhận OTP thay vì báo sai mật khẩu.
+    const signupCallbackUrl = await getAuthConfirmCallbackUrl();
     await supabase.auth.resend({
       type: "signup",
       email: validation.normalized.email,
+      ...(signupCallbackUrl
+        ? { options: { emailRedirectTo: signupCallbackUrl } }
+        : {}),
     });
 
     const verifyUrl = new URL(
@@ -178,10 +196,12 @@ export async function signup(
   }
 
   const supabase = await createClient();
+  const signupCallbackUrl = await getAuthConfirmCallbackUrl();
   const { error } = await supabase.auth.signUp({
     email: validation.normalized.email,
     password: values.password,
     options: {
+      ...(signupCallbackUrl ? { emailRedirectTo: signupCallbackUrl } : {}),
       data: {
         name: validation.normalized.fullName,
         full_name: validation.normalized.fullName,
@@ -267,9 +287,13 @@ export async function resendSignupOtp(email: string): Promise<AuthState> {
   }
 
   const supabase = await createClient();
+  const signupCallbackUrl = await getAuthConfirmCallbackUrl();
   const { error } = await supabase.auth.resend({
     type: "signup",
     email: normalizedEmail,
+    ...(signupCallbackUrl
+      ? { options: { emailRedirectTo: signupCallbackUrl } }
+      : {}),
   });
 
   if (error) {
@@ -281,7 +305,7 @@ export async function resendSignupOtp(email: string): Promise<AuthState> {
 
   return {
     status: "success",
-    message: "Đã gửi lại mã xác nhận 6 số.",
+    message: "Đã gửi lại mã xác nhận 8 số.",
   };
 }
 

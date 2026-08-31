@@ -32,6 +32,7 @@ import {
 type OrderTrackingPageProps = {
   orderId: string;
   user: PublicUser | null;
+  deliveryLocationLabel?: string;
 };
 
 type SnackbarState = {
@@ -59,6 +60,7 @@ function getTimelineState(stepStatus: OrderStatus, orderStatus: OrderStatus) {
 export default function OrderTrackingPage({
   orderId,
   user,
+  deliveryLocationLabel,
 }: OrderTrackingPageProps) {
   const router = useRouter();
   const { orderHistory } = useCart();
@@ -94,6 +96,7 @@ export default function OrderTrackingPage({
         user={user}
         onPlaceholder={showSnackbar}
         onSectionNavigate={handleSectionNavigate}
+        deliveryLocationLabel={deliveryLocationLabel}
       />
 
       <main className="order-tracking-main">

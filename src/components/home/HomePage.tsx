@@ -11,7 +11,7 @@ import { Alert, Button, Snackbar } from "@mui/material";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { PublicUser } from "@/types/auth";
 import CustomerFooter from "./CustomerFooter";
 import CustomerHeader from "./CustomerHeader";
@@ -22,10 +22,63 @@ import {
   nearbyFoods,
 } from "./homeData";
 import type { HomeRestaurant } from "./homeData";
+import {
+  bottomNavButtonClassName,
+  bottomNavClassName,
+  cardImageClassName,
+  cardMediaClassName,
+  categoryCardClassName,
+  categoryGridClassName,
+  categoryIconClassName,
+  flashBadgeClassName,
+  flashBodyClassName,
+  flashBuyButtonClassName,
+  flashCardClassName,
+  flashCardTitleClassName,
+  flashCountdownClassName,
+  flashGridClassName,
+  flashHeadingClassName,
+  flashHitareaClassName,
+  flashImageClassName,
+  flashMediaClassName,
+  flashMeterClassName,
+  flashMeterTextClassName,
+  flashPriceRowClassName,
+  flashProgressClassName,
+  flashRestaurantNameClassName,
+  flashTitleGroupClassName,
+  foodbotClassName,
+  foodbotLabelClassName,
+  foodCardClassName,
+  foodGridClassName,
+  foodMediaClassName,
+  foodTitleClassName,
+  heroClassName,
+  heroContentClassName,
+  heroCopyClassName,
+  heroEyebrowClassName,
+  heroImageClassName,
+  heroMediaClassName,
+  heroTitleClassName,
+  mainClassName,
+  pageClassName,
+  ratingClassName,
+  restaurantBodyClassName,
+  restaurantCardClassName,
+  restaurantCardLinkClassName,
+  restaurantGridClassName,
+  restaurantMetaClassName,
+  restaurantTitleClassName,
+  sectionActionClassName,
+  sectionClassName,
+  sectionHeadingClassName,
+  sectionTitleClassName,
+} from "./tailwindClasses";
 
 type HomePageProps = {
   user: PublicUser | null;
   featuredRestaurants: HomeRestaurant[];
+  deliveryLocationLabel?: string;
 };
 
 type SnackbarState = {
@@ -44,15 +97,47 @@ function formatHomeCurrency(value: number) {
   return `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 }
 
+const FLASH_SALE_INITIAL_SECONDS = 2 * 60 * 60 + 45 * 60 + 12;
+
+function formatFlashSaleCountdown(totalSeconds: number) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+
+  return [hours, minutes, seconds]
+    .map((value) => value.toString().padStart(2, "0"))
+    .join(":");
+}
+
 export default function HomePage({
   user,
   featuredRestaurants,
+  deliveryLocationLabel,
 }: HomePageProps) {
   const router = useRouter();
   const [snackbar, setSnackbar] = useState<SnackbarState>({
     open: false,
     message: "",
   });
+  const [flashSaleRemainingSeconds, setFlashSaleRemainingSeconds] = useState(
+    FLASH_SALE_INITIAL_SECONDS
+  );
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setFlashSaleRemainingSeconds((currentSeconds) => {
+        if (currentSeconds <= 1) {
+          window.clearInterval(intervalId);
+          return 0;
+        }
+
+        return currentSeconds - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const showPlaceholder = (message: string) => {
     setSnackbar({ open: true, message });
@@ -67,17 +152,19 @@ export default function HomePage({
   };
 
   return (
-    <div className="home-page">
+    <div className={pageClassName}>
       <CustomerHeader
         user={user}
         onPlaceholder={showPlaceholder}
         onSectionNavigate={handleSectionNavigate}
+        deliveryLocationLabel={deliveryLocationLabel}
       />
 
-      <main className="home-main">
-        <section id="home-hero" className="home-hero">
-          <div className="home-hero__media">
+      <main className={mainClassName}>
+        <section id="home-hero" className={heroClassName}>
+          <div className={heroMediaClassName}>
             <Image
+              className={heroImageClassName}
               src={homeHeroImage}
               alt="Món ăn đặc trưng EatNow"
               fill
@@ -85,10 +172,12 @@ export default function HomePage({
               sizes="(max-width: 1024px) 100vw, 50vw"
             />
           </div>
-          <div className="home-hero__content">
-            <p className="home-hero__eyebrow">Giao nhanh quanh bạn</p>
-            <h1>Hôm nay ăn gì?</h1>
-            <p>Khám phá món ngon quanh bạn và đặt giao tận nơi.</p>
+          <div className={heroContentClassName}>
+            <p className={heroEyebrowClassName}>Giao nhanh quanh bạn</p>
+            <h1 className={heroTitleClassName}>Hôm nay ăn gì?</h1>
+            <p className={heroCopyClassName}>
+              Khám phá món ngon quanh bạn và đặt giao tận nơi.
+            </p>
             <Button
               variant="contained"
               endIcon={<ArrowForwardOutlinedIcon />}
@@ -99,19 +188,23 @@ export default function HomePage({
           </div>
         </section>
 
-        <section id="featured-categories" className="home-section">
-          <div className="home-section__heading">
-            <h2>Danh Mục Nổi Bật</h2>
-            <button type="button" onClick={() => router.push("/search")}>
+        <section id="featured-categories" className={sectionClassName}>
+          <div className={sectionHeadingClassName}>
+            <h2 className={sectionTitleClassName}>Danh Mục Nổi Bật</h2>
+            <button
+              className={sectionActionClassName}
+              type="button"
+              onClick={() => router.push("/search")}
+            >
               Xem tất cả
             </button>
           </div>
-          <div className="home-category-grid">
+          <div className={categoryGridClassName}>
             {homeCategories.map((category) => {
               const Icon = category.icon;
               return (
                 <button
-                  className="home-category-card"
+                  className={categoryCardClassName}
                   key={category.label}
                   type="button"
                   onClick={() =>
@@ -120,7 +213,7 @@ export default function HomePage({
                     )
                   }
                 >
-                  <div className="home-category-card__icon">
+                  <div className={categoryIconClassName}>
                     <Icon />
                   </div>
                   <span>{category.label}</span>
@@ -130,30 +223,36 @@ export default function HomePage({
           </div>
         </section>
 
-        <section id="flash-sale" className="home-section home-flash-sale">
-          <div className="home-flash-sale__heading">
-            <div className="home-flash-sale__title">
-              <h2>Flash Sale - Giá sốc hôm nay</h2>
-              <span className="home-flash-countdown" aria-label="Thời gian còn lại">
+        <section id="flash-sale" className={sectionClassName}>
+          <div className={flashHeadingClassName}>
+            <div className={flashTitleGroupClassName}>
+              <h2 className={sectionTitleClassName}>
+                Flash Sale - Giá sốc hôm nay
+              </h2>
+              <span className={flashCountdownClassName} aria-label="Thời gian còn lại">
                 <AccessTimeOutlinedIcon fontSize="small" />
-                02:45:12
+                {formatFlashSaleCountdown(flashSaleRemainingSeconds)}
               </span>
             </div>
-            <button type="button" onClick={() => router.push("/search?sale=flash")}>
+            <button
+              className={sectionActionClassName}
+              type="button"
+              onClick={() => router.push("/search?sale=flash")}
+            >
               Xem tất cả
             </button>
           </div>
 
-          <div className="home-flash-sale-grid">
+          <div className={flashGridClassName}>
             {flashSaleItems.map((item) => {
               const progress = Math.min(100, (item.sold / item.total) * 100);
               const remaining = Math.max(0, item.total - item.sold);
 
               return (
-                <article className="home-flash-card" key={item.name}>
+                <article className={flashCardClassName} key={item.name}>
                   <button
                     type="button"
-                    className="home-flash-card__hitarea"
+                    className={flashHitareaClassName}
                     onClick={() =>
                       router.push(
                         `/restaurants/${item.restaurantSlug}#${item.foodId}`
@@ -161,41 +260,42 @@ export default function HomePage({
                     }
                     aria-label={`Mua ngay ${item.name}`}
                   >
-                    <div className="home-flash-card__media">
+                    <div className={flashMediaClassName}>
                       <Image
+                        className={flashImageClassName}
                         src={item.image}
                         alt={item.name}
                         fill
                         sizes="(max-width: 760px) 100vw, 33vw"
                       />
-                      <span className="home-flash-badge">
+                      <span className={flashBadgeClassName}>
                         {item.discountLabel}
                       </span>
                     </div>
-                    <div className="home-flash-card__body">
-                      <h3>{item.name}</h3>
-                      <p className="home-flash-restaurant-name">
+                    <div className={flashBodyClassName}>
+                      <h3 className={flashCardTitleClassName}>{item.name}</h3>
+                      <p className={flashRestaurantNameClassName}>
                         {item.restaurantName}
                       </p>
-                      <div className="home-flash-price-row">
+                      <div className={flashPriceRowClassName}>
                         <strong>{formatHomeCurrency(item.price)}</strong>
                         <span>{formatHomeCurrency(item.originalPrice)}</span>
                       </div>
-                      <div className="home-flash-sale-meter">
-                        <div className="home-flash-sale-meter__text">
+                      <div className={flashMeterClassName}>
+                        <div className={flashMeterTextClassName}>
                           <span>
                             Đã bán {item.sold}/{item.total}
                           </span>
                           <span>Còn lại {remaining}</span>
                         </div>
                         <div
-                          className="home-flash-progress"
+                          className={flashProgressClassName}
                           aria-hidden="true"
                         >
                           <span style={{ width: `${progress}%` }} />
                         </div>
                       </div>
-                      <span className="home-flash-buy-button">Mua ngay</span>
+                      <span className={flashBuyButtonClassName}>Mua ngay</span>
                     </div>
                   </button>
                 </article>
@@ -204,38 +304,42 @@ export default function HomePage({
           </div>
         </section>
 
-        <section id="featured-restaurants" className="home-section">
-          <div className="home-section__heading">
-            <h2>Nhà Hàng Nổi Bật</h2>
+        <section id="featured-restaurants" className={sectionClassName}>
+          <div className={sectionHeadingClassName}>
+            <h2 className={sectionTitleClassName}>Nhà Hàng Nổi Bật</h2>
             <button
+              className={sectionActionClassName}
               type="button"
               onClick={() => router.push("/restaurants")}
             >
               Xem tất cả
             </button>
           </div>
-          <div className="home-restaurant-grid">
+          <div className={restaurantGridClassName}>
             {featuredRestaurants.map((restaurant) => (
-              <article className="home-restaurant-card" key={restaurant.slug}>
+              <article className={restaurantCardClassName} key={restaurant.slug}>
                 <Link
-                  className="home-restaurant-card__link"
+                  className={restaurantCardLinkClassName}
                   href={`/restaurants/${restaurant.slug}`}
                 >
-                  <div className="home-card-media">
+                  <div className={cardMediaClassName}>
                     <Image
+                      className={cardImageClassName}
                       src={restaurant.image}
                       alt={restaurant.name}
                       fill
                       sizes="(max-width: 760px) 100vw, (max-width: 1024px) 50vw, 25vw"
                     />
-                    <div className="home-rating">
+                    <div className={ratingClassName}>
                       <StarBorderOutlinedIcon fontSize="small" />
                       <span>{restaurant.rating}</span>
                     </div>
                   </div>
-                  <div className="home-restaurant-card__body">
-                    <h3>{restaurant.name}</h3>
-                    <div className="home-restaurant-card__meta">
+                  <div className={restaurantBodyClassName}>
+                    <h3 className={restaurantTitleClassName}>
+                      {restaurant.name}
+                    </h3>
+                    <div className={restaurantMetaClassName}>
                       <span>{restaurant.time}</span>
                     </div>
                   </div>
@@ -245,31 +349,36 @@ export default function HomePage({
           </div>
         </section>
 
-        <section className="home-section">
-          <div className="home-section__heading">
-            <h2>Gợi Ý Hôm Nay</h2>
-            <button type="button" onClick={() => router.push("/search")}>
+        <section className={sectionClassName}>
+          <div className={sectionHeadingClassName}>
+            <h2 className={sectionTitleClassName}>Gợi Ý Hôm Nay</h2>
+            <button
+              className={sectionActionClassName}
+              type="button"
+              onClick={() => router.push("/search")}
+            >
               Xem tất cả
             </button>
           </div>
-          <div className="home-food-grid">
+          <div className={foodGridClassName}>
             {nearbyFoods.map((food) => (
               <article
-                className="home-food-card"
+                className={foodCardClassName}
                 key={food.name}
                 onClick={() =>
                   router.push(`/search?q=${encodeURIComponent(food.name)}`)
                 }
               >
-                <div className="home-card-media home-card-media--food">
+                <div className={foodMediaClassName}>
                   <Image
+                    className={cardImageClassName}
                     src={food.image}
                     alt={food.name}
                     fill
                     sizes="(max-width: 760px) 50vw, (max-width: 1024px) 33vw, 16vw"
                   />
                 </div>
-                <h3>{food.name}</h3>
+                <h3 className={foodTitleClassName}>{food.name}</h3>
               </article>
             ))}
           </div>
@@ -277,7 +386,7 @@ export default function HomePage({
       </main>
 
       <button
-        className="home-foodbot"
+        className={foodbotClassName}
         type="button"
         aria-label="Mở trợ lý FoodBot"
         onClick={() =>
@@ -287,12 +396,12 @@ export default function HomePage({
         }
       >
         <SmartToyOutlinedIcon />
-        <span>Trợ lý FoodBot</span>
+        <span className={foodbotLabelClassName}>Trợ lý FoodBot</span>
       </button>
 
-      <nav className="home-bottom-nav" aria-label="Điều hướng nhanh">
+      <nav className={bottomNavClassName} aria-label="Điều hướng nhanh">
         <button
-          className="is-active"
+          className={bottomNavButtonClassName(true)}
           type="button"
           onClick={() => scrollToSection("home-hero")}
         >
@@ -300,6 +409,7 @@ export default function HomePage({
           <span>Khám phá</span>
         </button>
         <button
+          className={bottomNavButtonClassName()}
           type="button"
           onClick={() => scrollToSection("featured-restaurants")}
         >
@@ -307,6 +417,7 @@ export default function HomePage({
           <span>Nhà hàng</span>
         </button>
         <button
+          className={bottomNavButtonClassName()}
           type="button"
           onClick={() => router.push(user ? "/account/profile" : "/login")}
         >

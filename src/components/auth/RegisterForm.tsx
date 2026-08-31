@@ -33,6 +33,14 @@ import { validateRegisterValues, type RegisterField } from "@/utils/validation";
 
 import OAuthButtons from "./OAuthButtons";
 import PasswordField from "./PasswordField";
+import {
+  descriptionClassName,
+  formSx,
+  inlineLinkClassName,
+  registerFormClassName,
+  textLinkClassName,
+  titleClassName,
+} from "./tailwindClasses";
 
 type SnackbarState = {
   open: boolean;
@@ -116,16 +124,17 @@ export default function RegisterForm() {
       <Box
         component="form"
         action={formAction}
-        className="auth-form auth-form--register"
+        className={registerFormClassName}
         noValidate
+        sx={formSx}
         onSubmit={handleSubmit}
       >
         <Stack spacing={2}>
           <Box>
-            <Typography component="h1" className="auth-title">
+            <Typography component="h1" className={titleClassName}>
               Tạo tài khoản EatNow
             </Typography>
-            <Typography className="auth-description">
+            <Typography className={descriptionClassName}>
               Đăng ký để đặt món và theo dõi đơn hàng dễ dàng hơn.
             </Typography>
           </Box>
@@ -242,9 +251,9 @@ export default function RegisterForm() {
               label={
                 <Typography variant="body2">
                   Tôi đồng ý với{" "}
-                  <span className="auth-inline-link">Điều khoản Dịch vụ</span>{" "}
+                  <span className={inlineLinkClassName}>Điều khoản Dịch vụ</span>{" "}
                   và{" "}
-                  <span className="auth-inline-link">Chính sách Bảo mật</span>{" "}
+                  <span className={inlineLinkClassName}>Chính sách Bảo mật</span>{" "}
                   của EatNow.
                 </Typography>
               }
@@ -266,7 +275,7 @@ export default function RegisterForm() {
 
           <Typography variant="body2" sx={{ textAlign: "center" }}>
             Đã có tài khoản?{" "}
-            <NextLink className="auth-text-link" href="/login">
+            <NextLink className={textLinkClassName} href="/login">
               Đăng nhập
             </NextLink>
           </Typography>

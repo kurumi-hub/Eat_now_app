@@ -11,13 +11,27 @@ import type { PublicUser } from "@/types/auth";
 import { hasRole } from "@/utils/roles";
 import AccountSidebar from "./AccountSidebar";
 import { getVisibleAccountNavItems } from "./accountNavItems";
+import {
+  contentClassName,
+  layoutGridClassName,
+  mainColumnClassName,
+  mobileNavClassName,
+  mobileNavSx,
+  pageClassName,
+  shellClassName,
+} from "./tailwindClasses";
 
 type AccountLayoutProps = {
   user: PublicUser;
+  deliveryLocationLabel?: string;
   children: ReactNode;
 };
 
-export default function AccountLayout({ user, children }: AccountLayoutProps) {
+export default function AccountLayout({
+  user,
+  deliveryLocationLabel,
+  children,
+}: AccountLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [notice, setNotice] = useState("");
@@ -42,20 +56,22 @@ export default function AccountLayout({ user, children }: AccountLayoutProps) {
   };
 
   return (
-    <div className="account-page">
+    <div className={pageClassName}>
       <CustomerHeader
         user={user}
+        deliveryLocationLabel={deliveryLocationLabel}
         onPlaceholder={handlePlaceholder}
         onSectionNavigate={handleSectionNavigate}
       />
 
-      <main className="account-shell">
-        <div className="account-layout-grid">
+      <main className={shellClassName}>
+        <div className={layoutGridClassName}>
           <AccountSidebar user={user} />
 
-          <div className="account-main-column">
-            <div className="account-mobile-nav">
+          <div className={mainColumnClassName}>
+            <div className={mobileNavClassName}>
               <Tabs
+                sx={mobileNavSx}
                 value={currentPath}
                 onChange={handleMobileNavChange}
                 variant="scrollable"
@@ -74,7 +90,7 @@ export default function AccountLayout({ user, children }: AccountLayoutProps) {
               </Tabs>
             </div>
 
-            <section className="account-content" aria-label="Nội dung tài khoản">
+            <section className={contentClassName} aria-label="Nội dung tài khoản">
               {children}
             </section>
           </div>

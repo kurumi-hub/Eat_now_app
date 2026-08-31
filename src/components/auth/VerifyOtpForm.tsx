@@ -21,11 +21,18 @@ import {
 
 import { resendSignupOtp, verifySignupOtp } from "@/app/auth/actions";
 
+import {
+  formClassName,
+  formSx,
+  otpActionsClassName,
+  textLinkClassName,
+} from "./tailwindClasses";
+
 type VerifyOtpFormProps = {
   email: string;
 };
 
-const OTP_REGEX = /^\d{6}$/;
+const OTP_REGEX = /^\d{8}$/;
 
 export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
   const [state, formAction, pending] = useActionState(verifySignupOtp, null);
@@ -42,7 +49,7 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
 
   const localTokenError =
     didSubmit && !OTP_REGEX.test(token.trim())
-      ? "Vui lòng nhập mã xác nhận gồm 6 chữ số."
+      ? "Vui lòng nhập mã xác nhận gồm 8 chữ số."
       : "";
   const tokenError = state?.fieldErrors?.token || localTokenError;
 
@@ -82,8 +89,9 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
       <Box
         component="form"
         action={formAction}
-        className="auth-form"
+        className={formClassName}
         noValidate
+        sx={formSx}
         onSubmit={handleSubmit}
       >
         <input type="hidden" name="email" value={email} />
@@ -96,13 +104,13 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
             value={token}
             onChange={(event) => setToken(event.target.value)}
             error={Boolean(tokenError)}
-            helperText={tokenError || "Nhập mã 6 chữ số trong email của bạn."}
+            helperText={tokenError || "Nhập mã 8 chữ số trong email của bạn."}
             autoComplete="one-time-code"
             inputMode="numeric"
-            placeholder="000000"
+            placeholder="00000000"
             slotProps={{
               htmlInput: {
-                maxLength: 6,
+                maxLength: 8,
                 pattern: "[0-9]*",
               },
               input: {
@@ -125,7 +133,7 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
             {pending ? "Đang xác nhận..." : "Xác nhận"}
           </Button>
 
-          <Box className="auth-otp-actions">
+          <Box className={otpActionsClassName}>
             <Button
               type="button"
               variant="text"
@@ -136,7 +144,7 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
                 ? "Đang gửi lại..."
                 : "Chưa nhận được mã? Gửi lại"}
             </Button>
-            <NextLink className="auth-text-link" href="/register">
+            <NextLink className={textLinkClassName} href="/register">
               Dùng email khác
             </NextLink>
           </Box>

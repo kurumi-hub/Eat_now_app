@@ -13,6 +13,8 @@ import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import {
   Avatar,
   Badge,
+  Chip,
+  CircularProgress,
   Divider,
   IconButton,
   InputBase,
@@ -23,16 +25,58 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import {
+  listAddressesAction,
+  setDefaultAddressAction,
+} from "@/app/account/addresses/actions";
 import { logout } from "@/app/auth/actions";
 import { useCart } from "@/contexts/CartContext";
+import type { AccountAddress } from "@/types/account";
 import type { PublicUser } from "@/types/auth";
+import {
+  DEFAULT_DELIVERY_LOCATION_LABEL,
+  getAddressLineLabel,
+  getAddressLocationLabel,
+} from "@/utils/addressDisplay";
 import { hasAnyRole, hasRole } from "@/utils/roles";
+import {
+  accountMenuLinkClassName,
+  accountMenuLogoutClassName,
+  authActionsClassName,
+  avatarButtonClassName,
+  avatarClassName,
+  cartLinkClassName,
+  headerBrandGroupClassName,
+  headerClassName,
+  headerInnerClassName,
+  locationButtonClassName,
+  locationChipClassName,
+  locationManageClassName,
+  locationMenuClassName,
+  locationMenuHeaderClassName,
+  locationMenuListClassName,
+  locationMenuLoadingClassName,
+  locationMenuStateClassName,
+  locationOptionClassName,
+  locationOptionNameClassName,
+  locationOptionSecondaryClassName,
+  loginButtonClassName,
+  logoClassName,
+  navClassName,
+  navItemClassName,
+  registerButtonClassName,
+  searchButtonClassName,
+  searchFormClassName,
+  searchInputClassName,
+  topActionsClassName,
+} from "./tailwindClasses";
 
 type CustomerHeaderProps = {
   user: PublicUser | null;
   onPlaceholder: (message: string) => void;
   onSectionNavigate: (sectionId: string) => void;
+  deliveryLocationLabel?: string;
   searchValue?: string;
 };
 
@@ -56,16 +100,31 @@ export default function CustomerHeader({
   user,
   onPlaceholder,
   onSectionNavigate,
+  deliveryLocationLabel = DEFAULT_DELIVERY_LOCATION_LABEL,
   searchValue = "",
 }: CustomerHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { itemCount } = useCart();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [locationMenuAnchor, setLocationMenuAnchor] =
+    useState<HTMLElement | null>(null);
+  const [deliveryAddresses, setDeliveryAddresses] = useState<AccountAddress[]>(
+    []
+  );
+  const [activeDeliveryLocationLabel, setActiveDeliveryLocationLabel] =
+    useState("");
+  const [isLoadingDeliveryAddresses, setIsLoadingDeliveryAddresses] =
+    useState(false);
+  const [pendingAddressId, setPendingAddressId] = useState("");
+  const [isSelectingLocation, startSelectingLocation] = useTransition();
   const [searchTerm, setSearchTerm] = useState(searchValue);
   const sellerLabel = hasRole(user, "RESTAURANT_OWNER")
     ? "Kênh người bán"
     : "Mở quán trên EatNow";
+  const canChooseDeliveryAddress = hasRole(user, "CUSTOMER");
+  const displayedDeliveryLocationLabel =
+    activeDeliveryLocationLabel || deliveryLocationLabel;
 
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -87,32 +146,188 @@ export default function CustomerHeader({
     setMenuAnchor(null);
   };
 
+  const loadDeliveryAddresses = async () => {
+    if (!canChooseDeliveryAddress) return;
+
+    setIsLoadingDeliveryAddresses(true);
+
+    try {
+      const addresses = await listAddressesAction();
+      setDeliveryAddresses(addresses);
+    } catch {
+      onPlaceholder("Không thể tải danh sách địa chỉ. Vui lòng thử lại.");
+    } finally {
+      setIsLoadingDeliveryAddresses(false);
+    }
+  };
+
+  const handleLocationMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setLocationMenuAnchor(event.currentTarget);
+    void loadDeliveryAddresses();
+  };
+
+  const handleLocationMenuClose = () => {
+    setLocationMenuAnchor(null);
+  };
+
+  const handleSelectDeliveryAddress = (address: AccountAddress) => {
+    if (isSelectingLocation || pendingAddressId) return;
+
+    const nextLocationLabel = getAddressLocationLabel(address);
+
+    if (address.isDefault) {
+      setActiveDeliveryLocationLabel(nextLocationLabel);
+      handleLocationMenuClose();
+      return;
+    }
+
+    setPendingAddressId(address.id);
+    setDeliveryAddresses((currentAddresses) =>
+      currentAddresses.map((currentAddress) => ({
+        ...currentAddress,
+        isDefault: currentAddress.id === address.id,
+      }))
+    );
+    setActiveDeliveryLocationLabel(nextLocationLabel);
+
+    startSelectingLocation(() => {
+      void (async () => {
+        try {
+          await setDefaultAddressAction(address.id);
+          handleLocationMenuClose();
+          router.refresh();
+        } catch {
+          onPlaceholder("Không thể đổi vị trí giao hàng. Vui lòng thử lại.");
+          setActiveDeliveryLocationLabel("");
+          void loadDeliveryAddresses();
+        } finally {
+          setPendingAddressId("");
+        }
+      })();
+    });
+  };
+
   return (
-    <header className="home-header">
-      <div className="home-header__inner">
-        <div className="home-header__brand-group">
-          <Link className="home-logo" href="/" aria-label="EatNow trang chủ">
+    <header className={headerClassName}>
+      <div className={headerInnerClassName}>
+        <div className={headerBrandGroupClassName}>
+          <Link className={logoClassName} href="/" aria-label="EatNow trang chủ">
             EatNow
           </Link>
           <button
-            className="home-location"
+            className={locationButtonClassName}
             type="button"
-            onClick={() =>
-              onPlaceholder("Chọn vị trí giao hàng sẽ được hoàn thiện sau.")
+            aria-controls={
+              locationMenuAnchor ? "delivery-location-menu" : undefined
             }
+            aria-haspopup="menu"
+            aria-expanded={locationMenuAnchor ? "true" : undefined}
+            onClick={handleLocationMenuOpen}
           >
             <LocationOnOutlinedIcon fontSize="small" />
-            <span>Ninh Kiều, Cần Thơ</span>
+            <span>{displayedDeliveryLocationLabel}</span>
             <ExpandMoreOutlinedIcon fontSize="small" />
           </button>
+          <Menu
+            id="delivery-location-menu"
+            anchorEl={locationMenuAnchor}
+            open={Boolean(locationMenuAnchor)}
+            onClose={handleLocationMenuClose}
+            transformOrigin={{ horizontal: "left", vertical: "top" }}
+            anchorOrigin={{ horizontal: "left", vertical: "bottom" }}
+          >
+            <div className={locationMenuClassName}>
+              <div className={locationMenuHeaderClassName}>
+                <strong>Chọn địa chỉ giao hàng</strong>
+                <span>{displayedDeliveryLocationLabel}</span>
+              </div>
+
+              {!user ? (
+                <div className={locationMenuStateClassName}>
+                  <p>Đăng nhập để chọn địa chỉ giao hàng đã lưu.</p>
+                  <Link href="/login" onClick={handleLocationMenuClose}>
+                    Đăng nhập
+                  </Link>
+                </div>
+              ) : !canChooseDeliveryAddress ? (
+                <div className={locationMenuStateClassName}>
+                  <p>Tài khoản này chưa bật địa chỉ giao hàng.</p>
+                  <Link href="/account/profile" onClick={handleLocationMenuClose}>
+                    Xem tài khoản
+                  </Link>
+                </div>
+              ) : isLoadingDeliveryAddresses && deliveryAddresses.length === 0 ? (
+                <div className={locationMenuLoadingClassName}>
+                  <CircularProgress size={18} />
+                  <span>Đang tải địa chỉ...</span>
+                </div>
+              ) : deliveryAddresses.length > 0 ? (
+                <div className={locationMenuListClassName}>
+                  {deliveryAddresses.map((address) => (
+                    <MenuItem
+                      className={locationOptionClassName(address.isDefault)}
+                      data-active={address.isDefault}
+                      key={address.id}
+                      onClick={() => handleSelectDeliveryAddress(address)}
+                      disabled={Boolean(
+                        pendingAddressId && pendingAddressId !== address.id
+                      )}
+                    >
+                      <ListItemIcon>
+                        <HomeWorkOutlinedIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText
+                        disableTypography
+                        primary={
+                          <span className={locationOptionNameClassName}>
+                            {address.recipientName || "Địa chỉ giao hàng"}
+                          </span>
+                        }
+                        secondary={
+                          <span className={locationOptionSecondaryClassName}>
+                            {getAddressLineLabel(address)}
+                          </span>
+                        }
+                      />
+                      {pendingAddressId === address.id ? (
+                        <CircularProgress size={18} />
+                      ) : address.isDefault ? (
+                        <Chip
+                          className={locationChipClassName}
+                          size="small"
+                          label="Đang dùng"
+                        />
+                      ) : null}
+                    </MenuItem>
+                  ))}
+                </div>
+              ) : (
+                <div className={locationMenuStateClassName}>
+                  <p>Bạn chưa có địa chỉ giao hàng nào.</p>
+                  <Link href="/account/addresses" onClick={handleLocationMenuClose}>
+                    Thêm địa chỉ
+                  </Link>
+                </div>
+              )}
+
+              <Divider />
+              <Link
+                className={locationManageClassName}
+                href="/account/addresses"
+                onClick={handleLocationMenuClose}
+              >
+                Quản lý địa chỉ
+              </Link>
+            </div>
+          </Menu>
         </div>
 
-        <form className="home-search" role="search" onSubmit={handleSearchSubmit}>
-          <span className="home-visually-hidden">
+        <form className={searchFormClassName} role="search" onSubmit={handleSearchSubmit}>
+          <span className="sr-only">
             Tìm kiếm món ăn hoặc nhà hàng
           </span>
           <InputBase
-            className="home-search__input"
+            className={searchInputClassName}
             placeholder="Tìm kiếm món ăn, nhà hàng..."
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
@@ -121,13 +336,13 @@ export default function CustomerHeader({
           <IconButton
             type="submit"
             aria-label="Tìm kiếm"
-            className="home-search__button"
+            className={searchButtonClassName}
           >
             <SearchOutlinedIcon />
           </IconButton>
         </form>
 
-        <nav className="home-nav" aria-label="Điều hướng trang chủ">
+        <nav className={navClassName} aria-label="Điều hướng trang chủ">
           {navItems.map((item) => {
             const isActive =
               item.href === "/restaurants"
@@ -139,7 +354,7 @@ export default function CustomerHeader({
             return (
               <Link
                 key={item.label}
-                className={`home-nav__item ${isActive ? "is-active" : ""}`}
+                className={navItemClassName(isActive)}
                 href={item.href}
                 onClick={(e) => {
                   if (item.sectionId && pathname === "/") {
@@ -154,11 +369,11 @@ export default function CustomerHeader({
           })}
         </nav>
 
-        <div className="home-actions-top">
+        <div className={topActionsClassName}>
           <Link
             href="/cart"
             aria-label="Giỏ hàng"
-            className="home-cart-link"
+            className={cartLinkClassName}
           >
             <Badge badgeContent={itemCount} color="error">
               <ShoppingCartOutlinedIcon />
@@ -168,14 +383,14 @@ export default function CustomerHeader({
           {user ? (
             <>
               <IconButton
-                className="home-avatar-button"
+                className={avatarButtonClassName}
                 aria-label="Mở menu tài khoản"
                 aria-controls={menuAnchor ? "customer-account-menu" : undefined}
                 aria-haspopup="menu"
                 aria-expanded={menuAnchor ? "true" : undefined}
                 onClick={handleMenuOpen}
               >
-                <Avatar className="home-avatar" src={user.avatarUrl}>
+                <Avatar className={avatarClassName} src={user.avatarUrl}>
                   {getInitials(user.fullName)}
                 </Avatar>
               </IconButton>
@@ -189,7 +404,7 @@ export default function CustomerHeader({
               >
                 <Link
                   href="/account/profile"
-                  className="home-account-menu__link"
+                  className={accountMenuLinkClassName}
                   onClick={handleMenuClose}
                 >
                   <MenuItem component="span">
@@ -201,7 +416,7 @@ export default function CustomerHeader({
                 </Link>
                 <Link
                   href="/orders"
-                  className="home-account-menu__link"
+                  className={accountMenuLinkClassName}
                   onClick={handleMenuClose}
                 >
                   <MenuItem component="span">
@@ -214,7 +429,7 @@ export default function CustomerHeader({
                 {hasRole(user, "CUSTOMER") ? (
                   <Link
                     href="/account/addresses"
-                    className="home-account-menu__link"
+                    className={accountMenuLinkClassName}
                     onClick={handleMenuClose}
                   >
                     <MenuItem component="span">
@@ -227,7 +442,7 @@ export default function CustomerHeader({
                 ) : null}
                 <Link
                   href="/account/preferences"
-                  className="home-account-menu__link"
+                  className={accountMenuLinkClassName}
                   onClick={handleMenuClose}
                 >
                   <MenuItem component="span">
@@ -240,7 +455,7 @@ export default function CustomerHeader({
                 {hasAnyRole(user, ["CUSTOMER", "RESTAURANT_OWNER"]) ? (
                   <Link
                     href="/account/seller"
-                    className="home-account-menu__link"
+                    className={accountMenuLinkClassName}
                     onClick={handleMenuClose}
                   >
                     <MenuItem component="span">
@@ -253,7 +468,7 @@ export default function CustomerHeader({
                 ) : null}
                 <Divider />
                 <form action={logout}>
-                  <button type="submit" className="home-account-menu__logout">
+                  <button type="submit" className={accountMenuLogoutClassName}>
                     <LogoutOutlinedIcon fontSize="small" />
                     <span>Đăng xuất</span>
                   </button>
@@ -261,11 +476,11 @@ export default function CustomerHeader({
               </Menu>
             </>
           ) : (
-            <div className="home-auth-actions">
-              <Link className="home-login-button" href="/login">
+            <div className={authActionsClassName}>
+              <Link className={loginButtonClassName} href="/login">
                 Đăng nhập
               </Link>
-              <Link className="home-register-button" href="/register">
+              <Link className={registerButtonClassName} href="/register">
                 Đăng ký
               </Link>
             </div>

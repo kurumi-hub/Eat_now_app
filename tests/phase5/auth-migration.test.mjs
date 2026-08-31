@@ -33,22 +33,30 @@ test("Auth pages use migrated EatNow auth components", async () => {
   assert.match(registerPage, /@\/components\/auth\/AuthLayout/);
   assert.match(registerPage, /@\/components\/auth\/RegisterForm/);
   assert.match(signupPage, /@\/app\/register\/page/);
-  assert.match(layout, /@\/styles\/auth\.css/);
+  assert.doesNotMatch(layout, /@\/styles\/auth\.css/);
 });
 
-test("Auth component files use MUI and Next navigation without React Router", async () => {
+test("Auth component files use MUI, Next navigation, and Tailwind helpers", async () => {
   const contents = await Promise.all(
     authComponentNames.map((componentName) =>
       readProjectFile("src", "components", "auth", componentName)
     )
   );
   const joined = contents.join("\n");
+  const tailwindClasses = await readProjectFile(
+    "src",
+    "components",
+    "auth",
+    "tailwindClasses.ts"
+  );
 
   assert.match(joined, /@mui\/material/);
   assert.match(joined, /from "next\/link"/);
   assert.match(joined, /from "next\/image"/);
+  assert.match(joined, /tailwindClasses/);
+  assert.match(tailwindClasses, /rounded-\[/);
+  assert.match(tailwindClasses, /text-\[var\(--eatnow-primary/);
   assert.doesNotMatch(joined, /react-router-dom|RouterLink|useNavigate/);
-  assert.doesNotMatch(joined, /className="[^"]*(?:rounded-\[|bg-\[|text-\[|shadow-\[)/);
 });
 
 test("Auth UI includes required validation and placeholder states", async () => {
@@ -98,6 +106,18 @@ test("Supabase auth actions preserve safe login, customer signup, and OTP flow",
   assert.doesNotMatch(actions, /localStorage|sessionStorage|VITE_USE_MOCK_AUTH/);
 });
 
+test("Signup confirmation emails use the app auth callback URL", async () => {
+  const actions = await readProjectFile("src", "app", "auth", "actions.ts");
+
+  assert.match(actions, /async function getAuthConfirmCallbackUrl/);
+  assert.match(actions, /new URL\("\/auth\/confirm", origin\)/);
+  assert.match(actions, /emailRedirectTo:\s*signupCallbackUrl/);
+  assert.match(
+    actions,
+    /resend\(\{\s*type:\s*"signup",\s*email:[\s\S]*options:\s*\{\s*emailRedirectTo:\s*signupCallbackUrl/s
+  );
+});
+
 test("Password recovery pages use Supabase reset password actions", async () => {
   const forgotPage = await readProjectFile(
     "src",
@@ -137,7 +157,7 @@ test("Password recovery pages use Supabase reset password actions", async () => 
   assert.match(actions, /updateUser\(\{\s*password:/s);
 });
 
-test("Signup OTP verification accepts the current 6 digit email code format", async () => {
+test("Signup OTP verification accepts the current 8 digit email code format", async () => {
   const verifyForm = await readProjectFile(
     "src",
     "components",
@@ -153,12 +173,12 @@ test("Signup OTP verification accepts the current 6 digit email code format", as
   );
   const actions = await readProjectFile("src", "app", "auth", "actions.ts");
 
-  assert.match(verifyForm, /OTP_REGEX\s*=\s*\/\^\\d\{6\}\$\/;/);
-  assert.match(verifyForm, /maxLength:\s*6/);
-  assert.match(verifyForm, /placeholder="000000"/);
-  assert.doesNotMatch(verifyForm, /\\d\{8\}|maxLength:\s*8|placeholder="00000000"/);
-  assert.match(verifyPage, /mã 6 số|mÃ£ 6 sá»‘/);
-  assert.match(actions, /SIGNUP_OTP_REGEX\s*=\s*\/\^\\d\{6\}\$\/;/);
+  assert.match(verifyForm, /OTP_REGEX\s*=\s*\/\^\\d\{8\}\$\/;/);
+  assert.match(verifyForm, /maxLength:\s*8/);
+  assert.match(verifyForm, /placeholder="00000000"/);
+  assert.doesNotMatch(verifyForm, /\\d\{6\}|maxLength:\s*6|placeholder="000000"/);
+  assert.match(verifyPage, /mã 8 số|mÃ£ 8 sá»‘/);
+  assert.match(actions, /SIGNUP_OTP_REGEX\s*=\s*\/\^\\d\{8\}\$\/;/);
   assert.match(actions, /SIGNUP_OTP_REGEX\.test\(token\)/);
 });
 
@@ -198,6 +218,13 @@ test("Signup Supabase errors are mapped to clearer safe messages", async () => {
       message: "{}",
     }),
     "Supabase Auth đang trả lỗi 500. Vui lòng báo Bảo kiểm tra Auth logs, database trigger/profile hoặc email provider."
+  );
+  assert.equal(
+    errorMessages.mapSignupAuthError({
+      status: 500,
+      message: "Error sending confirmation email",
+    }),
+    "Không thể gửi email xác nhận. Vui lòng dùng email thật hoặc báo Bảo kiểm tra SMTP/Auth email trong Supabase."
   );
 });
 

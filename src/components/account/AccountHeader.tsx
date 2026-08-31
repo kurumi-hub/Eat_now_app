@@ -1,5 +1,13 @@
 import type { ReactNode } from "react";
 
+import {
+  headerActionsClassName,
+  headerClassName,
+  headerDescriptionClassName,
+  headerEyebrowClassName,
+  headerTitleClassName,
+} from "./tailwindClasses";
+
 type AccountHeaderProps = {
   title: string;
   description?: string;
@@ -14,15 +22,15 @@ export default function AccountHeader({
   actions,
 }: AccountHeaderProps) {
   return (
-    <header className="account-header">
+    <header className={headerClassName}>
       <div>
-        <p className="account-header__eyebrow">{eyebrow}</p>
-        <h1 className="account-header__title">{title}</h1>
+        <p className={headerEyebrowClassName}>{eyebrow}</p>
+        <h1 className={headerTitleClassName}>{title}</h1>
         {description ? (
-          <p className="account-header__description">{description}</p>
+          <p className={headerDescriptionClassName}>{description}</p>
         ) : null}
       </div>
-      {actions ? <div className="account-header__actions">{actions}</div> : null}
+      {actions ? <div className={headerActionsClassName}>{actions}</div> : null}
     </header>
   );
 }

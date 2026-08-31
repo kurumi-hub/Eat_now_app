@@ -1,23 +1,19 @@
+import AccountHeader from "@/components/account/AccountHeader";
+import AddressBookPanel from "@/components/account/AddressBookPanel";
+import { getCurrentUserAddresses } from "@/lib/data/addresses";
 import { requireAnyRole } from "@/utils/auth/guards";
 
 export default async function AccountAddressesPage() {
-  await requireAnyRole(["CUSTOMER"]);
+  const user = await requireAnyRole(["CUSTOMER"]);
+  const addresses = await getCurrentUserAddresses();
 
   return (
     <>
-      <header className="account-page-heading">
-        <p className="account-page-heading__eyebrow">Tài khoản</p>
-        <h1 className="account-page-heading__title">Địa chỉ giao hàng</h1>
-        <p className="account-page-heading__description">
-          Danh sách địa chỉ dùng cho đơn hàng của khách hàng.
-        </p>
-      </header>
-
-      <section className="account-card">
-        <p className="account-placeholder-note">
-          Giao diện quản lý địa chỉ sẽ được migrate ở Phase 6.
-        </p>
-      </section>
+      <AccountHeader
+        title="Địa chỉ giao hàng"
+        description="Danh sách địa chỉ dùng cho đơn hàng của khách hàng."
+      />
+      <AddressBookPanel user={user} initialAddresses={addresses} />
     </>
   );
 }

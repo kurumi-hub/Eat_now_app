@@ -8,7 +8,69 @@ import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import Image from "next/image";
 import Link from "next/link";
 
+import { DEFAULT_DELIVERY_LOCATION_LABEL } from "@/utils/addressDisplay";
 import { homeHeroImage } from "./homeData";
+import {
+  beforeActionsClassName,
+  beforeBrandGroupClassName,
+  beforeCategoryCardClassName,
+  beforeCategoryGridClassName,
+  beforeCategoryImageClassName,
+  beforeCategoryMediaClassName,
+  beforeCategoryTitleClassName,
+  beforeFaqCardClassName,
+  beforeFaqDescriptionClassName,
+  beforeFaqHeadingClassName,
+  beforeFaqLargeTitleClassName,
+  beforeFaqListClassName,
+  beforeFaqQuestionClassName,
+  beforeFaqSectionClassName,
+  beforeFaqTabClassName,
+  beforeFaqTabsClassName,
+  beforeFoodbotClassName,
+  beforeFoodbotLabelClassName,
+  beforeFooterBrandClassName,
+  beforeFooterButtonClassName,
+  beforeFooterClassName,
+  beforeFooterCopyClassName,
+  beforeFooterInnerClassName,
+  beforeFooterNavClassName,
+  beforeHeaderClassName,
+  beforeHeaderInnerClassName,
+  beforeHeroActionsClassName,
+  beforeHeroClassName,
+  beforeHeroContentClassName,
+  beforeHeroCopyClassName,
+  beforeHeroImageClassName,
+  beforeHeroOverlayClassName,
+  beforeHeroTitleClassName,
+  beforeLocationClassName,
+  beforeLoginLinkClassName,
+  beforeMainClassName,
+  beforePartnerCardClassName,
+  beforePartnerCopyClassName,
+  beforePartnerIconClassName,
+  beforePartnerImageClassName,
+  beforePartnerListClassName,
+  beforePartnerMediaClassName,
+  beforePartnerSectionClassName,
+  beforePrimaryCtaClassName,
+  beforeRegisterLinkClassName,
+  beforeSecondaryCtaClassName,
+  beforeSectionClassName,
+  beforeSectionCopyClassName,
+  beforeSectionHeadingClassName,
+  beforeSectionTitleClassName,
+  beforeShellClassName,
+  beforeWorkflowCardClassName,
+  beforeWorkflowGridClassName,
+  beforeWorkflowTitleClassName,
+  logoClassName,
+} from "./tailwindClasses";
+
+type BeforeLoginHomePageProps = {
+  deliveryLocationLabel?: string;
+};
 
 const beforeLoginCategories = [
   {
@@ -85,97 +147,113 @@ const workflowCards = [
   },
 ];
 
-export default function BeforeLoginHomePage() {
+export default function BeforeLoginHomePage({
+  deliveryLocationLabel = DEFAULT_DELIVERY_LOCATION_LABEL,
+}: BeforeLoginHomePageProps) {
   return (
-    <div className="home-before-login-page">
-      <header className="home-before-header">
-        <div className="home-before-header__inner">
-          <div className="home-before-brand-group">
-            <Link className="home-logo" href="/" aria-label="EatNow trang chủ">
+    <div className={beforeShellClassName}>
+      <header className={beforeHeaderClassName}>
+        <div className={beforeHeaderInnerClassName}>
+          <div className={beforeBrandGroupClassName}>
+            <Link className={logoClassName} href="/" aria-label="EatNow trang chủ">
               EatNow
             </Link>
-            <button className="home-before-location" type="button">
+            <button className={beforeLocationClassName} type="button">
               <LocationOnOutlinedIcon fontSize="small" />
-              <span>Ninh Kiều, Cần Thơ</span>
+              <span>{deliveryLocationLabel}</span>
               <ExpandMoreOutlinedIcon fontSize="small" />
             </button>
           </div>
 
-          <nav className="home-before-actions" aria-label="Tài khoản">
-            <Link className="home-before-login-link" href="/login">
+          <nav className={beforeActionsClassName} aria-label="Tài khoản">
+            <Link className={beforeLoginLinkClassName} href="/login">
               Đăng nhập
             </Link>
-            <Link className="home-before-register-link" href="/register">
+            <Link className={beforeRegisterLinkClassName} href="/register">
               Đăng ký
             </Link>
           </nav>
         </div>
       </header>
 
-      <main className="home-before-main">
-        <section className="home-before-hero" aria-labelledby="before-home-title">
+      <main className={beforeMainClassName}>
+        <section aria-labelledby="before-home-title" className={beforeHeroClassName}>
           <Image
+            className={beforeHeroImageClassName}
             src={homeHeroImage}
             alt="Bàn ăn Việt Nam với nhiều món nóng hổi"
             fill
             priority
             sizes="(max-width: 760px) 100vw, 1200px"
           />
-          <div className="home-before-hero__overlay" aria-hidden="true" />
-          <div className="home-before-hero__content">
-            <h1 id="before-home-title">Hôm nay ăn gì?</h1>
-            <p>Khám phá món ngon quanh bạn và đặt giao tận nơi.</p>
-            <div className="home-before-hero__actions">
-              <Link className="home-before-secondary-cta" href="/login">
+          <div className={beforeHeroOverlayClassName} aria-hidden="true" />
+          <div className={beforeHeroContentClassName}>
+            <h1 id="before-home-title" className={beforeHeroTitleClassName}>
+              Hôm nay ăn gì?
+            </h1>
+            <p className={beforeHeroCopyClassName}>
+              Khám phá món ngon quanh bạn và đặt giao tận nơi.
+            </p>
+            <div className={beforeHeroActionsClassName}>
+              <Link className={beforeSecondaryCtaClassName} href="/login">
                 Đăng nhập
               </Link>
-              <Link className="home-before-primary-cta" href="/register">
+              <Link className={beforePrimaryCtaClassName} href="/register">
                 Đăng ký ngay
               </Link>
             </div>
           </div>
         </section>
 
-        <section className="home-before-section home-before-category-section">
-          <div className="home-before-section__heading">
-            <h2>Khám phá danh mục món ăn</h2>
-            <p>
+        <section className={beforeSectionClassName}>
+          <div className={beforeSectionHeadingClassName}>
+            <h2 className={beforeSectionTitleClassName}>
+              Khám phá danh mục món ăn
+            </h2>
+            <p className={beforeSectionCopyClassName}>
               Từ những bát phở nóng hổi đến những ổ bánh mì giòn rụm, chúng tôi
               mang cả tinh hoa ẩm thực Việt đến tận cửa nhà bạn.
             </p>
           </div>
 
-          <div className="home-before-category-grid">
+          <div className={beforeCategoryGridClassName}>
             {beforeLoginCategories.map((category) => (
-              <article className="home-before-category-card" key={category.title}>
-                <div className="home-before-category-card__media">
+              <article className={beforeCategoryCardClassName} key={category.title}>
+                <div className={beforeCategoryMediaClassName}>
                   <Image
+                    className={beforeCategoryImageClassName}
                     src={category.image}
                     alt={category.alt}
                     fill
                     sizes="(max-width: 760px) 100vw, (max-width: 1024px) 50vw, 25vw"
                   />
                 </div>
-                <h3>{category.title}</h3>
-                <p>{category.description}</p>
+                <h3 className={beforeCategoryTitleClassName}>
+                  {category.title}
+                </h3>
+                <p className={beforeSectionCopyClassName}>
+                  {category.description}
+                </p>
               </article>
             ))}
           </div>
         </section>
 
-        <section className="home-before-partner-section">
-          <div className="home-before-partner-copy">
-            <h2>Hợp tác với các nhà hàng hàng đầu</h2>
-            <p>
+        <section className={beforePartnerSectionClassName}>
+          <div className={beforePartnerCopyClassName}>
+            <h2 className={beforeSectionTitleClassName}>
+              Hợp tác với các nhà hàng hàng đầu
+            </h2>
+            <p className={beforeSectionCopyClassName}>
               Chúng tôi tự hào là đối tác tin cậy của hàng trăm nhà hàng nổi
               tiếng tại địa phương, đảm bảo mỗi bữa ăn của bạn luôn đạt chất
               lượng tốt nhất.
             </p>
 
-            <div className="home-before-partner-list">
+            <div className={beforePartnerListClassName}>
               {partnerNames.map((name) => (
-                <article className="home-before-partner-card" key={name}>
-                  <span>
+                <article className={beforePartnerCardClassName} key={name}>
+                  <span className={beforePartnerIconClassName}>
                     <CheckCircleOutlineOutlinedIcon fontSize="small" />
                   </span>
                   <strong>{name}</strong>
@@ -184,15 +262,14 @@ export default function BeforeLoginHomePage() {
             </div>
           </div>
 
-          <div className="home-before-partner-media">
+          <div className={beforePartnerMediaClassName}>
             {partnerImages.map((image, index) => (
               <div
-                className={`home-before-partner-image${
-                  index === 1 ? " is-offset" : ""
-                }`}
+                className={beforePartnerImageClassName(index === 1)}
                 key={image.src}
               >
                 <Image
+                  className={beforeCategoryImageClassName}
                   src={image.src}
                   alt={image.alt}
                   fill
@@ -203,24 +280,32 @@ export default function BeforeLoginHomePage() {
           </div>
         </section>
 
-        <section className="home-before-faq-section" aria-labelledby="before-faq-title">
-          <div className="home-before-faq-heading">
-            <h2 id="before-faq-title">Tìm hiểu thêm về chúng tôi!</h2>
-            <nav aria-label="Chủ đề thông tin">
-              <button className="is-active" type="button">
+        <section className={beforeFaqSectionClassName} aria-labelledby="before-faq-title">
+          <div className={beforeFaqHeadingClassName}>
+            <h2 id="before-faq-title" className={beforeFaqLargeTitleClassName}>
+              Tìm hiểu thêm về chúng tôi!
+            </h2>
+            <nav className={beforeFaqTabsClassName} aria-label="Chủ đề thông tin">
+              <button className={beforeFaqTabClassName(true)} type="button">
                 Câu hỏi thường gặp
               </button>
-              <button type="button">Chúng tôi là ai?</button>
-              <button type="button">Chương trình đối tác</button>
-              <button type="button">Hỗ trợ & Trợ giúp</button>
+              <button className={beforeFaqTabClassName()} type="button">
+                Chúng tôi là ai?
+              </button>
+              <button className={beforeFaqTabClassName()} type="button">
+                Chương trình đối tác
+              </button>
+              <button className={beforeFaqTabClassName()} type="button">
+                Hỗ trợ & Trợ giúp
+              </button>
             </nav>
           </div>
 
-          <div className="home-before-faq-card">
-            <div className="home-before-faq-list">
+          <div className={beforeFaqCardClassName}>
+            <div className={beforeFaqListClassName}>
               {faqQuestions.map((question, index) => (
                 <button
-                  className={index === 0 ? "is-active" : ""}
+                  className={beforeFaqQuestionClassName(index === 0)}
                   key={question}
                   type="button"
                 >
@@ -229,21 +314,25 @@ export default function BeforeLoginHomePage() {
               ))}
             </div>
 
-            <div className="home-before-workflow-grid">
+            <div className={beforeWorkflowGridClassName}>
               {workflowCards.map((card) => {
                 const Icon = card.icon;
 
                 return (
-                  <article className="home-before-workflow-card" key={card.title}>
+                  <article className={beforeWorkflowCardClassName} key={card.title}>
                     <Icon />
-                    <h3>{card.title}</h3>
-                    <p>{card.description}</p>
+                    <h3 className={beforeWorkflowTitleClassName}>
+                      {card.title}
+                    </h3>
+                    <p className={beforeSectionCopyClassName}>
+                      {card.description}
+                    </p>
                   </article>
                 );
               })}
             </div>
 
-            <p className="home-before-faq-description">
+            <p className={beforeFaqDescriptionClassName}>
               EatNow đơn giản hóa quy trình đặt đồ ăn. Duyệt qua thực đơn đa
               dạng của chúng tôi, chọn những món ăn yêu thích và tiến hành
               thanh toán. Bữa ăn ngon của bạn sẽ được giao đến tận cửa ngay lập
@@ -253,23 +342,33 @@ export default function BeforeLoginHomePage() {
         </section>
       </main>
 
-      <Link className="home-before-foodbot" href="/login" aria-label="Trợ lý FoodBot">
+      <Link className={beforeFoodbotClassName} href="/login" aria-label="Trợ lý FoodBot">
         <SmartToyOutlinedIcon />
-        <span>Trợ lý FoodBot</span>
+        <span className={beforeFoodbotLabelClassName}>Trợ lý FoodBot</span>
       </Link>
 
-      <footer className="home-before-footer">
-        <div className="home-before-footer__inner">
-          <Link className="home-before-footer__brand" href="/">
+      <footer className={beforeFooterClassName}>
+        <div className={beforeFooterInnerClassName}>
+          <Link className={beforeFooterBrandClassName} href="/">
             EatNow
           </Link>
-          <nav aria-label="Thông tin EatNow">
-            <button type="button">Về chúng tôi</button>
-            <button type="button">Điều khoản</button>
-            <button type="button">Chính sách bảo mật</button>
-            <button type="button">Liên hệ</button>
+          <nav className={beforeFooterNavClassName} aria-label="Thông tin EatNow">
+            <button className={beforeFooterButtonClassName} type="button">
+              Về chúng tôi
+            </button>
+            <button className={beforeFooterButtonClassName} type="button">
+              Điều khoản
+            </button>
+            <button className={beforeFooterButtonClassName} type="button">
+              Chính sách bảo mật
+            </button>
+            <button className={beforeFooterButtonClassName} type="button">
+              Liên hệ
+            </button>
           </nav>
-          <p>© 2024 EatNow Food Delivery. Bản quyền thuộc về EatNow.</p>
+          <p className={beforeFooterCopyClassName}>
+            © 2024 EatNow Food Delivery. Bản quyền thuộc về EatNow.
+          </p>
         </div>
       </footer>
     </div>

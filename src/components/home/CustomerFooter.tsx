@@ -2,6 +2,15 @@
 
 import Link from "next/link";
 
+import {
+  footerBrandClassName,
+  footerButtonClassName,
+  footerClassName,
+  footerCopyClassName,
+  footerInnerClassName,
+  footerLinksClassName,
+} from "./tailwindClasses";
+
 type CustomerFooterProps = {
   onPlaceholder?: (message: string) => void;
 };
@@ -14,16 +23,17 @@ export default function CustomerFooter({ onPlaceholder }: CustomerFooterProps) {
   };
 
   return (
-    <footer className="home-footer">
-      <div className="home-footer__inner">
-        <Link className="home-footer__brand" href="/">
+    <footer className={footerClassName}>
+      <div className={footerInnerClassName}>
+        <Link className={footerBrandClassName} href="/">
           EatNow
         </Link>
-        <p>
+        <p className={footerCopyClassName}>
           Nền tảng đặt món ăn trực tuyến nhanh chóng, tiện lợi và chuẩn vị.
         </p>
-        <div className="home-footer__links">
+        <div className={footerLinksClassName}>
           <button
+            className={footerButtonClassName}
             type="button"
             onClick={() =>
               handlePlaceholder("Trang giới thiệu sẽ được hoàn thiện sau.")
@@ -32,6 +42,7 @@ export default function CustomerFooter({ onPlaceholder }: CustomerFooterProps) {
             Về chúng tôi
           </button>
           <button
+            className={footerButtonClassName}
             type="button"
             onClick={() =>
               handlePlaceholder("Chính sách bảo mật sẽ được hoàn thiện sau.")
@@ -40,6 +51,7 @@ export default function CustomerFooter({ onPlaceholder }: CustomerFooterProps) {
             Chính sách
           </button>
           <button
+            className={footerButtonClassName}
             type="button"
             onClick={() =>
               handlePlaceholder("Thông tin liên hệ sẽ được hoàn thiện sau.")

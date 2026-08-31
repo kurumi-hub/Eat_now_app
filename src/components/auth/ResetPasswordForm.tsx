@@ -16,6 +16,15 @@ import { resetPassword } from "@/app/auth/actions";
 import { validateResetPasswordValues } from "@/utils/validation";
 
 import PasswordField from "./PasswordField";
+import {
+  centeredRecoveryActionsClassName,
+  descriptionClassName,
+  formSx,
+  iconLinkClassName,
+  recoveryFormClassName,
+  recoveryNoteSx,
+  titleClassName,
+} from "./tailwindClasses";
 
 type ResetPasswordValues = {
   password: string;
@@ -77,21 +86,22 @@ export default function ResetPasswordForm() {
     <Box
       component="form"
       action={formAction}
-      className="auth-form auth-form--recovery"
+      className={recoveryFormClassName}
       noValidate
+      sx={formSx}
       onSubmit={handleSubmit}
     >
       <Stack spacing={2.5}>
         <Box>
-          <Typography component="h1" className="auth-title">
+          <Typography component="h1" className={titleClassName}>
             Đặt lại mật khẩu
           </Typography>
-          <Typography className="auth-description">
+          <Typography className={descriptionClassName}>
             Tạo mật khẩu mới sau khi bạn mở liên kết đặt lại mật khẩu từ email.
           </Typography>
         </Box>
 
-        <Alert severity="info" className="auth-recovery-note">
+        <Alert severity="info" sx={recoveryNoteSx}>
           Nếu liên kết đã hết hạn, hãy gửi lại yêu cầu quên mật khẩu để nhận liên kết mới.
         </Alert>
         {state?.status === "error" && state.error ? (
@@ -131,8 +141,8 @@ export default function ResetPasswordForm() {
           {pending ? "Đang đặt lại..." : "Đặt lại mật khẩu"}
         </Button>
 
-        <Box className="auth-recovery-actions auth-recovery-actions--center">
-          <NextLink className="auth-text-link auth-icon-link" href="/login">
+        <Box className={centeredRecoveryActionsClassName}>
+          <NextLink className={iconLinkClassName} href="/login">
             <ArrowBackRoundedIcon fontSize="small" />
             Quay lại đăng nhập
           </NextLink>

@@ -41,6 +41,7 @@ import type {
 type RestaurantDetailPageProps = {
   restaurant: RestaurantDetail;
   user: PublicUser | null;
+  deliveryLocationLabel?: string;
 };
 
 type SnackbarState = {
@@ -152,6 +153,7 @@ function getFilteredItems(category: RestaurantMenuCategory, searchTerm: string) 
 export default function RestaurantDetailPage({
   restaurant,
   user,
+  deliveryLocationLabel,
 }: RestaurantDetailPageProps) {
   const router = useRouter();
   const { addItem } = useCart();
@@ -250,6 +252,7 @@ export default function RestaurantDetailPage({
         user={user}
         onPlaceholder={showPlaceholder}
         onSectionNavigate={handleSectionNavigate}
+        deliveryLocationLabel={deliveryLocationLabel}
       />
 
       <main className="restaurant-detail-main">

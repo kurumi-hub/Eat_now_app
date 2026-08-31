@@ -39,6 +39,41 @@ import type {
   SellerContext,
 } from "@/types/owner";
 import { hasRole } from "@/utils/roles";
+import {
+  sellerApplicationFormClassName,
+  sellerApplicationLayoutClassName,
+  sellerChecklistClassName,
+  sellerChecklistIconClassName,
+  sellerChecklistItemClassName,
+  sellerCopyClassName,
+  sellerEmptyNoteClassName,
+  sellerEyebrowClassName,
+  sellerFeedbackClassName,
+  sellerFormActionsClassName,
+  sellerFormGridClassName,
+  sellerFormSectionClassName,
+  sellerHeroCopyClassName,
+  sellerHeroCopyTextClassName,
+  sellerHeroIconClassName,
+  sellerHeroPanelClassName,
+  sellerHeroTitleClassName,
+  sellerInputSx,
+  sellerPageClassName,
+  sellerPortalCardClassName,
+  sellerPortalLinkClassName,
+  sellerPortalRestaurantsClassName,
+  sellerSectionHeadingClassName,
+  sellerSectionTitleClassName,
+  sellerSideCardClassName,
+  sellerSideColumnClassName,
+  sellerStatusCardClassName,
+  sellerStatusChipClassName,
+  sellerStatusLabelClassName,
+  sellerStatusNoteClassName,
+  sellerTimelineClassName,
+  sellerTimelineItemClassName,
+  wideFieldClassName,
+} from "./tailwindClasses";
 
 type SellerApplicationPageProps = {
   user: PublicUser;
@@ -283,38 +318,38 @@ export default function SellerApplicationPage({
   };
 
   return (
-    <div className="seller-application-page">
-      <section className="seller-hero-panel">
-        <div className="seller-hero-panel__copy">
-          <span className="seller-hero-panel__icon" aria-hidden="true">
+    <div className={sellerPageClassName}>
+      <section className={sellerHeroPanelClassName}>
+        <div className={sellerHeroCopyClassName}>
+          <span className={sellerHeroIconClassName} aria-hidden="true">
             <StorefrontOutlinedIcon />
           </span>
-          <p className="seller-hero-panel__eyebrow">Người bán EatNow</p>
-          <Typography component="h2" variant="h2">
+          <p className={sellerEyebrowClassName}>Người bán EatNow</p>
+          <Typography component="h2" variant="h2" className={sellerHeroTitleClassName}>
             Mở quán trên EatNow
           </Typography>
-          <p>
+          <p className={sellerHeroCopyTextClassName}>
             Cập nhật thông tin nhà hàng, gửi hồ sơ xét duyệt và vào kênh quản
             lý sau khi tài khoản được cấp quyền.
           </p>
         </div>
 
-        <aside className="seller-status-card" aria-label="Trạng thái hồ sơ">
-          <span className="seller-status-card__label">Trạng thái hồ sơ</span>
+        <aside className={sellerStatusCardClassName} aria-label="Trạng thái hồ sơ">
+          <span className={sellerStatusLabelClassName}>Trạng thái hồ sơ</span>
           <Chip
-            className={`seller-status-chip seller-status-chip--${statusMeta.tone}`}
+            className={sellerStatusChipClassName(statusMeta.tone)}
             label={statusMeta.label}
           />
-          <p>{statusMeta.description}</p>
+          <p className={`m-0 ${sellerCopyClassName}`}>{statusMeta.description}</p>
           {application?.reviewNote ? (
-            <p className="seller-status-card__note">{application.reviewNote}</p>
+            <p className={sellerStatusNoteClassName}>{application.reviewNote}</p>
           ) : null}
         </aside>
       </section>
 
       {feedback ? (
         <Alert
-          className="seller-feedback"
+          className={sellerFeedbackClassName}
           severity={feedback.severity}
           iconMapping={{
             success: <CheckCircleOutlineOutlinedIcon fontSize="inherit" />,
@@ -325,18 +360,18 @@ export default function SellerApplicationPage({
       ) : null}
 
       {hasPortalAccess ? (
-        <section className="seller-portal-card">
+        <section className={sellerPortalCardClassName}>
           <div>
-            <p className="seller-section-eyebrow">Owner Portal</p>
-            <Typography component="h2" variant="h3">
+            <p className={sellerEyebrowClassName}>Owner Portal</p>
+            <Typography component="h2" variant="h3" className={sellerSectionTitleClassName}>
               Kênh người bán đã sẵn sàng
             </Typography>
-            <p>
+            <p className={`m-0 mt-2 ${sellerCopyClassName}`}>
               Quản lý đơn hàng, thực đơn, doanh thu và đánh giá trong giao diện
               Restaurants Owner.
             </p>
           </div>
-          <div className="seller-portal-card__restaurants">
+          <div className={sellerPortalRestaurantsClassName}>
             {restaurants.length > 0 ? (
               restaurants.map((restaurant) => (
                 <span key={restaurant.id}>{restaurant.name}</span>
@@ -345,27 +380,27 @@ export default function SellerApplicationPage({
               <span>Tài khoản chủ quán</span>
             )}
           </div>
-          <Link className="seller-portal-link" href="/owner">
+          <Link className={sellerPortalLinkClassName} href="/owner">
             <span>Vào Owner Portal</span>
             <ArrowForwardOutlinedIcon fontSize="small" />
           </Link>
         </section>
       ) : null}
 
-      <div className="seller-application-layout">
-        <form className="seller-application-form" onSubmit={handleSave} noValidate>
-          <section className="seller-form-section">
-            <div className="seller-section-heading">
+      <div className={sellerApplicationLayoutClassName}>
+        <form className={sellerApplicationFormClassName} onSubmit={handleSave} noValidate>
+          <section className={sellerFormSectionClassName}>
+            <div className={sellerSectionHeadingClassName}>
               <FactCheckOutlinedIcon aria-hidden="true" />
               <div>
-                <p className="seller-section-eyebrow">Bước 1</p>
-                <Typography component="h2" variant="h3">
+                <p className={sellerEyebrowClassName}>Bước 1</p>
+                <Typography component="h2" variant="h3" className={sellerSectionTitleClassName}>
                   Thông tin nhà hàng
                 </Typography>
               </div>
             </div>
 
-            <div className="seller-form-grid">
+            <div className={sellerFormGridClassName}>
               <TextField
                 required
                 label="Tên nhà hàng"
@@ -374,6 +409,7 @@ export default function SellerApplicationPage({
                 onChange={handleChange}
                 disabled={!canEdit || isBusy}
                 autoComplete="organization"
+                sx={sellerInputSx}
               />
               <TextField
                 required
@@ -383,19 +419,21 @@ export default function SellerApplicationPage({
                 onChange={handleChange}
                 disabled={!canEdit || isBusy}
                 autoComplete="tel"
+                sx={sellerInputSx}
               />
               <TextField
                 required
-                className="seller-form-grid__wide"
+                className={wideFieldClassName}
                 label="Địa chỉ nhà hàng"
                 name="address"
                 value={values.address}
                 onChange={handleChange}
                 disabled={!canEdit || isBusy}
                 autoComplete="street-address"
+                sx={sellerInputSx}
               />
               <TextField
-                className="seller-form-grid__wide"
+                className={wideFieldClassName}
                 label="Mô tả ngắn"
                 name="description"
                 value={values.description}
@@ -403,22 +441,23 @@ export default function SellerApplicationPage({
                 disabled={!canEdit || isBusy}
                 multiline
                 minRows={3}
+                sx={sellerInputSx}
               />
             </div>
           </section>
 
-          <section className="seller-form-section">
-            <div className="seller-section-heading">
+          <section className={sellerFormSectionClassName}>
+            <div className={sellerSectionHeadingClassName}>
               <StorefrontOutlinedIcon aria-hidden="true" />
               <div>
-                <p className="seller-section-eyebrow">Bước 2</p>
-                <Typography component="h2" variant="h3">
+                <p className={sellerEyebrowClassName}>Bước 2</p>
+                <Typography component="h2" variant="h3" className={sellerSectionTitleClassName}>
                   Thông tin pháp lý
                 </Typography>
               </div>
             </div>
 
-            <div className="seller-form-grid">
+            <div className={sellerFormGridClassName}>
               <TextField
                 label="Người đại diện"
                 name="legalRepresentativeName"
@@ -426,6 +465,7 @@ export default function SellerApplicationPage({
                 onChange={handleChange}
                 disabled={!canEdit || isBusy}
                 autoComplete="name"
+                sx={sellerInputSx}
               />
               <TextField
                 label="Mã số thuế"
@@ -433,19 +473,21 @@ export default function SellerApplicationPage({
                 value={values.taxCode}
                 onChange={handleChange}
                 disabled={!canEdit || isBusy}
+                sx={sellerInputSx}
               />
               <TextField
-                className="seller-form-grid__wide"
+                className={wideFieldClassName}
                 label="Số giấy phép kinh doanh"
                 name="businessLicenseNumber"
                 value={values.businessLicenseNumber}
                 onChange={handleChange}
                 disabled={!canEdit || isBusy}
+                sx={sellerInputSx}
               />
             </div>
           </section>
 
-          <div className="seller-form-actions">
+          <div className={sellerFormActionsClassName}>
             <Button
               type="submit"
               variant="contained"
@@ -480,14 +522,14 @@ export default function SellerApplicationPage({
           </div>
         </form>
 
-        <aside className="seller-side-column">
-          <section className="seller-checklist-card">
-            <p className="seller-section-eyebrow">Hồ sơ cần có</p>
-            <div className="seller-checklist">
+        <aside className={sellerSideColumnClassName}>
+          <section className={sellerSideCardClassName}>
+            <p className={sellerEyebrowClassName}>Hồ sơ cần có</p>
+            <div className={sellerChecklistClassName}>
               {checklist.map((item) => (
-                <div key={item.label} className="seller-checklist__item">
+                <div key={item.label} className={sellerChecklistItemClassName}>
                   <span
-                    className={item.done ? "is-done" : ""}
+                    className={sellerChecklistIconClassName(item.done)}
                     aria-hidden="true"
                   >
                     <CheckCircleOutlineOutlinedIcon fontSize="small" />
@@ -498,21 +540,21 @@ export default function SellerApplicationPage({
             </div>
           </section>
 
-          <section className="seller-timeline-card">
-            <div className="seller-section-heading">
+          <section className={sellerSideCardClassName}>
+            <div className={sellerSectionHeadingClassName}>
               <HistoryOutlinedIcon aria-hidden="true" />
               <div>
-                <p className="seller-section-eyebrow">Xét duyệt</p>
-                <Typography component="h2" variant="h3">
+                <p className={sellerEyebrowClassName}>Xét duyệt</p>
+                <Typography component="h2" variant="h3" className={sellerSectionTitleClassName}>
                   Lịch sử hồ sơ
                 </Typography>
               </div>
             </div>
 
             {timeline.length > 0 ? (
-              <ol className="seller-timeline">
+              <ol className={sellerTimelineClassName}>
                 {timeline.map((event) => (
-                  <li key={event.id}>
+                  <li className={sellerTimelineItemClassName} key={event.id}>
                     <span>{statusCopy[event.toStatus].label}</span>
                     <time dateTime={event.createdAt}>
                       {formatTimelineDate(event.createdAt)}
@@ -522,7 +564,7 @@ export default function SellerApplicationPage({
                 ))}
               </ol>
             ) : (
-              <p className="seller-empty-note">
+              <p className={sellerEmptyNoteClassName}>
                 Lưu bản nháp đầu tiên để bắt đầu lịch sử xét duyệt.
               </p>
             )}

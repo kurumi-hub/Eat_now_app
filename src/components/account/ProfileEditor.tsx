@@ -39,6 +39,24 @@ import type { PublicUser, UserStatus } from "@/types/auth";
 import { formatRole, getUserRoles } from "@/utils/roles";
 import type { ProfileField, ValidationErrors } from "@/utils/validation";
 import { validateProfileValues } from "@/utils/validation";
+import {
+  hiddenInputClassName,
+  profileActionsFooterClassName,
+  profileAvatarActionsClassName,
+  profileAvatarButtonsClassName,
+  profileAvatarPreviewClassName,
+  profileAvatarSectionClassName,
+  profileCardClassName,
+  profileFeedbackClassName,
+  profileFieldClassName,
+  profileFieldLabelClassName,
+  profileFieldSx,
+  profileFormGridClassName,
+  profileInfoSectionClassName,
+  profileReadonlyValueClassName,
+  profileSectionTitleClassName,
+  profileStatusDotClassName,
+} from "./tailwindClasses";
 
 const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024;
 const AVATAR_ACCEPT = "image/png,image/jpeg,image/webp";
@@ -271,10 +289,10 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
   };
 
   return (
-    <form className="profile-design-card" onSubmit={handleSubmit} noValidate>
+    <form className={profileCardClassName} onSubmit={handleSubmit} noValidate>
       {feedback ? (
         <Alert
-          className="profile-feedback"
+          className={profileFeedbackClassName}
           severity={feedback.severity}
           iconMapping={{
             success: <CheckCircleOutlineOutlinedIcon fontSize="inherit" />,
@@ -284,20 +302,25 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
         </Alert>
       ) : null}
 
-      <section className="profile-avatar-section" aria-labelledby="avatar-title">
-        <Typography id="avatar-title" variant="h2" component="h2">
+      <section className={profileAvatarSectionClassName} aria-labelledby="avatar-title">
+        <Typography
+          id="avatar-title"
+          variant="h2"
+          component="h2"
+          className={profileSectionTitleClassName}
+        >
           Ảnh đại diện
         </Typography>
 
-        <div className="profile-avatar-actions">
-          <Avatar className="profile-avatar-preview" src={avatarSource}>
+        <div className={profileAvatarActionsClassName}>
+          <Avatar className={profileAvatarPreviewClassName} src={avatarSource}>
             {getInitials(values.fullName || user.fullName)}
           </Avatar>
 
-          <div className="profile-avatar-buttons">
+          <div className={profileAvatarButtonsClassName}>
             <input
               ref={fileInputRef}
-              className="account-avatar-input"
+              className={hiddenInputClassName}
               type="file"
               accept={AVATAR_ACCEPT}
               onChange={handleAvatarChange}
@@ -325,10 +348,13 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
         </div>
       </section>
 
-      <section className="profile-info-section" aria-label="Thông tin hồ sơ">
-        <div className="profile-form-grid">
-          <div className="profile-edit-field">
-            <label className="profile-field-label" htmlFor="profile-fullName">
+      <section className={profileInfoSectionClassName} aria-label="Thông tin hồ sơ">
+        <div className={profileFormGridClassName}>
+          <div className={profileFieldClassName}>
+            <label
+              className={profileFieldLabelClassName}
+              htmlFor="profile-fullName"
+            >
               Họ và tên
             </label>
             {isEditing ? (
@@ -341,17 +367,23 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
                 helperText={fieldErrors.fullName || ""}
                 autoComplete="name"
                 disabled={isSaving}
+                sx={profileFieldSx}
                 slotProps={{ htmlInput: { "aria-label": "Họ và tên" } }}
               />
             ) : (
-              <div className="profile-readonly-value">{displayUser.fullName}</div>
+              <div className={profileReadonlyValueClassName}>
+                {displayUser.fullName}
+              </div>
             )}
           </div>
 
           <ReadonlyField label="Email" value={displayUser.email} />
 
-          <div className="profile-edit-field">
-            <label className="profile-field-label" htmlFor="profile-phone">
+          <div className={profileFieldClassName}>
+            <label
+              className={profileFieldLabelClassName}
+              htmlFor="profile-phone"
+            >
               Số điện thoại
             </label>
             {isEditing ? (
@@ -364,10 +396,11 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
                 helperText={fieldErrors.phone || ""}
                 autoComplete="tel"
                 disabled={isSaving}
+                sx={profileFieldSx}
                 slotProps={{ htmlInput: { "aria-label": "Số điện thoại" } }}
               />
             ) : (
-              <div className="profile-readonly-value">
+              <div className={profileReadonlyValueClassName}>
                 {displayUser.phone || "Chưa cập nhật"}
               </div>
             )}
@@ -378,7 +411,7 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
           <ReadonlyField
             label="Trạng thái"
             value={statusLabels[displayUser.status]}
-            leading={<span className="profile-status-dot" aria-hidden="true" />}
+            leading={<span className={profileStatusDotClassName} aria-hidden="true" />}
           />
 
           <ReadonlyField
@@ -388,7 +421,7 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
           />
         </div>
 
-        <div className="profile-actions-footer">
+        <div className={profileActionsFooterClassName}>
           {isEditing ? (
             <>
               <Button
@@ -461,9 +494,9 @@ type ReadonlyFieldProps = {
 
 function ReadonlyField({ label, value, leading }: ReadonlyFieldProps) {
   return (
-    <div className="profile-readonly-field">
-      <span className="profile-field-label">{label}</span>
-      <div className="profile-readonly-value">
+    <div className={profileFieldClassName}>
+      <span className={profileFieldLabelClassName}>{label}</span>
+      <div className={profileReadonlyValueClassName}>
         {leading}
         <span>{value}</span>
       </div>

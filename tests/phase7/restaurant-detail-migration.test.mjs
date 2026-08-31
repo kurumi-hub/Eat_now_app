@@ -213,6 +213,21 @@ test("Runtime restaurant detail keeps customization for Supabase menu foods", as
   assert.match(runtimeData, /categoryName/);
 });
 
+test("Runtime restaurant detail keeps best-seller dishes before add-on categories", async () => {
+  const runtimeData = await readProjectFile(
+    "src",
+    "lib",
+    "data",
+    "restaurants.ts"
+  );
+
+  assert.match(runtimeData, /sortRuntimeMenuCategories/);
+  assert.match(runtimeData, /getRuntimeMenuCategoryPriority/);
+  assert.match(runtimeData, /ban chay/);
+  assert.match(runtimeData, /mon them/);
+  assert.match(runtimeData, /menuCategories:\s*sortRuntimeMenuCategories\(/);
+});
+
 test("Customization modal keeps lower options reachable without image panel", async () => {
   const component = await readProjectFile(
     "src",

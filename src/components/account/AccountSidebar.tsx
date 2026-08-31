@@ -10,6 +10,21 @@ import { logout } from "@/app/auth/actions";
 import type { PublicUser } from "@/types/auth";
 import { formatRole, getUserRoles, hasRole } from "@/utils/roles";
 import { getVisibleAccountNavItems } from "./accountNavItems";
+import {
+  roleChipClassName,
+  sidebarAvatarClassName,
+  sidebarAvatarWrapClassName,
+  sidebarClassName,
+  sidebarDividerClassName,
+  sidebarEmailClassName,
+  sidebarLinkClassName,
+  sidebarLinksClassName,
+  sidebarLogoutClassName,
+  sidebarNameClassName,
+  sidebarNavClassName,
+  sidebarSummaryClassName,
+  sidebarVerifiedClassName,
+} from "./tailwindClasses";
 
 function getInitials(fullName = "EatNow") {
   return fullName
@@ -34,27 +49,27 @@ export default function AccountSidebar({ user }: AccountSidebarProps) {
     : "Bán hàng cùng EatNow";
 
   return (
-    <aside className="account-sidebar" aria-label="Điều hướng tài khoản">
+    <aside className={sidebarClassName} aria-label="Điều hướng tài khoản">
       <section
-        className="account-sidebar-summary"
+        className={sidebarSummaryClassName}
         aria-label="Tóm tắt tài khoản"
       >
-        <div className="account-sidebar-avatar-wrap">
-          <Avatar className="account-sidebar-avatar" src={user.avatarUrl}>
+        <div className={sidebarAvatarWrapClassName}>
+          <Avatar className={sidebarAvatarClassName} src={user.avatarUrl}>
             {getInitials(user.fullName)}
           </Avatar>
           <span
-            className="account-sidebar-verified"
+            className={sidebarVerifiedClassName}
             aria-label="Tài khoản đã xác thực"
           >
             <VerifiedOutlinedIcon fontSize="small" />
           </span>
         </div>
 
-        <Typography variant="h3" component="h2" className="account-sidebar-name">
+        <Typography variant="h3" component="h2" className={sidebarNameClassName}>
           {user.fullName}
         </Typography>
-        <Typography color="text.secondary" className="account-sidebar-email">
+        <Typography color="text.secondary" className={sidebarEmailClassName}>
           {user.email}
         </Typography>
         <Stack
@@ -68,14 +83,14 @@ export default function AccountSidebar({ user }: AccountSidebarProps) {
               key={role}
               label={formatRole(role)}
               size="small"
-              className="account-role-chip"
+              className={roleChipClassName}
             />
           ))}
         </Stack>
       </section>
 
-      <nav className="account-sidebar-nav" aria-label="Menu tài khoản">
-        <div className="account-sidebar-links">
+      <nav className={sidebarNavClassName} aria-label="Menu tài khoản">
+        <div className={sidebarLinksClassName}>
           {visibleItems.map((item) => {
             const Icon = item.icon;
             const isSelected = pathname === item.href;
@@ -85,9 +100,8 @@ export default function AccountSidebar({ user }: AccountSidebarProps) {
                 key={item.href}
                 href={item.href}
                 aria-current={isSelected ? "page" : undefined}
-                className={`account-sidebar-link${
-                  isSelected ? " is-selected" : ""
-                }`}
+                className={sidebarLinkClassName(isSelected)}
+                data-selected={isSelected}
               >
                 <Icon fontSize="small" />
                 <span>
@@ -98,7 +112,7 @@ export default function AccountSidebar({ user }: AccountSidebarProps) {
           })}
         </div>
 
-        <Divider className="account-sidebar-divider" />
+        <Divider className={sidebarDividerClassName} />
 
         <form action={logout}>
           <Button
@@ -107,7 +121,7 @@ export default function AccountSidebar({ user }: AccountSidebarProps) {
             variant="text"
             type="submit"
             startIcon={<LogoutOutlinedIcon />}
-            className="account-sidebar-logout"
+            className={sidebarLogoutClassName}
           >
             Đăng xuất
           </Button>

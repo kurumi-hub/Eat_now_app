@@ -29,6 +29,7 @@ import ReorderModal from "./ReorderModal";
 
 type OrderHistoryPageProps = {
   user: PublicUser | null;
+  deliveryLocationLabel?: string;
 };
 
 type SnackbarState = {
@@ -36,7 +37,10 @@ type SnackbarState = {
   message: string;
 };
 
-export default function OrderHistoryPage({ user }: OrderHistoryPageProps) {
+export default function OrderHistoryPage({
+  user,
+  deliveryLocationLabel,
+}: OrderHistoryPageProps) {
   const router = useRouter();
   const { orderHistory, addItem } = useCart();
   const [searchTerm, setSearchTerm] = useState("");
@@ -128,6 +132,7 @@ export default function OrderHistoryPage({ user }: OrderHistoryPageProps) {
         user={user}
         onPlaceholder={showSnackbar}
         onSectionNavigate={handleSectionNavigate}
+        deliveryLocationLabel={deliveryLocationLabel}
       />
 
       <main className="order-history-main">

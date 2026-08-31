@@ -50,6 +50,7 @@ import {
 
 type CheckoutPageProps = {
   user: PublicUser | null;
+  deliveryLocationLabel?: string;
 };
 
 type SnackbarState = {
@@ -128,7 +129,10 @@ function getInitialValues(user: PublicUser | null): DeliveryFormValues {
   };
 }
 
-export default function CheckoutPage({ user }: CheckoutPageProps) {
+export default function CheckoutPage({
+  user,
+  deliveryLocationLabel,
+}: CheckoutPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const {
@@ -349,6 +353,7 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
         user={user}
         onPlaceholder={showSnackbar}
         onSectionNavigate={handleSectionNavigate}
+        deliveryLocationLabel={deliveryLocationLabel}
       />
 
       <main className="order-checkout-main">

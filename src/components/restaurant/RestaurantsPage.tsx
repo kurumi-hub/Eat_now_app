@@ -35,6 +35,7 @@ import {
 
 type RestaurantsPageProps = {
   user: PublicUser | null;
+  deliveryLocationLabel?: string;
 };
 
 type SnackbarState = {
@@ -42,7 +43,10 @@ type SnackbarState = {
   message: string;
 };
 
-export default function RestaurantsPage({ user }: RestaurantsPageProps) {
+export default function RestaurantsPage({
+  user,
+  deliveryLocationLabel,
+}: RestaurantsPageProps) {
   const router = useRouter();
   const [activeCategoryId, setActiveCategoryId] = useState("");
   const [activeFilterIds, setActiveFilterIds] = useState<RestaurantFilterId[]>([]);
@@ -101,6 +105,7 @@ export default function RestaurantsPage({ user }: RestaurantsPageProps) {
         user={user}
         onPlaceholder={showPlaceholder}
         onSectionNavigate={handleSectionNavigate}
+        deliveryLocationLabel={deliveryLocationLabel}
       />
 
       <main className="restaurant-list-main">

@@ -2,6 +2,10 @@ import { Typography } from "@mui/material";
 
 import AuthLayout from "@/components/auth/AuthLayout";
 import VerifyOtpForm from "@/components/auth/VerifyOtpForm";
+import {
+  descriptionClassName,
+  titleClassName,
+} from "@/components/auth/tailwindClasses";
 
 type VerifyPageProps = {
   searchParams: Promise<{
@@ -14,13 +18,13 @@ export default async function VerifyPage({ searchParams }: VerifyPageProps) {
 
   return (
     <AuthLayout variant="register">
-      <Typography component="h1" className="auth-title">
+      <Typography component="h1" className={titleClassName}>
         Nhập mã xác nhận
       </Typography>
-      <Typography className="auth-description" sx={{ mb: 3 }}>
+      <Typography className={descriptionClassName} sx={{ mb: 3 }}>
         {email
-          ? `EatNow đã gửi mã 6 số tới ${email}`
-          : "Kiểm tra email để lấy mã 6 số."}
+          ? `EatNow đã gửi mã 8 số tới ${email}`
+          : "Kiểm tra email để lấy mã 8 số."}
       </Typography>
       <VerifyOtpForm email={email} />
     </AuthLayout>

@@ -58,6 +58,17 @@ function addressSaveErrorMessage(error: AddressRpcError) {
   return "Không thể lưu địa chỉ. Vui lòng thử lại.";
 }
 
+function revalidateAddressDependentPaths() {
+  revalidatePath("/");
+  revalidatePath("/account/addresses");
+  revalidatePath("/cart");
+  revalidatePath("/checkout");
+  revalidatePath("/orders");
+  revalidatePath("/restaurants");
+  revalidatePath("/search");
+  revalidatePath("/vouchers");
+}
+
 export async function listAddressesAction(): Promise<AccountAddress[]> {
   return getCurrentUserAddresses();
 }
@@ -198,8 +209,7 @@ export async function createAddressAction(
     return fail(addressSaveErrorMessage(error));
   }
 
-  revalidatePath("/account/addresses");
-  revalidatePath("/checkout");
+  revalidateAddressDependentPaths();
 
   return {
     status: "success",
@@ -221,8 +231,7 @@ export async function deleteAddressAction(addressId: string): Promise<void> {
   });
   if (error) console.error("deleteAddressAction error:", error.message);
 
-  revalidatePath("/account/addresses");
-  revalidatePath("/checkout");
+  revalidateAddressDependentPaths();
 }
 
 export async function setDefaultAddressAction(
@@ -234,8 +243,10 @@ export async function setDefaultAddressAction(
   const { error } = await supabase.rpc("api_set_default_address", {
     p_address_id: addressId,
   });
-  if (error) console.error("setDefaultAddressAction error:", error.message);
+  if (error) {
+    console.error("setDefaultAddressAction error:", error.message);
+    throw new Error("Không thể đặt địa chỉ mặc định.");
+  }
 
-  revalidatePath("/account/addresses");
-  revalidatePath("/checkout");
+  revalidateAddressDependentPaths();
 }

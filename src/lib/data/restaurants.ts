@@ -53,6 +53,57 @@ function formatReviewCount(count: number) {
   return `${count}+ đánh giá`;
 }
 
+function normalizeRuntimeMenuCategory(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("vi-VN");
+}
+
+function getRuntimeMenuCategoryPriority(category: RestaurantMenuCategory) {
+  const normalizedCategoryName = normalizeRuntimeMenuCategory(
+    `${category.id} ${category.label}`
+  );
+
+  if (
+    normalizedCategoryName.includes("ban chay") ||
+    normalizedCategoryName.includes("best") ||
+    normalizedCategoryName.includes("popular")
+  ) {
+    return 0;
+  }
+
+  if (
+    normalizedCategoryName.includes("do uong") ||
+    normalizedCategoryName.includes("drink")
+  ) {
+    return 2;
+  }
+
+  if (
+    normalizedCategoryName.includes("mon them") ||
+    normalizedCategoryName.includes("topping") ||
+    normalizedCategoryName.includes("extra")
+  ) {
+    return 3;
+  }
+
+  return 1;
+}
+
+function sortRuntimeMenuCategories(categories: RestaurantMenuCategory[]) {
+  return categories
+    .map((category, index) => ({ category, index }))
+    .sort((left, right) => {
+      const priorityDelta =
+        getRuntimeMenuCategoryPriority(left.category) -
+        getRuntimeMenuCategoryPriority(right.category);
+
+      return priorityDelta || left.index - right.index;
+    })
+    .map(({ category }) => category);
+}
+
 const runtimeRestaurantVouchers: RestaurantVoucher[] = [
   {
     id: "save-20k",
@@ -217,6 +268,8 @@ const fetchRestaurantDetailBySlug = unstable_cache(async (
     });
   }
 
+  const menuCategories = categoryOrder.map((id) => categoriesMap.get(id)!);
+
   return {
     slug: restaurant.slug,
     name: restaurant.name,
@@ -235,7 +288,7 @@ const fetchRestaurantDetailBySlug = unstable_cache(async (
       restaurant.address,
       restaurant.close_at
     ),
-    menuCategories: categoryOrder.map((id) => categoriesMap.get(id)!),
+    menuCategories: sortRuntimeMenuCategories(menuCategories),
   };
 }, ["catalog-restaurant-detail-v1"], {
   revalidate: 60,

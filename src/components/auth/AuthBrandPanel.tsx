@@ -2,6 +2,17 @@ import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlin
 import { Box, Typography } from "@mui/material";
 import Image from "next/image";
 
+import {
+  brandContentClassName,
+  brandImageClassName,
+  brandOverlayClassName,
+  brandPanelClassName,
+  brandSubtitleClassName,
+  brandTaglineClassName,
+  mobileBrandClassName,
+  wordmarkClassName,
+} from "./tailwindClasses";
+
 type AuthBrandPanelProps = {
   imageSrc: string;
   tagline: string;
@@ -17,12 +28,15 @@ export default function AuthBrandPanel({
 }: AuthBrandPanelProps) {
   if (compact) {
     return (
-      <Box className="auth-mobile-brand">
-        <Box className="auth-wordmark" aria-label="EatNow">
-          <RestaurantMenuOutlinedIcon fontSize="small" />
-          <span>EatNow</span>
+      <Box className={mobileBrandClassName}>
+        <Box className={wordmarkClassName} aria-label="EatNow">
+          <RestaurantMenuOutlinedIcon className="shrink-0" fontSize="small" />
+          <span className="text-[var(--eatnow-text-primary)]">EatNow</span>
         </Box>
-        <Typography component="p" color="text.secondary">
+        <Typography
+          component="p"
+          className="m-0 mt-2 text-[var(--eatnow-text-secondary)]"
+        >
           {tagline}
         </Typography>
       </Box>
@@ -30,26 +44,26 @@ export default function AuthBrandPanel({
   }
 
   return (
-    <Box className="auth-brand-panel">
+    <Box className={brandPanelClassName}>
       <Image
-        className="auth-brand-image"
+        className={brandImageClassName}
         src={imageSrc}
         alt="Món ăn Việt Nam tại EatNow"
         fill
         priority
         sizes="(max-width: 720px) 0px, 540px"
       />
-      <Box className="auth-brand-overlay" aria-hidden="true" />
-      <Box className="auth-brand-content">
-        <Box className="auth-wordmark auth-wordmark--light" aria-label="EatNow">
-          <RestaurantMenuOutlinedIcon />
-          <span>EatNow</span>
+      <Box className={brandOverlayClassName} aria-hidden="true" />
+      <Box className={brandContentClassName}>
+        <Box className={wordmarkClassName} aria-label="EatNow">
+          <RestaurantMenuOutlinedIcon className="shrink-0" />
+          <span className="text-white">EatNow</span>
         </Box>
-        <Typography component="p" className="auth-brand-tagline">
+        <Typography component="p" className={brandTaglineClassName}>
           {tagline}
         </Typography>
         {subtitle ? (
-          <Typography component="p" className="auth-brand-subtitle">
+          <Typography component="p" className={brandSubtitleClassName}>
             {subtitle}
           </Typography>
         ) : null}
