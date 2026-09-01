@@ -37,6 +37,7 @@ import type {
   RestaurantMenuOption,
   RestaurantMenuSale,
 } from "./restaurantDetailData";
+import * as restaurantStyles from "./tailwindClasses";
 
 type RestaurantDetailPageProps = {
   restaurant: RestaurantDetail;
@@ -247,7 +248,7 @@ export default function RestaurantDetailPage({
   };
 
   return (
-    <div className="restaurant-detail-page">
+    <div className={restaurantStyles.restaurantDetailPageClassName}>
       <CustomerHeader
         user={user}
         onPlaceholder={showPlaceholder}
@@ -255,37 +256,55 @@ export default function RestaurantDetailPage({
         deliveryLocationLabel={deliveryLocationLabel}
       />
 
-      <main className="restaurant-detail-main">
-        <section className="restaurant-hero" aria-labelledby="restaurant-title">
-          <div className="restaurant-hero__media">
+      <main className={restaurantStyles.restaurantDetailMainClassName}>
+        <section
+          className={restaurantStyles.restaurantHeroClassName}
+          aria-labelledby="restaurant-title"
+        >
+          <div className={restaurantStyles.restaurantHeroMediaClassName}>
             <Image
               src={restaurant.image}
               alt={`Món nổi bật tại ${restaurant.name}`}
               fill
               priority
+              className={restaurantStyles.restaurantHeroImageClassName}
               sizes="(max-width: 760px) 100vw, 280px"
             />
           </div>
 
-          <div className="restaurant-hero__body">
-            <div className="restaurant-hero__topline">
-              <div className="restaurant-hero__identity">
-                <h1 id="restaurant-title">{restaurant.name}</h1>
-                <div className="restaurant-rating-line">
-                  <StarOutlinedIcon fontSize="small" />
+          <div className={restaurantStyles.restaurantHeroBodyClassName}>
+            <div className={restaurantStyles.restaurantHeroToplineClassName}>
+              <div className={restaurantStyles.restaurantHeroIdentityClassName}>
+                <h1
+                  id="restaurant-title"
+                  className={restaurantStyles.restaurantHeroTitleClassName}
+                >
+                  {restaurant.name}
+                </h1>
+                <div className={restaurantStyles.restaurantRatingLineClassName}>
+                  <StarOutlinedIcon
+                    className={restaurantStyles.restaurantRatingIconClassName}
+                    fontSize="small"
+                  />
                   <strong>{restaurant.rating}</strong>
                   <span>({restaurant.reviewCount})</span>
                 </div>
-                <p>{restaurant.address}</p>
-                <strong className="restaurant-open-status">
+                <p className={restaurantStyles.restaurantHeroAddressClassName}>
+                  {restaurant.address}
+                </p>
+                <strong className={restaurantStyles.restaurantOpenStatusClassName}>
                   {restaurant.isOpen ? "Đang mở" : "Đang đóng"} - Đóng lúc{" "}
                   {restaurant.openUntil}
                 </strong>
               </div>
 
-              <div className="restaurant-detail-actions" aria-label="Hành động nhà hàng">
+              <div
+                className={restaurantStyles.restaurantDetailActionsClassName}
+                aria-label="Hành động nhà hàng"
+              >
                 <button
                   type="button"
+                  className={restaurantStyles.restaurantDetailActionButtonClassName}
                   aria-label="Yêu thích nhà hàng"
                   onClick={() => showPlaceholder("Đã thêm nhà hàng vào yêu thích.")}
                 >
@@ -293,6 +312,7 @@ export default function RestaurantDetailPage({
                 </button>
                 <button
                   type="button"
+                  className={restaurantStyles.restaurantDetailActionButtonClassName}
                   aria-label="Chia sẻ nhà hàng"
                   onClick={() => showPlaceholder("Liên kết nhà hàng đã sẵn sàng để chia sẻ.")}
                 >
@@ -301,25 +321,51 @@ export default function RestaurantDetailPage({
               </div>
             </div>
 
-            <div className="restaurant-service-row">
-              <span>{restaurant.deliveryTime}</span>
-              <span>{restaurant.deliveryFee}</span>
-              <span>{restaurant.minimumOrder}</span>
+            <div className={restaurantStyles.restaurantServiceRowClassName}>
+              <span className={restaurantStyles.restaurantServicePillClassName}>
+                {restaurant.deliveryTime}
+              </span>
+              <span className={restaurantStyles.restaurantServicePillClassName}>
+                {restaurant.deliveryFee}
+              </span>
+              <span className={restaurantStyles.restaurantServicePillClassName}>
+                {restaurant.minimumOrder}
+              </span>
             </div>
           </div>
         </section>
 
-        <section className="restaurant-voucher-section" aria-labelledby="restaurant-vouchers-title">
-          <h2 id="restaurant-vouchers-title">Ưu đãi của quán</h2>
-          <div className="restaurant-voucher-strip">
+        <section
+          className={restaurantStyles.restaurantSectionClassName}
+          aria-labelledby="restaurant-vouchers-title"
+        >
+          <h2
+            id="restaurant-vouchers-title"
+            className={restaurantStyles.restaurantSectionTitleClassName}
+          >
+            Ưu đãi của quán
+          </h2>
+          <div className={restaurantStyles.restaurantVoucherStripClassName}>
             {restaurant.restaurantVouchers.map((voucher) => (
-              <article className="restaurant-voucher-card" key={voucher.id}>
-                <div>
-                  <strong>{voucher.title}</strong>
-                  <span>{voucher.subtitle}</span>
+              <article
+                className={restaurantStyles.restaurantVoucherCardClassName}
+                key={voucher.id}
+              >
+                <div className={restaurantStyles.restaurantVoucherTextClassName}>
+                  <strong
+                    className={restaurantStyles.restaurantVoucherTitleClassName}
+                  >
+                    {voucher.title}
+                  </strong>
+                  <span
+                    className={restaurantStyles.restaurantVoucherSubtitleClassName}
+                  >
+                    {voucher.subtitle}
+                  </span>
                 </div>
                 <button
                   type="button"
+                  className={restaurantStyles.restaurantVoucherButtonClassName}
                   onClick={() => showPlaceholder(`Đã lưu mã ${voucher.title}.`)}
                 >
                   {voucher.actionLabel}
@@ -329,9 +375,13 @@ export default function RestaurantDetailPage({
           </div>
         </section>
 
-        <section className="restaurant-menu-search" aria-label="Tìm món trong nhà hàng">
+        <section
+          className={restaurantStyles.restaurantMenuSearchClassName}
+          aria-label="Tìm món trong nhà hàng"
+        >
           <SearchOutlinedIcon />
           <input
+            className={restaurantStyles.restaurantMenuSearchInputClassName}
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder={`Tìm món trong ${restaurant.name}...`}
@@ -339,22 +389,32 @@ export default function RestaurantDetailPage({
           />
         </section>
 
-        <nav className="restaurant-category-pills" aria-label="Danh mục món ăn">
-          {restaurant.menuCategories.map((category, index) => (
-            <button
-              key={category.id}
-              type="button"
-              className={category.id === activeCategory ? "is-active" : ""}
-              aria-pressed={category.id === activeCategory}
-              onClick={() => handleCategoryClick(category.id)}
-            >
-              {index === 0 ? "🔥 " : ""}
-              {category.label}
-            </button>
-          ))}
+        <nav
+          className={restaurantStyles.restaurantCategoryPillsClassName}
+          aria-label="Danh mục món ăn"
+        >
+          {restaurant.menuCategories.map((category, index) => {
+            const isActive = category.id === activeCategory;
+
+            return (
+              <button
+                key={category.id}
+                type="button"
+                className={restaurantStyles.restaurantCategoryPillClassName(
+                  isActive
+                )}
+                data-active={isActive}
+                aria-pressed={isActive}
+                onClick={() => handleCategoryClick(category.id)}
+              >
+                {index === 0 ? "🔥 " : ""}
+                {category.label}
+              </button>
+            );
+          })}
         </nav>
 
-        <div className="restaurant-menu-column">
+        <div className={restaurantStyles.restaurantMenuColumnClassName}>
           {visibleCategories.length > 0 ? (
             visibleCategories.map((category, index) => {
               const compact = isCompactCategory(category);
@@ -363,21 +423,13 @@ export default function RestaurantDetailPage({
                 <section
                   key={category.id}
                   id={category.id}
-                  className={`restaurant-menu-section${
-                    compact ? " restaurant-menu-section--compact" : ""
-                  }`}
+                  className={restaurantStyles.restaurantMenuSectionClassName}
                 >
-                  <h2>
+                  <h2 className={restaurantStyles.restaurantSectionTitleClassName}>
                     {index === 0 && category.id === "best-sellers" ? "🔥 " : ""}
                     {category.label}
                   </h2>
-                  <div
-                    className={`restaurant-menu-grid ${
-                      compact
-                        ? "restaurant-menu-grid--compact"
-                        : "restaurant-menu-grid--horizontal"
-                    }`}
-                  >
+                  <div className={restaurantStyles.restaurantMenuGridClassName(compact)}>
                     {category.items.map((item) => (
                       <RestaurantMenuCard
                         key={item.id}
@@ -392,31 +444,54 @@ export default function RestaurantDetailPage({
               );
             })
           ) : (
-            <div className="restaurant-menu-empty">
+            <div className={restaurantStyles.restaurantMenuEmptyClassName}>
               Không tìm thấy món phù hợp trong quán này.
             </div>
           )}
         </div>
 
-        <section className="restaurant-review-section" aria-labelledby="restaurant-reviews-title">
-          <div className="restaurant-section-heading">
-            <h2 id="restaurant-reviews-title">Đánh giá từ khách hàng</h2>
-            <div className="restaurant-review-summary">
-              <StarOutlinedIcon fontSize="small" />
+        <section
+          className={restaurantStyles.restaurantSectionClassName}
+          aria-labelledby="restaurant-reviews-title"
+        >
+          <div className={restaurantStyles.restaurantSectionHeadingClassName}>
+            <h2
+              id="restaurant-reviews-title"
+              className={restaurantStyles.restaurantSectionTitleClassName}
+            >
+              Đánh giá từ khách hàng
+            </h2>
+            <div className={restaurantStyles.restaurantReviewSummaryClassName}>
+              <StarOutlinedIcon
+                className={restaurantStyles.restaurantRatingIconClassName}
+                fontSize="small"
+              />
               <strong>{restaurant.rating}</strong>
               <span>({restaurant.reviewCount})</span>
             </div>
           </div>
-          <div className="restaurant-review-grid">
+          <div className={restaurantStyles.restaurantReviewGridClassName}>
             {restaurant.restaurantReviews.map((review) => (
-              <article className="restaurant-review-card" key={review.id}>
-                <div className="restaurant-review-card__header">
-                  <span className={`restaurant-review-avatar is-${review.tone}`}>
+              <article
+                className={restaurantStyles.restaurantReviewCardClassName}
+                key={review.id}
+              >
+                <div className={restaurantStyles.restaurantReviewHeaderClassName}>
+                  <span
+                    className={restaurantStyles.restaurantReviewAvatarClassName(
+                      review.tone
+                    )}
+                  >
                     {review.initial}
                   </span>
-                  <div>
-                    <strong>{review.customerName}</strong>
-                    <div className="restaurant-review-stars" aria-label={`${review.rating} sao`}>
+                  <div className={restaurantStyles.restaurantReviewIdentityClassName}>
+                    <strong className={restaurantStyles.restaurantReviewNameClassName}>
+                      {review.customerName}
+                    </strong>
+                    <div
+                      className={restaurantStyles.restaurantReviewStarsClassName}
+                      aria-label={`${review.rating} sao`}
+                    >
                       {Array.from({ length: 5 }, (_, index) => (
                         <StarOutlinedIcon
                           key={`${review.id}-${index}`}
@@ -425,17 +500,29 @@ export default function RestaurantDetailPage({
                       ))}
                     </div>
                   </div>
-                  <small>{review.timeAgo}</small>
+                  <small className={restaurantStyles.restaurantReviewTimeClassName}>
+                    {review.timeAgo}
+                  </small>
                 </div>
-                <p>{review.content}</p>
+                <p className={restaurantStyles.restaurantReviewTextClassName}>
+                  {review.content}
+                </p>
               </article>
             ))}
           </div>
         </section>
 
-        <section className="restaurant-info-section" aria-labelledby="restaurant-info-title">
-          <h2 id="restaurant-info-title">Thông tin nhà hàng</h2>
-          <div className="restaurant-info-card">
+        <section
+          className={restaurantStyles.restaurantSectionClassName}
+          aria-labelledby="restaurant-info-title"
+        >
+          <h2
+            id="restaurant-info-title"
+            className={restaurantStyles.restaurantSectionTitleClassName}
+          >
+            Thông tin nhà hàng
+          </h2>
+          <div className={restaurantStyles.restaurantInfoCardClassName}>
             {restaurant.restaurantInfoItems.map((item) => (
               <RestaurantInfoRow item={item} key={item.id} />
             ))}
@@ -453,21 +540,36 @@ export default function RestaurantDetailPage({
         />
       ) : null}
 
-      <nav className="restaurant-bottom-nav" aria-label="Điều hướng nhanh">
-        <button type="button" onClick={() => router.push("/")}>
+      <nav
+        className={restaurantStyles.restaurantBottomNavClassName}
+        aria-label="Điều hướng nhanh"
+      >
+        <button
+          type="button"
+          className={restaurantStyles.restaurantBottomNavButtonClassName()}
+          onClick={() => router.push("/")}
+        >
           <HomeOutlinedIcon />
           <span>Trang chủ</span>
         </button>
-        <button className="is-active" type="button">
+        <button
+          className={restaurantStyles.restaurantBottomNavButtonClassName(true)}
+          type="button"
+        >
           <ExploreOutlinedIcon />
           <span>Khám phá</span>
         </button>
-        <button type="button" onClick={() => router.push("/orders")}>
+        <button
+          type="button"
+          className={restaurantStyles.restaurantBottomNavButtonClassName()}
+          onClick={() => router.push("/orders")}
+        >
           <ReceiptLongOutlinedIcon />
           <span>Đơn hàng</span>
         </button>
         <button
           type="button"
+          className={restaurantStyles.restaurantBottomNavButtonClassName()}
           onClick={() =>
             showPlaceholder("Công thức sẽ được hoàn thiện ở bước tiếp theo.")
           }
@@ -477,6 +579,7 @@ export default function RestaurantDetailPage({
         </button>
         <button
           type="button"
+          className={restaurantStyles.restaurantBottomNavButtonClassName()}
           onClick={() => router.push(user ? "/account/profile" : "/login")}
         >
           <AccountCircleOutlinedIcon />
@@ -573,47 +676,60 @@ function RestaurantCustomizationModal({
   };
 
   return (
-    <div className="restaurant-customization-overlay">
+    <div className={restaurantStyles.restaurantCustomizationOverlayClassName}>
       <section
-        className="restaurant-customization-modal"
+        className={restaurantStyles.restaurantCustomizationModalClassName}
         role="dialog"
         aria-modal="true"
         aria-labelledby="restaurant-customization-title"
       >
         <button
           type="button"
-          className="restaurant-customization-close"
+          className={restaurantStyles.restaurantCustomizationCloseClassName}
           aria-label="Đóng tùy chọn món"
           onClick={onClose}
         >
           <CloseOutlinedIcon />
         </button>
 
-        <div className="restaurant-customization-body">
-          <header className="restaurant-customization-header">
+        <div className={restaurantStyles.restaurantCustomizationBodyClassName}>
+          <header className={restaurantStyles.restaurantCustomizationHeaderClassName}>
             <div>
-              <h2 id="restaurant-customization-title">{item.name}</h2>
-              <p>{item.description}</p>
+              <h2
+                id="restaurant-customization-title"
+                className={restaurantStyles.restaurantCustomizationTitleClassName}
+              >
+                {item.name}
+              </h2>
+              <p
+                className={
+                  restaurantStyles.restaurantCustomizationDescriptionClassName
+                }
+              >
+                {item.description}
+              </p>
             </div>
             <RestaurantMenuPrice
               item={item}
-              className="restaurant-customization-price-row"
+              className={restaurantStyles.restaurantCustomizationPriceRowClassName}
               showDiscountBadge
             />
             {item.sale ? (
               <RestaurantSaleMeter
                 sale={item.sale}
-                className="restaurant-customization-sale-meter"
+                className={restaurantStyles.restaurantCustomizationSaleMeterClassName}
               />
             ) : null}
           </header>
 
-          <div className="restaurant-customization-section">
-            <h3>Chọn kích cỡ *</h3>
-            <div className="restaurant-customization-options">
+          <div className={restaurantStyles.restaurantCustomizationSectionClassName}>
+            <h3 className={restaurantStyles.restaurantCustomizationSectionTitleClassName}>
+              Chọn kích cỡ *
+            </h3>
+            <div className={restaurantStyles.restaurantCustomizationOptionsClassName}>
               {customization.sizeOptions.map((option) => (
                 <label
-                  className="restaurant-customization-option"
+                  className={restaurantStyles.restaurantCustomizationOptionClassName}
                   key={option.id}
                 >
                   <input
@@ -622,20 +738,34 @@ function RestaurantCustomizationModal({
                     checked={selectedSizeId === option.id}
                     onChange={() => setSelectedSizeId(option.id)}
                   />
-                  <span>Size {option.label}</span>
-                  <strong>{formatPriceDelta(option.priceDelta)}</strong>
+                  <span
+                    className={
+                      restaurantStyles.restaurantCustomizationOptionLabelClassName
+                    }
+                  >
+                    Size {option.label}
+                  </span>
+                  <strong
+                    className={
+                      restaurantStyles.restaurantCustomizationOptionPriceClassName
+                    }
+                  >
+                    {formatPriceDelta(option.priceDelta)}
+                  </strong>
                 </label>
               ))}
             </div>
           </div>
 
-          <div className="restaurant-customization-section">
-            <h3>Món thêm</h3>
+          <div className={restaurantStyles.restaurantCustomizationSectionClassName}>
+            <h3 className={restaurantStyles.restaurantCustomizationSectionTitleClassName}>
+              Món thêm
+            </h3>
             {customization.toppingOptions.length > 0 ? (
-              <div className="restaurant-customization-options">
+              <div className={restaurantStyles.restaurantCustomizationOptionsClassName}>
                 {customization.toppingOptions.map((option) => (
                   <label
-                    className="restaurant-customization-option"
+                    className={restaurantStyles.restaurantCustomizationOptionClassName}
                     key={option.id}
                   >
                     <input
@@ -643,25 +773,45 @@ function RestaurantCustomizationModal({
                       checked={selectedToppingIds.includes(option.id)}
                       onChange={() => toggleTopping(option.id)}
                     />
-                    <span>{option.label}</span>
-                    <strong>{formatPriceDelta(option.priceDelta)}</strong>
+                    <span
+                      className={
+                        restaurantStyles.restaurantCustomizationOptionLabelClassName
+                      }
+                    >
+                      {option.label}
+                    </span>
+                    <strong
+                      className={
+                        restaurantStyles.restaurantCustomizationOptionPriceClassName
+                      }
+                    >
+                      {formatPriceDelta(option.priceDelta)}
+                    </strong>
                   </label>
                 ))}
               </div>
             ) : (
-              <p className="restaurant-customization-empty">
+              <p className={restaurantStyles.restaurantCustomizationEmptyClassName}>
                 Món này không có topping tùy chọn.
               </p>
             )}
           </div>
 
           {customization.preferenceOptions.length > 0 ? (
-            <div className="restaurant-customization-section restaurant-customization-section--preferences">
-              <h3>Tùy chọn món</h3>
-              <div className="restaurant-customization-preferences">
+            <div
+              className={
+                restaurantStyles.restaurantCustomizationPreferenceSectionClassName
+              }
+            >
+              <h3 className={restaurantStyles.restaurantCustomizationSectionTitleClassName}>
+                Tùy chọn món
+              </h3>
+              <div
+                className={restaurantStyles.restaurantCustomizationPreferencesClassName}
+              >
                 {customization.preferenceOptions.map((option) => (
                   <label
-                    className="restaurant-customization-preference"
+                    className={restaurantStyles.restaurantCustomizationPreferenceClassName}
                     key={option.id}
                   >
                     <input
@@ -676,9 +826,14 @@ function RestaurantCustomizationModal({
             </div>
           ) : null}
 
-          <label className="restaurant-customization-note">
-            <span>Ghi chú cho quán</span>
+          <label className={restaurantStyles.restaurantCustomizationNoteClassName}>
+            <span
+              className={restaurantStyles.restaurantCustomizationNoteLabelClassName}
+            >
+              Ghi chú cho quán
+            </span>
             <textarea
+              className={restaurantStyles.restaurantCustomizationTextareaClassName}
               value={note}
               rows={3}
               onChange={(event) => setNote(event.target.value)}
@@ -686,10 +841,13 @@ function RestaurantCustomizationModal({
             />
           </label>
 
-          <div className="restaurant-customization-footer">
-            <div className="restaurant-customization-quantity">
+          <div className={restaurantStyles.restaurantCustomizationFooterClassName}>
+            <div className={restaurantStyles.restaurantCustomizationQuantityClassName}>
               <button
                 type="button"
+                className={
+                  restaurantStyles.restaurantCustomizationQuantityButtonClassName
+                }
                 aria-label="Giảm số lượng"
                 disabled={quantity === 1}
                 onClick={() =>
@@ -700,9 +858,14 @@ function RestaurantCustomizationModal({
               >
                 <RemoveOutlinedIcon fontSize="small" />
               </button>
-              <span>{quantity}</span>
+              <span className={restaurantStyles.restaurantCustomizationQuantityValueClassName}>
+                {quantity}
+              </span>
               <button
                 type="button"
+                className={
+                  restaurantStyles.restaurantCustomizationQuantityButtonClassName
+                }
                 aria-label="Tăng số lượng"
                 onClick={() =>
                   setQuantity((currentQuantity) => currentQuantity + 1)
@@ -714,7 +877,7 @@ function RestaurantCustomizationModal({
 
             <button
               type="button"
-              className="restaurant-customization-submit"
+              className={restaurantStyles.restaurantCustomizationSubmitClassName}
               onClick={handleConfirm}
             >
               Thêm vào giỏ • {formatCurrency(totalPrice)}
@@ -728,19 +891,32 @@ function RestaurantCustomizationModal({
 
 function RestaurantMenuPrice({
   item,
-  className = "restaurant-menu-price-row",
+  className = restaurantStyles.restaurantMenuPriceRowClassName,
   showDiscountBadge = false,
 }: {
   item: RestaurantMenuItem;
   className?: string;
   showDiscountBadge?: boolean;
 }) {
+  const priceValueClassName = showDiscountBadge
+    ? restaurantStyles.restaurantCustomizationPriceValueClassName
+    : restaurantStyles.restaurantMenuPriceValueClassName;
+  const originalPriceClassName = showDiscountBadge
+    ? restaurantStyles.restaurantCustomizationOriginalPriceClassName
+    : restaurantStyles.restaurantMenuOriginalPriceClassName;
+
   return (
     <div className={className}>
-      <strong>{formatCurrency(item.price)}</strong>
-      {item.sale ? <del>{formatCurrency(item.sale.originalPrice)}</del> : null}
+      <strong className={priceValueClassName}>{formatCurrency(item.price)}</strong>
+      {item.sale ? (
+        <del className={originalPriceClassName}>
+          {formatCurrency(item.sale.originalPrice)}
+        </del>
+      ) : null}
       {item.sale && showDiscountBadge ? (
-        <span>{item.sale.discountLabel}</span>
+        <span className={restaurantStyles.restaurantCustomizationDiscountClassName}>
+          {item.sale.discountLabel}
+        </span>
       ) : null}
     </div>
   );
@@ -748,7 +924,7 @@ function RestaurantMenuPrice({
 
 function RestaurantSaleMeter({
   sale,
-  className = "restaurant-menu-sale-meter",
+  className = restaurantStyles.restaurantMenuSaleMeterClassName,
 }: {
   sale: RestaurantMenuSale;
   className?: string;
@@ -758,14 +934,20 @@ function RestaurantSaleMeter({
 
   return (
     <div className={className}>
-      <div className="restaurant-menu-sale-meter__text">
+      <div className={restaurantStyles.restaurantMenuSaleMeterTextClassName}>
         <span>
           Đã bán {sale.sold}/{sale.total}
         </span>
         <span>Còn lại {remaining}</span>
       </div>
-      <div className="restaurant-menu-sale-progress" aria-hidden="true">
-        <span style={{ width: `${progress}%` }} />
+      <div
+        className={restaurantStyles.restaurantMenuSaleProgressClassName}
+        aria-hidden="true"
+      >
+        <span
+          className={restaurantStyles.restaurantMenuSaleProgressBarClassName}
+          style={{ width: `${progress}%` }}
+        />
       </div>
     </div>
   );
@@ -785,31 +967,38 @@ function RestaurantMenuCard({
   return (
     <article
       id={item.id}
-      className={`restaurant-menu-card ${
-        compact
-          ? "restaurant-menu-card--compact"
-          : "restaurant-menu-card--horizontal"
-      }${!item.isAvailable ? " is-unavailable" : ""}`}
+      className={restaurantStyles.restaurantMenuCardClassName(
+        compact,
+        item.isAvailable
+      )}
     >
       <RestaurantMenuMedia compact={compact} item={item} />
-      <div className="restaurant-menu-card__content">
-        <div className="restaurant-menu-card__title-row">
-          <h3>{item.name}</h3>
+      <div className={restaurantStyles.restaurantMenuCardContentClassName}>
+        <div className={restaurantStyles.restaurantMenuCardTitleRowClassName}>
+          <h3 className={restaurantStyles.restaurantMenuItemTitleClassName(compact)}>
+            {item.name}
+          </h3>
           {item.isPopular ? (
-            <span className="restaurant-menu-card__badge">🔥 Bán chạy</span>
+            <span className={restaurantStyles.restaurantMenuBadgeClassName}>
+              🔥 Bán chạy
+            </span>
           ) : null}
           {item.sale ? (
-            <span className="restaurant-menu-card__sale-badge">
+            <span className={restaurantStyles.restaurantMenuSaleBadgeClassName}>
               {item.sale.discountLabel}
             </span>
           ) : null}
         </div>
-        {!compact ? <p>{item.description}</p> : null}
-        <div className="restaurant-menu-card__footer">
+        {!compact ? (
+          <p className={restaurantStyles.restaurantMenuItemDescriptionClassName}>
+            {item.description}
+          </p>
+        ) : null}
+        <div className={restaurantStyles.restaurantMenuFooterClassName(compact)}>
           <RestaurantMenuPrice item={item} />
           <button
             type="button"
-            className="restaurant-add-button"
+            className={restaurantStyles.restaurantAddButtonClassName(compact)}
             onClick={() => onAdd(item)}
             disabled={!isRestaurantOpen || !item.isAvailable}
             aria-label={`Thêm ${item.name}`}
@@ -820,7 +1009,9 @@ function RestaurantMenuCard({
         </div>
         {item.sale ? <RestaurantSaleMeter sale={item.sale} /> : null}
         {!item.isAvailable ? (
-          <span className="restaurant-menu-card__unavailable">Tạm hết món</span>
+          <span className={restaurantStyles.restaurantMenuUnavailableClassName}>
+            Tạm hết món
+          </span>
         ) : null}
       </div>
     </article>
@@ -839,23 +1030,22 @@ function RestaurantMenuMedia({
 
     return (
       <div
-        className={`restaurant-menu-card__media restaurant-menu-card__media--placeholder${
-          compact ? " is-compact" : ""
-        }`}
+        className={restaurantStyles.restaurantMenuMediaClassName(compact, true)}
       >
-        <PlaceholderIcon />
+        <PlaceholderIcon
+          className={restaurantStyles.restaurantMenuPlaceholderIconClassName}
+        />
       </div>
     );
   }
 
   return (
-    <div
-      className={`restaurant-menu-card__media${compact ? " is-compact" : ""}`}
-    >
+    <div className={restaurantStyles.restaurantMenuMediaClassName(compact)}>
       <Image
         src={item.image}
         alt={item.name}
         fill
+        className={restaurantStyles.restaurantMenuImageClassName}
         sizes={compact ? "(max-width: 760px) 50vw, 25vw" : "120px"}
       />
     </div>
@@ -866,11 +1056,15 @@ function RestaurantInfoRow({ item }: { item: RestaurantInfoItem }) {
   const Icon = infoIcons[item.icon];
 
   return (
-    <div className="restaurant-info-row">
-      <Icon />
+    <div className={restaurantStyles.restaurantInfoRowClassName}>
+      <Icon className={restaurantStyles.restaurantInfoIconClassName} />
       <div>
-        <strong>{item.title}</strong>
-        <p>{item.description}</p>
+        <strong className={restaurantStyles.restaurantInfoTitleClassName}>
+          {item.title}
+        </strong>
+        <p className={restaurantStyles.restaurantInfoDescriptionClassName}>
+          {item.description}
+        </p>
       </div>
     </div>
   );

@@ -23,7 +23,12 @@ test("Restaurants route renders the Restaurant list experience from design", asy
     "restaurant",
     "restaurantPageData.ts"
   );
-  const css = await readProjectFile("src", "styles", "restaurant-page.css");
+  const helper = await readProjectFile(
+    "src",
+    "components",
+    "restaurant",
+    "tailwindClasses.ts"
+  );
   const layout = await readProjectFile("src", "app", "layout.tsx");
   const header = await readProjectFile(
     "src",
@@ -45,25 +50,32 @@ test("Restaurants route renders the Restaurant list experience from design", asy
   assert.match(component, /Danh mục phổ biến/);
   assert.match(component, /Nhà hàng phù hợp với bạn/);
   assert.match(component, /Xem thêm nhà hàng/);
-  assert.match(component, /restaurant-category-rail/);
-  assert.match(component, /restaurant-list-filter-panel/);
-  assert.match(component, /restaurant-list-grid/);
+  assert.match(component, /tailwindClasses/);
+  assert.match(component, /restaurantListCategoryButtonClassName/);
+  assert.match(component, /restaurantListFilterPanelClassName/);
+  assert.match(component, /restaurantListGridClassName/);
   assert.match(component, /RestaurantCard/);
   assert.match(data, /restaurantListItems/);
   assert.match(data, /Phở 2000 - Bến Thành/);
   assert.match(data, /Bún/);
   assert.match(data, /tag:\s*"Giảm 20%"/);
-  assert.match(css, /\.restaurant-list-page/);
-  assert.match(css, /\.restaurant-list-card/);
-  assert.match(css, /@media \(max-width: 900px\)/);
-  assert.match(css, /@media \(max-width: 640px\)/);
-  assert.match(layout, /@\/styles\/restaurant-page\.css/);
+  assert.match(helper, /restaurantListPageClassName/);
+  assert.match(helper, /restaurantListCardClassName/);
+  assert.match(helper, /restaurantListBottomNavClassName/);
+  assert.match(helper, /max-\[900px\]:/);
+  assert.match(helper, /max-\[640px\]:/);
+  assert.doesNotMatch(layout, /@\/styles\/restaurant-page\.css/);
   assert.match(header, /href:\s*"\/restaurants"/);
   assert.match(homePage, /router\.push\("\/restaurants"\)/);
   assert.doesNotMatch(`${component}\n${data}`, /react-router-dom|axios|fetch\(/);
   assert.doesNotMatch(
     component,
     /className="[^"]*(?:rounded-\[|bg-\[|text-\[|(?:^|\s)(?:flex|grid)(?:\s|"))/
+  );
+
+  await assert.rejects(
+    access(join(root, "src", "styles", "restaurant-page.css")),
+    /ENOENT/
   );
 });
 
@@ -93,7 +105,12 @@ test("Restaurant list filters update categories, quick chips, and visible counts
     "restaurant",
     "restaurantPageData.ts"
   );
-  const css = await readProjectFile("src", "styles", "restaurant-page.css");
+  const helper = await readProjectFile(
+    "src",
+    "components",
+    "restaurant",
+    "tailwindClasses.ts"
+  );
 
   assert.match(data, /export type RestaurantFilterId/);
   assert.match(data, /restaurantQuickFilters/);
@@ -107,9 +124,10 @@ test("Restaurant list filters update categories, quick chips, and visible counts
   assert.match(component, /toggleRestaurantFilter/);
   assert.match(component, /filterRestaurantListItems\(/);
   assert.match(component, /filteredRestaurants\.length/);
-  assert.match(component, /aria-pressed=\{activeCategoryId === category\.id\}/);
-  assert.match(component, /aria-pressed=\{activeFilterIds\.includes\(filter\.id\)\}/);
-  assert.match(css, /\.restaurant-list-empty-state/);
+  assert.match(component, /aria-pressed=\{isActive\}/);
+  assert.match(component, /data-active=\{isActive\}/);
+  assert.match(helper, /restaurantListEmptyClassName/);
+  assert.match(helper, /data-\[active=true\]:border-\[#7a3000\]/);
   assert.doesNotMatch(
     component,
     /Danh mục .*bước tiếp theo|Bộ lọc .*bước tiếp theo|kết nối dữ liệu/
@@ -134,11 +152,9 @@ test("Restaurant list starts with no selected category", async () => {
     component,
     /const \[activeCategoryId, setActiveCategoryId\] = useState\(""\)/
   );
-  assert.match(
-    component,
-    /className=\{activeCategoryId === category\.id \? "is-active" : ""\}/
-  );
-  assert.match(component, /aria-pressed=\{activeCategoryId === category\.id\}/);
+  assert.match(component, /const isActive = activeCategoryId === category\.id/);
+  assert.match(component, /restaurantListCategoryButtonClassName\(\s*isActive\s*\)/);
+  assert.match(component, /aria-pressed=\{isActive\}/);
   assert.doesNotMatch(
     `${component}\n${data}`,
     /category\.isActive|isActive:\s*true|isActive\?:/

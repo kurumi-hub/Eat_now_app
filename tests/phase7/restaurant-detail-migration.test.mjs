@@ -24,7 +24,7 @@ test("Restaurant detail route renders the migrated UI from local data", async ()
   assert.doesNotMatch(page, /react-router-dom/);
 });
 
-test("Restaurant detail components use MUI, Next assets, and no Tailwind classes", async () => {
+test("Restaurant detail components use MUI, Next assets, and Tailwind helpers", async () => {
   const component = await readProjectFile(
     "src",
     "components",
@@ -41,6 +41,7 @@ test("Restaurant detail components use MUI, Next assets, and no Tailwind classes
   assert.match(component, /"use client"/);
   assert.match(component, /from "next\/image"/);
   assert.match(component, /@mui\/material/);
+  assert.match(component, /tailwindClasses/);
   assert.doesNotMatch(component, /ShoppingBasketOutlinedIcon/);
   assert.doesNotMatch(component, /restaurant-cart-bar/);
   assert.doesNotMatch(component, /cartCount|Xem giỏ hàng/);
@@ -54,21 +55,27 @@ test("Restaurant detail components use MUI, Next assets, and no Tailwind classes
   );
 });
 
-test("Restaurant detail CSS is imported globally and responsive", async () => {
+test("Restaurant detail Tailwind helper is imported and responsive", async () => {
   const layout = await readProjectFile("src", "app", "layout.tsx");
-  const css = await readProjectFile(
+  const helper = await readProjectFile(
     "src",
-    "styles",
-    "restaurant-detail.css"
+    "components",
+    "restaurant",
+    "tailwindClasses.ts"
   );
 
-  assert.match(layout, /@\/styles\/restaurant-detail\.css/);
-  assert.match(css, /\.restaurant-detail-page/);
-  assert.doesNotMatch(css, /\.restaurant-cart-bar/);
-  assert.match(css, /\.restaurant-bottom-nav/);
-  assert.match(css, /@media \(max-width: 900px\)/);
-  assert.match(css, /@media \(max-width: 640px\)/);
-  assert.match(css, /overflow-x: hidden/);
+  assert.doesNotMatch(layout, /@\/styles\/restaurant-detail\.css/);
+  assert.match(helper, /restaurantDetailPageClassName/);
+  assert.match(helper, /restaurantHeroClassName/);
+  assert.match(helper, /restaurantBottomNavClassName/);
+  assert.match(helper, /max-\[900px\]:grid-cols-1/);
+  assert.match(helper, /max-\[640px\]:fixed/);
+  assert.match(helper, /overflow-x-hidden/);
+
+  await assert.rejects(
+    access(join(root, "src", "styles", "restaurant-detail.css")),
+    /ENOENT/
+  );
 });
 
 test("Home restaurant cards link to the restaurant detail route", async () => {
@@ -113,10 +120,11 @@ test("Restaurant detail follows Demo2 storefront layout", async () => {
     "restaurant",
     "restaurantDetailData.ts"
   );
-  const css = await readProjectFile(
+  const helper = await readProjectFile(
     "src",
-    "styles",
-    "restaurant-detail.css"
+    "components",
+    "restaurant",
+    "tailwindClasses.ts"
   );
   const runtimeData = await readProjectFile(
     "src",
@@ -125,15 +133,13 @@ test("Restaurant detail follows Demo2 storefront layout", async () => {
     "restaurants.ts"
   );
 
-  assert.match(component, /restaurant-detail-actions/);
-  assert.match(component, /restaurant-voucher-section/);
-  assert.match(component, /restaurant-voucher-strip/);
-  assert.match(component, /restaurant-menu-search/);
-  assert.match(component, /restaurant-category-pills/);
-  assert.match(component, /restaurant-menu-card--horizontal/);
-  assert.match(component, /restaurant-menu-card--compact/);
-  assert.match(component, /restaurant-review-grid/);
-  assert.match(component, /restaurant-info-card/);
+  assert.match(component, /restaurantDetailActionsClassName/);
+  assert.match(component, /restaurantVoucherStripClassName/);
+  assert.match(component, /restaurantMenuSearchClassName/);
+  assert.match(component, /restaurantCategoryPillsClassName/);
+  assert.match(component, /restaurantMenuCardClassName/);
+  assert.match(component, /restaurantReviewGridClassName/);
+  assert.match(component, /restaurantInfoCardClassName/);
   assert.match(component, /FavoriteBorderOutlinedIcon/);
   assert.match(component, /ShareOutlinedIcon/);
   assert.match(component, /SearchOutlinedIcon/);
@@ -145,9 +151,9 @@ test("Restaurant detail follows Demo2 storefront layout", async () => {
   assert.match(runtimeData, /restaurantVouchers/);
   assert.match(runtimeData, /restaurantReviews/);
   assert.match(runtimeData, /restaurantInfoItems/);
-  assert.match(css, /\.restaurant-voucher-section/);
-  assert.match(css, /\.restaurant-menu-card--compact/);
-  assert.match(css, /\.restaurant-review-grid/);
+  assert.match(helper, /restaurantVoucherStripClassName/);
+  assert.match(helper, /restaurantMenuCardClassName/);
+  assert.match(helper, /restaurantReviewGridClassName/);
   assert.doesNotMatch(component, /restaurant-side-panel/);
 });
 
@@ -164,10 +170,11 @@ test("Restaurant detail add flow opens a Size and Topping customization modal", 
     "restaurant",
     "restaurantDetailData.ts"
   );
-  const css = await readProjectFile(
+  const helper = await readProjectFile(
     "src",
-    "styles",
-    "restaurant-detail.css"
+    "components",
+    "restaurant",
+    "tailwindClasses.ts"
   );
 
   assert.match(data, /customization/);
@@ -196,8 +203,9 @@ test("Restaurant detail add flow opens a Size and Topping customization modal", 
   assert.match(component, /Tùy chọn món/);
   assert.match(component, /Ghi chú cho quán/);
   assert.match(component, /Thêm vào giỏ/);
-  assert.match(css, /\.restaurant-customization-overlay/);
-  assert.match(css, /\.restaurant-customization-modal/);
+  assert.match(helper, /restaurantCustomizationOverlayClassName/);
+  assert.match(helper, /restaurantCustomizationModalClassName/);
+  assert.match(helper, /restaurantCustomizationOptionClassName/);
 });
 
 test("Runtime restaurant detail keeps customization for Supabase menu foods", async () => {
@@ -235,18 +243,19 @@ test("Customization modal keeps lower options reachable without image panel", as
     "restaurant",
     "RestaurantDetailPage.tsx"
   );
-  const css = await readProjectFile(
+  const helper = await readProjectFile(
     "src",
-    "styles",
-    "restaurant-detail.css"
+    "components",
+    "restaurant",
+    "tailwindClasses.ts"
   );
 
   assert.doesNotMatch(component, /restaurant-customization-media/);
-  assert.doesNotMatch(css, /\.restaurant-customization-media/);
-  assert.match(css, /max-height:\s*calc\(100dvh - 32px\)/);
-  assert.match(css, /\.restaurant-customization-body\s*\{[\s\S]*min-height:\s*0/);
-  assert.match(css, /\.restaurant-customization-body\s*\{[\s\S]*overflow-y:\s*auto/);
-  assert.match(css, /\.restaurant-customization-footer\s*\{[\s\S]*bottom:\s*0/);
+  assert.doesNotMatch(helper, /restaurantCustomizationMedia/);
+  assert.match(helper, /max-h-\[calc\(100dvh-32px\)\]/);
+  assert.match(helper, /min-h-0/);
+  assert.match(helper, /overflow-y-auto/);
+  assert.match(helper, /sticky bottom-0/);
 });
 
 test("Restaurant detail shows Flash Sale metadata on sale menu items", async () => {
@@ -268,10 +277,11 @@ test("Restaurant detail shows Flash Sale metadata on sale menu items", async () 
     "data",
     "restaurants.ts"
   );
-  const css = await readProjectFile(
+  const helper = await readProjectFile(
     "src",
-    "styles",
-    "restaurant-detail.css"
+    "components",
+    "restaurant",
+    "tailwindClasses.ts"
   );
 
   assert.match(data, /RestaurantMenuSale/);
@@ -285,11 +295,11 @@ test("Restaurant detail shows Flash Sale metadata on sale menu items", async () 
   assert.match(runtimeData, /name:\s*food\.name/);
   assert.match(component, /RestaurantMenuPrice/);
   assert.match(component, /RestaurantSaleMeter/);
-  assert.match(component, /restaurant-menu-card__sale-badge/);
-  assert.match(component, /restaurant-customization-price-row/);
-  assert.match(css, /\.restaurant-menu-sale-meter/);
-  assert.match(css, /\.restaurant-menu-card__sale-badge/);
-  assert.match(css, /\.restaurant-customization-sale-meter/);
-  assert.match(css, /\.restaurant-menu-price-row strong\s*\{[\s\S]*font-size:\s*18px/);
-  assert.match(css, /\.restaurant-menu-price-row del\s*\{[\s\S]*text-decoration:\s*line-through/);
+  assert.match(component, /restaurantMenuSaleBadgeClassName/);
+  assert.match(component, /restaurantCustomizationPriceRowClassName/);
+  assert.match(helper, /restaurantMenuSaleMeterClassName/);
+  assert.match(helper, /restaurantMenuSaleBadgeClassName/);
+  assert.match(helper, /restaurantCustomizationSaleMeterClassName/);
+  assert.match(helper, /restaurantMenuPriceValueClassName/);
+  assert.match(helper, /line-through/);
 });
