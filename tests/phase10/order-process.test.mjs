@@ -83,8 +83,8 @@ test("Checkout page implements COD form validation, submission, retry, and infor
   assert.match(component, /paymentMethod: "cod"/);
   assert.match(component, /router\.push\(`\/orders\/success\?orderId=\$\{createdOrder\.id\}`\)/);
   assert.match(component, /router\.push\("\/orders\/error"\)/);
-  assert.match(component, /order-checkout-validation-summary/);
-  assert.match(component, /order-information-modal/);
+  assert.match(component, /orderCheckoutValidationSummaryClassName/);
+  assert.match(component, /orderInformationModalClassName/);
   assert.match(data, /validateCheckoutValues/);
   assert.match(data, /normalizeCheckoutValues/);
   assert.match(data, /mockDeliveryFee/);
@@ -97,18 +97,22 @@ test("Checkout submission shows a branded loading card for 3 to 4 seconds", asyn
     "order",
     "CheckoutPage.tsx"
   );
-  const css = await readProjectFile("src", "styles", "order-process.css");
+  const helper = await readProjectFile(
+    "src",
+    "components",
+    "order",
+    "tailwindClasses.ts"
+  );
+  const globals = await readProjectFile("src", "app", "globals.css");
 
   assert.match(component, /SUBMISSION_LOADING_DELAY_MS\s*=\s*3500/);
   assert.match(component, /setTimeout\(resolve,\s*SUBMISSION_LOADING_DELAY_MS\)/);
-  assert.match(component, /order-submission-card/);
-  assert.match(component, /order-submission-spinner/);
-  assert.match(component, /order-submission-progress/);
+  assert.match(component, /orderSubmissionCardClassName/);
+  assert.match(component, /orderSubmissionSpinnerClassName/);
+  assert.match(component, /orderSubmissionProgressClassName/);
   assert.match(component, /Vui lòng không đóng hoặc tải lại trang/);
-  assert.match(css, /\.order-submission-card/);
-  assert.match(css, /\.order-submission-spinner/);
-  assert.match(css, /\.order-submission-progress-bar/);
-  assert.match(css, /@keyframes order-submission-progress/);
+  assert.match(helper, /orderSubmissionProgressBarClassName/);
+  assert.match(globals, /@keyframes orderSubmissionProgress/);
 });
 
 test("Checkout keeps the loading overlay active while routing away after submit", async () => {
@@ -151,25 +155,31 @@ test("Order result pages render receipt success and creation error recovery", as
   assert.match(successComponent, /useCart/);
   assert.match(successComponent, /lastOrder/);
   assert.match(successComponent, /clearCart/);
-  assert.match(successComponent, /order-success-card/);
+  assert.match(successComponent, /orderResultCardClassName/);
   assert.match(successComponent, /Theo dõi đơn hàng|order-tracking/i);
-  assert.match(errorComponent, /order-error-card/);
+  assert.match(errorComponent, /orderResultCardClassName/);
   assert.match(errorComponent, /href="\/checkout"/);
   assert.match(errorComponent, /href="\/cart"/);
 });
 
-test("Order process CSS is globally imported and responsive", async () => {
+test("Order process helper covers checkout, result, and order management surfaces", async () => {
   const layout = await readProjectFile("src", "app", "layout.tsx");
-  const css = await readProjectFile("src", "styles", "order-process.css");
+  const helper = await readProjectFile(
+    "src",
+    "components",
+    "order",
+    "tailwindClasses.ts"
+  );
 
-  assert.match(layout, /@\/styles\/order-process\.css/);
-  assert.match(css, /\.order-checkout-page/);
-  assert.match(css, /\.order-checkout-layout/);
-  assert.match(css, /\.order-information-modal/);
-  assert.match(css, /\.order-submission-overlay/);
-  assert.match(css, /\.order-success-card/);
-  assert.match(css, /\.order-error-card/);
-  assert.match(css, /@media \(max-width: 900px\)/);
-  assert.match(css, /@media \(max-width: 640px\)/);
-  assert.match(css, /overflow-x: hidden/);
+  assert.doesNotMatch(layout, /@\/styles\/order-process\.css/);
+  assert.match(helper, /orderCheckoutLayoutClassName/);
+  assert.match(helper, /orderInformationModalClassName/);
+  assert.match(helper, /orderSubmissionOverlayClassName/);
+  assert.match(helper, /orderResultCardClassName/);
+  assert.match(helper, /orderHistoryPageClassName/);
+  assert.match(helper, /orderDetailPageClassName/);
+  assert.match(helper, /orderTrackingPageClassName/);
+  assert.match(helper, /orderReorderModalClassName/);
+  assert.match(helper, /max-\[900px\]:/);
+  assert.match(helper, /max-\[640px\]:/);
 });

@@ -8,11 +8,6 @@ import AppThemeProvider from "@/theme/AppThemeProvider";
 import "./globals.css";
 import "@/styles/variables.css";
 import "@/styles/global.css";
-import "@/styles/routes.css";
-import "@/styles/search-filter.css";
-import "@/styles/cart.css";
-import "@/styles/order-process.css";
-import "@/styles/voucher.css";
 
 const baloo = Baloo_2({
   variable: "--font-baloo",

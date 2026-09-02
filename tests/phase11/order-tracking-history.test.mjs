@@ -96,9 +96,10 @@ test("Order history page includes filters, status chips, detail links, and reord
   assert.match(component, /"use client"/);
   assert.match(component, /CustomerHeader/);
   assert.match(component, /getMergedOrderHistory/);
-  assert.match(component, /order-history-page/);
-  assert.match(component, /order-history-filter-panel/);
-  assert.match(component, /order-history-card/);
+  assert.match(component, /from "\.\/tailwindClasses"/);
+  assert.match(component, /orderHistoryPageClassName/);
+  assert.match(component, /orderHistoryFilterPanelClassName/);
+  assert.match(component, /orderHistorySmallCardClassName/);
   assert.match(component, /href=\{`\/orders\/\$\{order\.id\}`\}/);
   assert.match(component, /Đặt lại|Reorder/i);
 });
@@ -113,11 +114,12 @@ test("Order detail pending page renders pending status, timeline, items, deliver
 
   assert.match(component, /"use client"/);
   assert.match(component, /findOrderRecordById/);
-  assert.match(component, /order-detail-page/);
-  assert.match(component, /order-detail-status-card/);
+  assert.match(component, /from "\.\/tailwindClasses"/);
+  assert.match(component, /orderDetailPageClassName/);
+  assert.match(component, /orderDetailStatusCardClassName/);
   assert.match(component, /Chờ xác nhận/);
-  assert.match(component, /order-detail-timeline/);
-  assert.match(component, /order-detail-cancel-button/);
+  assert.match(component, /orderDetailTimelineClassName/);
+  assert.match(component, /orderDetailCancelButtonClassName/);
   assert.match(component, /href=\{`\/orders\/\$\{order\.id\}\/tracking`\}/);
 });
 
@@ -131,11 +133,12 @@ test("Order tracking page renders ETA map, timeline, summary, and support action
 
   assert.match(component, /"use client"/);
   assert.match(component, /mockTrackingOrder/);
-  assert.match(component, /order-tracking-page/);
-  assert.match(component, /order-tracking-map/);
-  assert.match(component, /order-tracking-eta-card/);
-  assert.match(component, /order-tracking-timeline/);
-  assert.match(component, /order-tracking-summary-card/);
+  assert.match(component, /from "\.\/tailwindClasses"/);
+  assert.match(component, /orderTrackingPageClassName/);
+  assert.match(component, /orderTrackingMapClassName/);
+  assert.match(component, /orderTrackingEtaCardClassName/);
+  assert.match(component, /orderTrackingTimelineClassName/);
+  assert.match(component, /orderTrackingSummaryCardClassName/);
   assert.match(component, /Hỗ trợ/);
 });
 
@@ -159,16 +162,22 @@ test("Success and shared customer navigation link into order tracking and histor
   assert.doesNotMatch(header, /Đơn hàng sẽ được triển khai ở sprint tiếp theo/);
 });
 
-test("Order process CSS covers history detail and tracking responsive layouts", async () => {
-  const css = await readProjectFile("src", "styles", "order-process.css");
+test("Order Tailwind helper covers history detail and tracking responsive layouts", async () => {
+  const layout = await readProjectFile("src", "app", "layout.tsx");
+  const helper = await readProjectFile(
+    "src",
+    "components",
+    "order",
+    "tailwindClasses.ts"
+  );
 
-  assert.match(css, /\.order-history-page/);
-  assert.match(css, /\.order-history-layout/);
-  assert.match(css, /\.order-detail-page/);
-  assert.match(css, /\.order-detail-layout/);
-  assert.match(css, /\.order-tracking-page/);
-  assert.match(css, /\.order-tracking-layout/);
-  assert.match(css, /\.order-tracking-map/);
-  assert.match(css, /@media \(max-width: 900px\)/);
-  assert.match(css, /@media \(max-width: 640px\)/);
+  assert.doesNotMatch(layout, /@\/styles\/order-process\.css/);
+  assert.match(helper, /orderHistoryBentoGridClassName/);
+  assert.match(helper, /orderDetailLayoutClassName/);
+  assert.match(helper, /orderTrackingLayoutClassName/);
+  assert.match(helper, /orderTrackingMapClassName/);
+  assert.match(helper, /orderReorderModalClassName/);
+  assert.match(helper, /max-\[900px\]:/);
+  assert.match(helper, /max-\[640px\]:/);
+  assert.match(helper, /data-\[state=complete\]:/);
 });

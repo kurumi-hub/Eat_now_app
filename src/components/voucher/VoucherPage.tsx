@@ -1,28 +1,29 @@
 "use client";
 
+import CakeOutlinedIcon from "@mui/icons-material/CakeOutlined";
+import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
+import EventBusyOutlinedIcon from "@mui/icons-material/EventBusyOutlined";
+import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
+import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import RedeemOutlinedIcon from "@mui/icons-material/RedeemOutlined";
+import RestaurantOutlinedIcon from "@mui/icons-material/RestaurantOutlined";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import { Alert, Snackbar } from "@mui/material";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
-import ConfirmationNumberOutlinedIcon from '@mui/icons-material/ConfirmationNumberOutlined';
-import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
-import RestaurantOutlinedIcon from '@mui/icons-material/RestaurantOutlined';
-import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
-import EventBusyOutlinedIcon from '@mui/icons-material/EventBusyOutlined';
-import RedeemOutlinedIcon from '@mui/icons-material/RedeemOutlined';
-import CakeOutlinedIcon from '@mui/icons-material/CakeOutlined';
-import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
+import { type ReactNode, useMemo, useState } from "react";
 
 import CustomerFooter from "@/components/home/CustomerFooter";
 import CustomerHeader from "@/components/home/CustomerHeader";
 import type { PublicUser } from "@/types/auth";
+import * as voucherStyles from "./tailwindClasses";
 import {
   mockPromos,
   mockUserVouchers,
   voucherCategories,
+  type PromoItem,
   type VoucherCategory,
   type VoucherItem,
-  type PromoItem,
 } from "./voucherData";
 
 type VoucherPageProps = {
@@ -30,7 +31,7 @@ type VoucherPageProps = {
   deliveryLocationLabel?: string;
 };
 
-const voucherIconMap: Record<string, React.ReactNode> = {
+const voucherIconMap: Record<string, ReactNode> = {
   local_shipping: <LocalShippingOutlinedIcon />,
   restaurant: <RestaurantOutlinedIcon />,
   receipt_long: <ReceiptLongOutlinedIcon />,
@@ -46,31 +47,45 @@ export default function VoucherPage({
 }: VoucherPageProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<VoucherCategory>("all");
+  const [selectedCategory, setSelectedCategory] =
+    useState<VoucherCategory>("all");
   const [snackbar, setSnackbar] = useState({ open: false, message: "" });
 
   const showSnackbar = (message: string) => setSnackbar({ open: true, message });
-  const handleSnackbarClose = () => setSnackbar(prev => ({ ...prev, open: false }));
-  const handleSectionNavigate = (sectionId: string) => router.push(`/#${sectionId}`);
+  const handleSnackbarClose = () =>
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  const handleSectionNavigate = (sectionId: string) =>
+    router.push(`/#${sectionId}`);
 
   const filteredVouchers = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    return mockUserVouchers.filter(v => {
-      const matchesCategory = selectedCategory === "all" 
-        || v.category === selectedCategory
-        || (selectedCategory === "expiring" && v.isExpiringSoon);
-      const matchesSearch = !q || v.title.toLowerCase().includes(q) || v.code.toLowerCase().includes(q);
+
+    return mockUserVouchers.filter((voucher) => {
+      const matchesCategory =
+        selectedCategory === "all" ||
+        voucher.category === selectedCategory ||
+        (selectedCategory === "expiring" && voucher.isExpiringSoon);
+      const matchesSearch =
+        !q ||
+        voucher.title.toLowerCase().includes(q) ||
+        voucher.code.toLowerCase().includes(q);
+
       return matchesCategory && matchesSearch;
     });
   }, [searchTerm, selectedCategory]);
 
   const handleApplyCode = () => {
-    if (!searchTerm.trim()) return;
-    showSnackbar(`Đã áp dụng mã "${searchTerm.trim().toUpperCase()}". Chức năng sẽ hoàn thiện sau.`);
+    const code = searchTerm.trim();
+
+    if (!code) return;
+
+    showSnackbar(
+      `Đã áp dụng mã "${code.toUpperCase()}". Chức năng sẽ hoàn thiện sau.`
+    );
   };
 
   return (
-    <div className="voucher-page">
+    <div className={voucherStyles.voucherPageClassName}>
       <CustomerHeader
         user={user}
         onPlaceholder={showSnackbar}
@@ -78,86 +93,106 @@ export default function VoucherPage({
         deliveryLocationLabel={deliveryLocationLabel}
       />
 
-      <main className="voucher-main">
-        {/* Hero Banner */}
-        <section className="voucher-hero">
-          <div className="voucher-hero__content">
+      <main className={voucherStyles.voucherMainClassName}>
+        <section className={voucherStyles.voucherHeroClassName}>
+          <div className={voucherStyles.voucherHeroContentClassName}>
             <h1>Deal hot hôm nay</h1>
-            <p>Sưu tầm voucher ngon, đặt món tiết kiệm hơn mỗi ngày cùng EatNow.</p>
+            <p>
+              Sưu tầm voucher ngon, đặt món tiết kiệm hơn mỗi ngày cùng EatNow.
+            </p>
           </div>
-          <div className="voucher-hero__visual" aria-hidden="true" />
+          <div
+            className={voucherStyles.voucherHeroVisualClassName}
+            aria-hidden="true"
+          />
         </section>
 
-        {/* Search & Apply */}
-        <section className="voucher-toolbar">
-          <div className="voucher-search-bar">
-            <SearchOutlinedIcon className="voucher-search-icon" />
+        <section className={voucherStyles.voucherToolbarClassName}>
+          <div className={voucherStyles.voucherSearchBarClassName}>
+            <SearchOutlinedIcon
+              className={voucherStyles.voucherSearchIconClassName}
+            />
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Tìm voucher hoặc nhập mã ưu đãi"
-              className="voucher-search-input"
+              className={voucherStyles.voucherSearchInputClassName}
             />
-            <button 
-              className="voucher-apply-button"
+            <button
+              className={voucherStyles.voucherApplyButtonClassName}
               onClick={handleApplyCode}
             >
               Áp dụng mã
             </button>
           </div>
 
-          {/* Filter Chips */}
-          <div className="voucher-filters">
-            {voucherCategories.map((cat) => (
-              <button
-                key={cat.id}
-                className={`voucher-filter-chip ${selectedCategory === cat.id ? "is-active" : ""}`}
-                onClick={() => setSelectedCategory(cat.id)}
-              >
-                {cat.label}
-              </button>
-            ))}
+          <div className={voucherStyles.voucherFiltersClassName}>
+            {voucherCategories.map((category) => {
+              const isActive = selectedCategory === category.id;
+
+              return (
+                <button
+                  key={category.id}
+                  className={voucherStyles.voucherFilterChipClassName(isActive)}
+                  data-active={isActive}
+                  aria-pressed={isActive}
+                  onClick={() => setSelectedCategory(category.id)}
+                >
+                  {category.label}
+                </button>
+              );
+            })}
           </div>
         </section>
 
-        {/* User Vouchers Section */}
-        <section className="voucher-section">
+        <section className={voucherStyles.voucherSectionClassName}>
           <h2>Voucher của bạn</h2>
-          <div className="voucher-grid">
+          <div className={voucherStyles.voucherGridClassName}>
             {filteredVouchers.map((voucher) => (
-              <VoucherCard 
-                key={voucher.id} 
-                voucher={voucher} 
-                onUse={() => showSnackbar(`Đã chọn voucher "${voucher.title}". Chức năng áp dụng sẽ hoàn thiện sau.`)}
+              <VoucherCard
+                key={voucher.id}
+                voucher={voucher}
+                onUse={() =>
+                  showSnackbar(
+                    `Đã chọn voucher "${voucher.title}". Chức năng áp dụng sẽ hoàn thiện sau.`
+                  )
+                }
               />
             ))}
             {filteredVouchers.length === 0 && (
-              <div className="voucher-empty">
-                <ConfirmationNumberOutlinedIcon className="voucher-empty__icon" />
+              <div className={voucherStyles.voucherEmptyStateClassName}>
+                <ConfirmationNumberOutlinedIcon
+                  className={voucherStyles.voucherEmptyIconClassName}
+                />
                 <p>Không tìm thấy voucher phù hợp.</p>
               </div>
             )}
           </div>
         </section>
 
-        {/* Active Promos Section */}
-        <section className="voucher-section">
-          <div className="voucher-section-header">
+        <section className={voucherStyles.voucherSectionClassName}>
+          <div className={voucherStyles.voucherSectionHeaderClassName}>
             <h2>Ưu đãi đang diễn ra</h2>
-            <button 
-              className="voucher-see-all"
-              onClick={() => showSnackbar("Xem tất cả ưu đãi sẽ hoàn thiện sau.")}
+            <button
+              className={voucherStyles.voucherSeeAllButtonClassName}
+              onClick={() =>
+                showSnackbar("Xem tất cả ưu đãi sẽ hoàn thiện sau.")
+              }
             >
               Xem tất cả
             </button>
           </div>
-          <div className="voucher-promo-grid">
+          <div className={voucherStyles.voucherPromoGridClassName}>
             {mockPromos.map((promo) => (
-              <PromoCard 
-                key={promo.id} 
+              <PromoCard
+                key={promo.id}
                 promo={promo}
-                onClaim={() => showSnackbar(`Đã nhận ưu đãi "${promo.title}". Chức năng sẽ hoàn thiện sau.`)}
+                onClaim={() =>
+                  showSnackbar(
+                    `Đã nhận ưu đãi "${promo.title}". Chức năng sẽ hoàn thiện sau.`
+                  )
+                }
               />
             ))}
           </div>
@@ -180,46 +215,80 @@ export default function VoucherPage({
   );
 }
 
-/* ---- Sub-components ---- */
-
-function VoucherCard({ voucher, onUse }: { voucher: VoucherItem; onUse: () => void }) {
+function VoucherCard({
+  voucher,
+  onUse,
+}: {
+  voucher: VoucherItem;
+  onUse: () => void;
+}) {
   const isInactive = voucher.status === "used" || voucher.status === "expired";
 
   return (
-    <article className={`voucher-card ${isInactive ? "is-inactive" : ""}`}>
-      <div className={`voucher-card__left ${voucher.iconBg}`}>
-        <span className={`voucher-card__icon ${voucher.iconColor}`}>
+    <article
+      className={voucherStyles.voucherCardClassName(isInactive)}
+      data-status={voucher.status}
+    >
+      <div className={voucherStyles.voucherCardLeftClassName(voucher.tone)}>
+        <span className={voucherStyles.voucherIconToneClassName(voucher.tone)}>
           {voucherIconMap[voucher.icon] || <ConfirmationNumberOutlinedIcon />}
         </span>
-        <span className={`voucher-card__code ${voucher.iconColor}`}>{voucher.code}</span>
+        <span className={voucherStyles.voucherCodeClassName(voucher.tone)}>
+          {voucher.code}
+        </span>
       </div>
-      <div className="voucher-card__right">
+      <div className={voucherStyles.voucherCardRightClassName}>
         {voucher.status === "used" && (
-          <span className="voucher-badge is-used">Đã sử dụng</span>
+          <span className={voucherStyles.voucherBadgeClassName(voucher.status)}>
+            Đã sử dụng
+          </span>
         )}
         {voucher.status === "expired" && (
-          <span className="voucher-badge is-expired">Hết hạn</span>
+          <span className={voucherStyles.voucherBadgeClassName(voucher.status)}>
+            Hết hạn
+          </span>
         )}
-        <div className="voucher-card__info">
-          <h3 className={voucher.status === "expired" ? "is-strikethrough" : ""}>
+        <div className={voucherStyles.voucherCardInfoClassName}>
+          <h3
+            className={voucherStyles.voucherCardTitleClassName(voucher.status)}
+            data-status={voucher.status}
+          >
             {voucher.title}
           </h3>
-          <p>{voucher.description}</p>
+          <p className={voucherStyles.voucherCardDescriptionClassName(isInactive)}>
+            {voucher.description}
+          </p>
         </div>
-        <div className="voucher-card__footer">
+        <div className={voucherStyles.voucherCardFooterClassName}>
           {voucher.status === "active" && (
             <>
-              <span className={`voucher-card__expiry ${voucher.isExpiringSoon ? "is-urgent" : ""}`}>
-                {voucher.isExpiringSoon ? `Sắp hết hạn: ${voucher.expiryDate}` : `HSD: ${voucher.expiryDate}`}
+              <span
+                className={voucherStyles.voucherCardExpiryClassName(
+                  voucher.isExpiringSoon
+                )}
+                data-urgent={Boolean(voucher.isExpiringSoon)}
+              >
+                {voucher.isExpiringSoon
+                  ? `Sắp hết hạn: ${voucher.expiryDate}`
+                  : `HSD: ${voucher.expiryDate}`}
               </span>
-              <button className="voucher-card__use" onClick={onUse}>Dùng ngay</button>
+              <button
+                className={voucherStyles.voucherCardUseButtonClassName}
+                onClick={onUse}
+              >
+                Dùng ngay
+              </button>
             </>
           )}
           {voucher.status === "used" && (
-            <span className="voucher-card__expiry">Đã dùng: {voucher.usedDate}</span>
+            <span className={voucherStyles.voucherCardExpiryClassName()}>
+              Đã dùng: {voucher.usedDate}
+            </span>
           )}
           {voucher.status === "expired" && (
-            <span className="voucher-card__expiry">HSD: {voucher.expiryDate}</span>
+            <span className={voucherStyles.voucherCardExpiryClassName()}>
+              HSD: {voucher.expiryDate}
+            </span>
           )}
         </div>
       </div>
@@ -227,22 +296,31 @@ function VoucherCard({ voucher, onUse }: { voucher: VoucherItem; onUse: () => vo
   );
 }
 
-function PromoCard({ promo, onClaim }: { promo: PromoItem; onClaim: () => void }) {
+function PromoCard({
+  promo,
+  onClaim,
+}: {
+  promo: PromoItem;
+  onClaim: () => void;
+}) {
   return (
-    <article className="voucher-promo-card">
-      <div className={`voucher-promo-card__header ${promo.headerBg}`}>
-        <span className={`voucher-promo-card__bg-icon ${promo.iconColor}`}>
+    <article className={voucherStyles.voucherPromoCardClassName}>
+      <div className={voucherStyles.voucherPromoHeaderClassName(promo.tone)}>
+        <span className={voucherStyles.voucherPromoIconClassName(promo.tone)}>
           {voucherIconMap[promo.icon] || <LocalOfferOutlinedIcon />}
         </span>
-        <span className={`voucher-promo-card__label ${promo.iconColor}`}>{promo.labelText}</span>
+        <span className={voucherStyles.voucherPromoLabelClassName(promo.tone)}>
+          {promo.labelText}
+        </span>
       </div>
-      <div className="voucher-promo-card__body">
+      <div className={voucherStyles.voucherPromoBodyClassName}>
         <div>
           <h3>{promo.title}</h3>
           <p>{promo.description}</p>
         </div>
         <button
-          className={`voucher-promo-card__cta ${!promo.isAvailable ? "is-disabled" : ""}`}
+          className={voucherStyles.voucherPromoCtaClassName(promo.isAvailable)}
+          data-available={promo.isAvailable}
           disabled={!promo.isAvailable}
           onClick={promo.isAvailable ? onClaim : undefined}
         >

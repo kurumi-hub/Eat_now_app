@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import SearchFilterPage from "@/components/search/SearchFilterPage";
+import { searchFilterPageClassName } from "@/components/search/tailwindClasses";
 import { getCurrentDeliveryLocationLabel } from "@/lib/data/deliveryLocation";
 import { getCurrentPublicUser } from "@/utils/auth/guards";
 
@@ -17,7 +18,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const initialQuery = Array.isArray(params.q) ? params.q[0] : params.q;
 
   return (
-    <Suspense fallback={<div className="search-filter-page" />}>
+    <Suspense fallback={<div className={searchFilterPageClassName} />}>
       <SearchFilterPage
         user={user}
         initialQuery={initialQuery}

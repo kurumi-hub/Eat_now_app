@@ -35,7 +35,4 @@
   --eatnow-shadow-1: 0 14px 34px rgba(37, 29, 24, 0.08);
   --eatnow-shadow-2: 0 18px 42px rgba(37, 29, 24, 0.12);
   --eatnow-shadow-3: 0 24px 64px rgba(37, 29, 24, 0.16);
-
-  --background: var(--eatnow-background);
-  --foreground: var(--eatnow-text-primary);
 }

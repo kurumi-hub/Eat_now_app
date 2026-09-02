@@ -3,25 +3,41 @@ import ShoppingBasketOutlinedIcon from "@mui/icons-material/ShoppingBasketOutlin
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import Link from "next/link";
 
+import * as orderStyles from "./tailwindClasses";
+
 export default function OrderCreationErrorPage() {
   return (
-    <main className="order-result-page is-error">
-      <section className="order-error-card" aria-labelledby="order-error-title">
-        <div className="order-error-icon">
+    <main className={orderStyles.orderErrorResultPageClassName}>
+      <section
+        className={orderStyles.orderResultCardClassName}
+        aria-labelledby="order-error-title"
+      >
+        <div className={orderStyles.orderResultIconClassName("error")}>
           <WarningAmberOutlinedIcon aria-hidden="true" />
         </div>
-        <h1 id="order-error-title">Không thể tạo đơn hàng</h1>
-        <p>
+        <h1
+          id="order-error-title"
+          className={orderStyles.orderResultTitleClassName}
+        >
+          Không thể tạo đơn hàng
+        </h1>
+        <p className={orderStyles.orderResultTextClassName}>
           Hệ thống đang gặp sự cố. Vui lòng thử lại. Đừng lo, giỏ hàng của bạn
           vẫn được lưu trên thiết bị này.
         </p>
 
-        <div className="order-result-actions">
-          <Link className="order-error-primary" href="/checkout">
+        <div className={orderStyles.orderResultActionsClassName}>
+          <Link
+            className={orderStyles.orderPrimaryActionLinkClassName}
+            href="/checkout"
+          >
             <RefreshOutlinedIcon fontSize="small" />
             Thử lại
           </Link>
-          <Link className="order-error-secondary" href="/cart">
+          <Link
+            className={orderStyles.orderSecondaryActionLinkClassName}
+            href="/cart"
+          >
             <ShoppingBasketOutlinedIcon fontSize="small" />
             Quay lại giỏ hàng
           </Link>

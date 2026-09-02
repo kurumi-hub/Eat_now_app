@@ -86,18 +86,23 @@ test("Customer header search submits to the Search route", async () => {
   );
 });
 
-test("Search Filter CSS is imported globally and responsive", async () => {
+test("Search Filter styles are owned by a responsive Tailwind helper", async () => {
   const layout = await readProjectFile("src", "app", "layout.tsx");
-  const css = await readProjectFile("src", "styles", "search-filter.css");
+  const helper = await readProjectFile(
+    "src",
+    "components",
+    "search",
+    "tailwindClasses.ts"
+  );
 
-  assert.match(layout, /@\/styles\/search-filter\.css/);
-  assert.match(css, /\.search-filter-page/);
-  assert.match(css, /\.search-filter-shell/);
-  assert.match(css, /\.search-filter-sidebar/);
-  assert.match(css, /\.search-results-grid/);
-  assert.match(css, /@media \(max-width: 900px\)/);
-  assert.match(css, /@media \(max-width: 640px\)/);
-  assert.match(css, /overflow-x: hidden/);
+  assert.doesNotMatch(layout, /@\/styles\/search-filter\.css/);
+  assert.match(helper, /searchFilterPageClassName/);
+  assert.match(helper, /searchFilterShellClassName/);
+  assert.match(helper, /searchFilterSidebarClassName/);
+  assert.match(helper, /searchResultsGridClassName/);
+  assert.match(helper, /max-\[900px\]:/);
+  assert.match(helper, /max-\[640px\]:/);
+  assert.match(helper, /overflow-x-hidden/);
 });
 
 test("Search Filter uses local food and restaurant image assets", async () => {
@@ -147,7 +152,7 @@ test("Food result cards expose public restaurant detail links", async () => {
     "SearchFilterPage.tsx"
   );
 
-  assert.match(searchComponent, /search-result-card__restaurant-link/);
+  assert.match(searchComponent, /searchResultRestaurantLinkClassName/);
   assert.match(searchComponent, /href=\{`\/restaurants\/\$\{item\.restaurantSlug\}`\}/);
 });
 

@@ -47,6 +47,7 @@ import {
   mockDeliveryFee,
   validateCheckoutValues,
 } from "./orderData";
+import * as orderStyles from "./tailwindClasses";
 
 type CheckoutPageProps = {
   user: PublicUser | null;
@@ -348,7 +349,7 @@ export default function CheckoutPage({
   const hasValidationErrors = Object.values(errors).some(Boolean);
 
   return (
-    <div className="order-checkout-page">
+    <div className={orderStyles.orderPageClassName()}>
       <CustomerHeader
         user={user}
         onPlaceholder={showSnackbar}
@@ -356,10 +357,10 @@ export default function CheckoutPage({
         deliveryLocationLabel={deliveryLocationLabel}
       />
 
-      <main className="order-checkout-main">
-        <div className="order-checkout-title-row">
+      <main className={orderStyles.orderCheckoutMainClassName}>
+        <div className={orderStyles.orderCheckoutTitleRowClassName}>
           <button
-            className="order-back-button"
+            className={orderStyles.orderBackButtonClassName}
             type="button"
             aria-label="Quay lại giỏ hàng"
             onClick={() => router.push("/cart")}
@@ -367,16 +368,25 @@ export default function CheckoutPage({
             <ArrowBackOutlinedIcon />
           </button>
           <div>
-            <span>Thanh toán đơn hàng</span>
-            <h1>Hoàn tất đơn hàng</h1>
+            <span className={orderStyles.orderTitleEyebrowClassName}>
+              Thanh toán đơn hàng
+            </span>
+            <h1 className={orderStyles.orderCheckoutTitleClassName}>
+              Hoàn tất đơn hàng
+            </h1>
           </div>
         </div>
 
         {checkoutCart.items.length === 0 ? (
-          <section className="order-empty-card">
-            <ReceiptLongOutlinedIcon aria-hidden="true" />
-            <h2>Chưa có món nào để thanh toán</h2>
-            <p>
+          <section className={orderStyles.orderEmptyCardClassName}>
+            <ReceiptLongOutlinedIcon
+              aria-hidden="true"
+              className={orderStyles.orderEmptyIconClassName}
+            />
+            <h2 className={orderStyles.orderEmptyTitleClassName}>
+              Chưa có món nào để thanh toán
+            </h2>
+            <p className={orderStyles.orderEmptyTextClassName}>
               Giỏ hàng hiện đang trống. Hãy chọn món trước khi tạo đơn hàng mới.
             </p>
             <Button
@@ -389,93 +399,146 @@ export default function CheckoutPage({
             </Button>
           </section>
         ) : (
-          <form className="order-checkout-layout" onSubmit={handleSubmit}>
+          <form
+            className={orderStyles.orderCheckoutLayoutClassName}
+            onSubmit={handleSubmit}
+          >
             {/* Left Column: Delivery, Notes & Payment */}
-            <div className="flex flex-col gap-lg">
+            <div className={orderStyles.orderCheckoutColumnClassName}>
               <section
-                className="order-checkout-panel"
+                className={orderStyles.orderCheckoutPanelClassName}
                 aria-labelledby="delivery-info-title"
               >
-                <div className="order-panel-heading">
-                  <HomeWorkOutlinedIcon aria-hidden="true" />
+                <div className={orderStyles.orderPanelHeadingClassName}>
+                  <HomeWorkOutlinedIcon
+                    aria-hidden="true"
+                    className={orderStyles.orderPanelIconClassName}
+                  />
                   <div>
-                    <span>Bước 1</span>
-                    <h2 id="delivery-info-title">Thông tin giao hàng</h2>
+                    <span className={orderStyles.orderPanelStepClassName}>
+                      Bước 1
+                    </span>
+                    <h2
+                      id="delivery-info-title"
+                      className={orderStyles.orderPanelTitleClassName}
+                    >
+                      Thông tin giao hàng
+                    </h2>
                   </div>
                 </div>
 
                 {hasValidationErrors ? (
                   <Alert
                     severity="error"
-                    className="order-checkout-validation-summary"
+                    className={orderStyles.orderCheckoutValidationSummaryClassName}
                     icon={<ErrorOutlineOutlinedIcon />}
                   >
                     Vui lòng kiểm tra lại thông tin giao hàng trước khi đặt món.
                   </Alert>
                 ) : null}
 
-                <div className="order-form-grid">
-                  <div className="order-form-field">
-                    <label htmlFor="recipientName">Người nhận</label>
+                <div className={orderStyles.orderFormGridClassName}>
+                  <div className={orderStyles.orderFormFieldClassName}>
+                    <label
+                      className={orderStyles.orderFormLabelClassName}
+                      htmlFor="recipientName"
+                    >
+                      Người nhận
+                    </label>
                     <input
                       id="recipientName"
                       name="recipientName"
                       type="text"
                       value={values.recipientName}
                       aria-invalid={Boolean(errors.recipientName)}
-                      className={errors.recipientName ? "is-invalid" : ""}
+                      data-invalid={Boolean(errors.recipientName)}
+                      className={orderStyles.orderFormInputClassName(
+                        Boolean(errors.recipientName)
+                      )}
                       onChange={(event) =>
                         updateField("recipientName", event.target.value)
                       }
                       placeholder="Nhập họ và tên người nhận"
                     />
                     {errors.recipientName ? (
-                      <p>{errors.recipientName}</p>
+                      <p className={orderStyles.orderFormErrorClassName}>
+                        {errors.recipientName}
+                      </p>
                     ) : null}
                   </div>
 
-                  <div className="order-form-field">
-                    <label htmlFor="phone">Số điện thoại</label>
+                  <div className={orderStyles.orderFormFieldClassName}>
+                    <label
+                      className={orderStyles.orderFormLabelClassName}
+                      htmlFor="phone"
+                    >
+                      Số điện thoại
+                    </label>
                     <input
                       id="phone"
                       name="phone"
                       type="tel"
                       value={values.phone}
                       aria-invalid={Boolean(errors.phone)}
-                      className={errors.phone ? "is-invalid" : ""}
+                      data-invalid={Boolean(errors.phone)}
+                      className={orderStyles.orderFormInputClassName(
+                        Boolean(errors.phone)
+                      )}
                       onChange={(event) =>
                         updateField("phone", event.target.value)
                       }
                       placeholder="0901234567"
                     />
-                    {errors.phone ? <p>{errors.phone}</p> : null}
+                    {errors.phone ? (
+                      <p className={orderStyles.orderFormErrorClassName}>
+                        {errors.phone}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
 
-                <div className="order-form-field">
-                  <label htmlFor="address">Địa chỉ giao hàng</label>
+                <div className={orderStyles.orderFormFieldClassName}>
+                  <label
+                    className={orderStyles.orderFormLabelClassName}
+                    htmlFor="address"
+                  >
+                    Địa chỉ giao hàng
+                  </label>
                   <textarea
                     id="address"
                     name="address"
                     rows={3}
                     value={values.address}
                     aria-invalid={Boolean(errors.address)}
-                    className={errors.address ? "is-invalid" : ""}
+                    data-invalid={Boolean(errors.address)}
+                    className={orderStyles.orderFormTextareaClassName(
+                      Boolean(errors.address)
+                    )}
                     onChange={(event) =>
                       updateField("address", event.target.value)
                     }
                     placeholder="Số nhà, tên đường, phường/xã, quận/huyện..."
                   />
-                  {errors.address ? <p>{errors.address}</p> : null}
+                  {errors.address ? (
+                    <p className={orderStyles.orderFormErrorClassName}>
+                      {errors.address}
+                    </p>
+                  ) : null}
                 </div>
 
-                <div className="order-form-field">
-                  <label htmlFor="deliveryNote">Ghi chú giao hàng</label>
+                <div className={orderStyles.orderFormFieldClassName}>
+                  <label
+                    className={orderStyles.orderFormLabelClassName}
+                    htmlFor="deliveryNote"
+                  >
+                    Ghi chú giao hàng
+                  </label>
                   <input
                     id="deliveryNote"
                     name="deliveryNote"
                     type="text"
                     value={values.deliveryNote}
+                    className={orderStyles.orderFormInputClassName()}
                     onChange={(event) =>
                       updateField("deliveryNote", event.target.value)
                     }
@@ -485,23 +548,39 @@ export default function CheckoutPage({
               </section>
 
               <section
-                className="order-checkout-panel"
+                className={orderStyles.orderCheckoutPanelClassName}
                 aria-labelledby="note-title"
               >
-                <div className="order-panel-heading">
-                  <NotesOutlinedIcon aria-hidden="true" />
+                <div className={orderStyles.orderPanelHeadingClassName}>
+                  <NotesOutlinedIcon
+                    aria-hidden="true"
+                    className={orderStyles.orderPanelIconClassName}
+                  />
                   <div>
-                    <span>Bước 2</span>
-                    <h2 id="note-title">Ghi chú cho nhà hàng</h2>
+                    <span className={orderStyles.orderPanelStepClassName}>
+                      Bước 2
+                    </span>
+                    <h2
+                      id="note-title"
+                      className={orderStyles.orderPanelTitleClassName}
+                    >
+                      Ghi chú cho nhà hàng
+                    </h2>
                   </div>
                 </div>
-                <div className="order-form-field">
-                  <label htmlFor="restaurantNote">Yêu cầu chế biến</label>
+                <div className={orderStyles.orderFormFieldClassName}>
+                  <label
+                    className={orderStyles.orderFormLabelClassName}
+                    htmlFor="restaurantNote"
+                  >
+                    Yêu cầu chế biến
+                  </label>
                   <textarea
                     id="restaurantNote"
                     name="restaurantNote"
                     rows={2}
                     value={checkoutCart.restaurantNote}
+                    className={orderStyles.orderFormTextareaClassName()}
                     onChange={(event) =>
                       updateRestaurantNote(event.target.value)
                     }
@@ -512,40 +591,60 @@ export default function CheckoutPage({
 
               {/* Payment Methods */}
               <section
-                className="order-checkout-panel"
+                className={orderStyles.orderCheckoutPanelClassName}
                 aria-labelledby="payment-title"
               >
-                <div className="order-panel-heading">
-                  <PaymentsOutlinedIcon aria-hidden="true" />
+                <div className={orderStyles.orderPanelHeadingClassName}>
+                  <PaymentsOutlinedIcon
+                    aria-hidden="true"
+                    className={orderStyles.orderPanelIconClassName}
+                  />
                   <div>
-                    <span>Bước 3</span>
-                    <h2 id="payment-title">Phương thức thanh toán</h2>
+                    <span className={orderStyles.orderPanelStepClassName}>
+                      Bước 3
+                    </span>
+                    <h2
+                      id="payment-title"
+                      className={orderStyles.orderPanelTitleClassName}
+                    >
+                      Phương thức thanh toán
+                    </h2>
                   </div>
                 </div>
 
-                <div className="order-payment-options">
+                <div className={orderStyles.orderPaymentOptionsClassName}>
                   <label
-                    className={`order-payment-option ${
-                      paymentMethod === "cod" ? "is-selected" : ""
-                    }`}
+                    className={orderStyles.orderPaymentOptionClassName(
+                      paymentMethod === "cod"
+                    )}
+                    data-selected={paymentMethod === "cod"}
                     id="payment-cod"
                     onClick={() => setPaymentMethod("cod")}
                   >
                     <input
+                      className={orderStyles.orderPaymentInputClassName}
                       type="radio"
                       name="paymentMethod"
                       value="cod"
                       checked={paymentMethod === "cod"}
                       onChange={() => setPaymentMethod("cod")}
                     />
-                    <div className="order-payment-option__icon">
+                    <div
+                      className={orderStyles.orderPaymentIconClassName(
+                        paymentMethod === "cod"
+                      )}
+                    >
                       <LocalShippingOutlinedIcon />
                     </div>
-                    <div className="order-payment-option__info">
+                    <div className={orderStyles.orderPaymentInfoClassName}>
                       <strong>Thanh toán khi nhận hàng (COD)</strong>
                       <small>Thanh toán tiền mặt cho tài xế</small>
                     </div>
-                    <div className="order-payment-option__radio">
+                    <div
+                      className={orderStyles.orderPaymentRadioClassName(
+                        paymentMethod === "cod"
+                      )}
+                    >
                       {paymentMethod === "cod" ? (
                         <RadioButtonCheckedIcon />
                       ) : (
@@ -555,29 +654,39 @@ export default function CheckoutPage({
                   </label>
 
                   <label
-                    className={`order-payment-option ${
-                      paymentMethod === "vnpay" ? "is-selected" : ""
-                    }`}
+                    className={orderStyles.orderPaymentOptionClassName(
+                      paymentMethod === "vnpay"
+                    )}
+                    data-selected={paymentMethod === "vnpay"}
                     id="payment-vnpay"
                     onClick={() => setPaymentMethod("vnpay")}
                   >
                     <input
+                      className={orderStyles.orderPaymentInputClassName}
                       type="radio"
                       name="paymentMethod"
                       value="vnpay"
                       checked={paymentMethod === "vnpay"}
                       onChange={() => setPaymentMethod("vnpay")}
                     />
-                    <div className="order-payment-option__icon">
+                    <div
+                      className={orderStyles.orderPaymentIconClassName(
+                        paymentMethod === "vnpay"
+                      )}
+                    >
                       <AccountBalanceWalletOutlinedIcon />
                     </div>
-                    <div className="order-payment-option__info">
+                    <div className={orderStyles.orderPaymentInfoClassName}>
                       <strong>Thanh toán qua VNPAY</strong>
                       <small>
                         Thanh toán an toàn qua ứng dụng ngân hàng hoặc thẻ
                       </small>
                     </div>
-                    <div className="order-payment-option__radio">
+                    <div
+                      className={orderStyles.orderPaymentRadioClassName(
+                        paymentMethod === "vnpay"
+                      )}
+                    >
                       {paymentMethod === "vnpay" ? (
                         <RadioButtonCheckedIcon />
                       ) : (
@@ -591,60 +700,72 @@ export default function CheckoutPage({
 
             {/* Right Column: Order Summary */}
             <aside
-              className="order-summary-card"
+              className={orderStyles.orderSummaryCardClassName}
               aria-label="Tóm tắt đơn hàng"
             >
-              <div className="order-summary-heading">
-                <ReceiptLongOutlinedIcon aria-hidden="true" />
-                <h2>Tóm tắt đơn hàng</h2>
+              <div className={orderStyles.orderSummaryHeadingClassName}>
+                <ReceiptLongOutlinedIcon
+                  aria-hidden="true"
+                  className={orderStyles.orderPanelIconClassName}
+                />
+                <h2 className={orderStyles.orderPanelTitleClassName}>
+                  Tóm tắt đơn hàng
+                </h2>
               </div>
 
-              <div className="order-summary-list">
+              <div className={orderStyles.orderSummaryListClassName}>
                 {checkoutRestaurantGroups.map((group) => (
                   <section
-                    className="order-summary-group"
+                    className={orderStyles.orderSummaryGroupClassName}
                     key={group.restaurantId}
                     aria-label={group.restaurantName}
                   >
                     <Link
-                      className="order-summary-restaurant"
+                      className={orderStyles.orderSummaryRestaurantClassName}
                       href={`/restaurants/${group.restaurantSlug}`}
                     >
                       <StorefrontOutlinedIcon fontSize="small" />
                       {group.restaurantName}
                     </Link>
 
-                    <div className="order-summary-group-items">
+                    <div className={orderStyles.orderSummaryGroupItemsClassName}>
                       {group.items.map((item) => (
                         <article
-                          className="order-summary-item"
+                          className={orderStyles.orderSummaryItemClassName}
                           key={getCartItemKey(item)}
                         >
-                          <div className="order-summary-item__media">
+                          <div className={orderStyles.orderSummaryItemMediaClassName}>
                             <Image
                               src={item.image}
                               alt={item.name}
                               fill
                               sizes="56px"
+                              className={orderStyles.orderSummaryItemImageClassName}
                             />
                           </div>
                           <div>
-                            <h3>{item.name}</h3>
-                            <span>
+                            <h3 className={orderStyles.orderSummaryItemTitleClassName}>
+                              {item.name}
+                            </h3>
+                            <span className={orderStyles.orderSummaryItemMetaClassName}>
                               {item.restaurantName} - x{item.quantity}
                             </span>
                             {item.optionSummary?.length ? (
-                              <small className="order-summary-item__options">
+                              <small
+                                className={orderStyles.orderSummaryItemOptionsClassName}
+                              >
                                 {item.optionSummary.join(", ")}
                               </small>
                             ) : null}
                             {item.note ? (
-                              <small className="order-summary-item__note">
+                              <small
+                                className={orderStyles.orderSummaryItemNoteClassName}
+                              >
                                 Ghi chú: {item.note}
                               </small>
                             ) : null}
                           </div>
-                          <strong>
+                          <strong className={orderStyles.orderSummaryItemPriceClassName}>
                             {formatOrderCurrency(item.price * item.quantity)}
                           </strong>
                         </article>
@@ -654,19 +775,19 @@ export default function CheckoutPage({
                 ))}
               </div>
 
-              <div className="order-summary-rows">
-                <div>
+              <div className={orderStyles.orderSummaryRowsClassName}>
+                <div className={orderStyles.orderSummaryRowClassName}>
                   <span>Tạm tính ({itemCount} món)</span>
                   <strong>{formatOrderCurrency(subtotal)}</strong>
                 </div>
-                <div>
+                <div className={orderStyles.orderSummaryRowClassName}>
                   <span>Phí giao hàng</span>
                   <strong>{formatOrderCurrency(deliveryFee)}</strong>
                 </div>
                 {discount > 0 && appliedVoucher ? (
-                  <div className="order-summary-row--discount">
+                  <div className={orderStyles.orderSummaryDiscountRowClassName}>
                     <span>Ưu đãi ({appliedVoucher.code})</span>
-                    <strong className="order-discount-text">
+                    <strong className={orderStyles.orderDiscountTextClassName}>
                       -{formatOrderCurrency(discount)}
                     </strong>
                   </div>
@@ -674,15 +795,15 @@ export default function CheckoutPage({
               </div>
 
               {/* Voucher Section */}
-              <div className="order-voucher-section">
-                <div className="order-voucher-header">
+              <div className={orderStyles.orderVoucherSectionClassName}>
+                <div className={orderStyles.orderVoucherHeaderClassName}>
                   <LocalOfferOutlinedIcon fontSize="small" />
                   <span>Ưu đãi &amp; Voucher</span>
                 </div>
 
                 {appliedVoucher ? (
-                  <div className="order-voucher-applied">
-                    <div className="order-voucher-applied__info">
+                  <div className={orderStyles.orderVoucherAppliedClassName}>
+                    <div className={orderStyles.orderVoucherAppliedInfoClassName}>
                       <ConfirmationNumberOutlinedIcon fontSize="small" />
                       <div>
                         <strong>{appliedVoucher.code}</strong>
@@ -693,7 +814,7 @@ export default function CheckoutPage({
                     </div>
                     <button
                       type="button"
-                      className="order-voucher-applied__remove"
+                      className={orderStyles.orderVoucherRemoveButtonClassName}
                       onClick={handleRemoveVoucher}
                       aria-label="Gỡ mã ưu đãi"
                     >
@@ -701,13 +822,14 @@ export default function CheckoutPage({
                     </button>
                   </div>
                 ) : (
-                  <div className="order-voucher-form">
-                    <div className="order-voucher-input-row">
+                  <div className={orderStyles.orderVoucherFormClassName}>
+                    <div className={orderStyles.orderVoucherInputRowClassName}>
                       <input
                         type="text"
-                        className={`order-voucher-input ${
-                          voucherError ? "is-invalid" : ""
-                        }`}
+                        data-invalid={Boolean(voucherError)}
+                        className={orderStyles.orderVoucherInputClassName(
+                          Boolean(voucherError)
+                        )}
                         placeholder="Nhập mã ưu đãi"
                         value={voucherCode}
                         onChange={(e) => {
@@ -723,18 +845,20 @@ export default function CheckoutPage({
                       />
                       <button
                         type="button"
-                        className="order-voucher-apply-btn"
+                        className={orderStyles.orderVoucherApplyButtonClassName}
                         onClick={() => handleApplyVoucher()}
                       >
                         Áp dụng
                       </button>
                     </div>
                     {voucherError ? (
-                      <p className="order-voucher-error-msg">{voucherError}</p>
+                      <p className={orderStyles.orderVoucherErrorClassName}>
+                        {voucherError}
+                      </p>
                     ) : null}
                     <button
                       type="button"
-                      className="order-voucher-picker-link"
+                      className={orderStyles.orderVoucherPickerLinkClassName}
                       onClick={() => setVoucherPickerOpen(true)}
                     >
                       Chọn hoặc nhập mã &gt;
@@ -743,16 +867,20 @@ export default function CheckoutPage({
                 )}
               </div>
 
-              <div className="order-summary-total">
-                <span>Tổng cộng</span>
-                <strong>{formatOrderCurrency(total)}</strong>
+              <div className={orderStyles.orderSummaryTotalClassName}>
+                <span className={orderStyles.orderSummaryTotalLabelClassName}>
+                  Tổng cộng
+                </span>
+                <strong className={orderStyles.orderSummaryTotalValueClassName}>
+                  {formatOrderCurrency(total)}
+                </strong>
               </div>
 
               <Button
                 type="submit"
                 variant="contained"
                 size="large"
-                className="order-submit-button"
+                className={orderStyles.orderSubmitButtonClassName}
                 disabled={isSubmitting || checkoutCart.items.length === 0}
                 endIcon={<ArrowForwardOutlinedIcon />}
                 id="submit-order-btn"
@@ -761,7 +889,7 @@ export default function CheckoutPage({
                   ? "Thanh toán qua VNPAY"
                   : "Xác nhận đặt hàng"}
               </Button>
-              <p className="order-checkout-terms">
+              <p className={orderStyles.orderCheckoutTermsClassName}>
                 {paymentMethod === "vnpay"
                   ? "Bạn sẽ được chuyển đến cổng thanh toán VNPAY để hoàn tất giao dịch."
                   : "Bằng việc đặt hàng, bạn đồng ý với Điều khoản sử dụng của EatNow."}
@@ -773,29 +901,31 @@ export default function CheckoutPage({
 
       {informationChangedOpen ? (
         <div
-          className="order-information-modal"
+          className={orderStyles.orderInformationModalClassName}
           role="dialog"
           aria-modal="true"
         >
-          <div className="order-information-card">
-            <div className="order-information-icon">
+          <div className={orderStyles.orderInformationCardClassName}>
+            <div className={orderStyles.orderInformationIconClassName}>
               <ReceiptLongOutlinedIcon aria-hidden="true" />
             </div>
-            <h2>Thông tin đơn hàng đã thay đổi</h2>
-            <p>
+            <h2 className={orderStyles.orderInformationTitleClassName}>
+              Thông tin đơn hàng đã thay đổi
+            </h2>
+            <p className={orderStyles.orderInformationTextClassName}>
               Một vài thông tin trong giỏ hàng đã được cập nhật. Vui lòng làm
               mới tóm tắt đơn trước khi tiếp tục đặt món.
             </p>
             <Button
               variant="contained"
-              className="order-information-primary"
+              className={orderStyles.orderInformationPrimaryClassName}
               onClick={handleRefreshSnapshot}
             >
               Cập nhật lại đơn hàng
             </Button>
             <Button
               variant="text"
-              className="order-information-secondary"
+              className={orderStyles.orderInformationSecondaryClassName}
               onClick={() => router.push("/cart")}
             >
               Quay lại giỏ hàng
@@ -806,26 +936,32 @@ export default function CheckoutPage({
 
       {isSubmitting ? (
         <div
-          className="order-submission-overlay"
+          className={orderStyles.orderSubmissionOverlayClassName}
           role="status"
           aria-live="polite"
         >
-          <div className="order-submission-card">
-            <div className="order-submission-spinner" aria-hidden="true">
-              <span className="order-submission-spinner-ring" />
+          <div className={orderStyles.orderSubmissionCardClassName}>
+            <div
+              className={orderStyles.orderSubmissionSpinnerClassName}
+              aria-hidden="true"
+            >
+              <span className={orderStyles.orderSubmissionSpinnerRingClassName} />
             </div>
-            <h2>
+            <h2 className={orderStyles.orderSubmissionTitleClassName}>
               {paymentMethod === "vnpay"
                 ? "Đang chuyển đến VNPAY..."
                 : "Đang tạo đơn hàng..."}
             </h2>
-            <p>
+            <p className={orderStyles.orderSubmissionTextClassName}>
               {paymentMethod === "vnpay"
                 ? "Vui lòng không đóng hoặc tải lại trang"
                 : "Vui lòng không đóng hoặc tải lại trang"}
             </p>
-            <div className="order-submission-progress" aria-hidden="true">
-              <span className="order-submission-progress-bar" />
+            <div
+              className={orderStyles.orderSubmissionProgressClassName}
+              aria-hidden="true"
+            >
+              <span className={orderStyles.orderSubmissionProgressBarClassName} />
             </div>
           </div>
         </div>

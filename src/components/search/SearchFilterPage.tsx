@@ -46,6 +46,7 @@ import {
   type SearchResultType,
   type SortOptionId,
 } from "./searchFilterData";
+import * as searchStyles from "./tailwindClasses";
 
 type SearchFilterPageProps = {
   user: PublicUser | null;
@@ -307,7 +308,7 @@ export default function SearchFilterPage({
   const resultLabel = filterState.type === "food" ? "món ăn" : "nhà hàng";
 
   return (
-    <div className="search-filter-page">
+    <div className={searchStyles.searchFilterPageClassName}>
       <CustomerHeader
         user={user}
         searchValue={filterState.query}
@@ -316,8 +317,11 @@ export default function SearchFilterPage({
         deliveryLocationLabel={deliveryLocationLabel}
       />
 
-      <main className="search-filter-main">
-        <aside className="search-filter-sidebar" aria-label="Bộ lọc tìm kiếm">
+      <main className={searchStyles.searchFilterMainClassName}>
+        <aside
+          className={searchStyles.searchFilterSidebarClassName}
+          aria-label="Bộ lọc tìm kiếm"
+        >
           <FilterPanel
             openOnly={filterState.openOnly}
             selectedPriceIds={filterState.priceIds}
@@ -329,22 +333,28 @@ export default function SearchFilterPage({
           />
         </aside>
 
-        <section className="search-filter-shell" aria-labelledby="search-title">
-          <div className="search-heading">
-            <p className="search-heading__eyebrow">
+        <section
+          className={searchStyles.searchFilterShellClassName}
+          aria-labelledby="search-title"
+        >
+          <div className={searchStyles.searchHeadingClassName}>
+            <p className={searchStyles.searchHeadingEyebrowClassName}>
               Tìm kiếm quanh {deliveryLocationLabel}
             </p>
-            <h1 id="search-title">
+            <h1
+              id="search-title"
+              className={searchStyles.searchHeadingTitleClassName}
+            >
               {filterState.query
                 ? `Kết quả cho "${filterState.query}"`
                 : "Kết quả tìm kiếm"}
             </h1>
-            <p>
+            <p className={searchStyles.searchHeadingTextClassName}>
               Tìm thấy {filteredResults.length} {resultLabel} tại {deliveryLocationLabel}
             </p>
           </div>
 
-          <div className="search-filter-mobile-panel">
+          <div className={searchStyles.searchFilterMobilePanelClassName}>
             <FilterPanel
               openOnly={filterState.openOnly}
               selectedPriceIds={filterState.priceIds}
@@ -357,13 +367,20 @@ export default function SearchFilterPage({
             />
           </div>
 
-          <div className="search-results-toolbar">
-            <div className="search-result-tabs" role="tablist" aria-label="Loại kết quả">
+          <div className={searchStyles.searchResultsToolbarClassName}>
+            <div
+              className={searchStyles.searchResultTabsClassName}
+              role="tablist"
+              aria-label="Loại kết quả"
+            >
               <button
                 type="button"
                 role="tab"
                 aria-selected={filterState.type === "food"}
-                className={filterState.type === "food" ? "is-active" : ""}
+                data-active={filterState.type === "food"}
+                className={searchStyles.searchTypeButtonClassName(
+                  filterState.type === "food"
+                )}
                 onClick={() => handleTypeChange("food")}
               >
                 Món ăn
@@ -372,16 +389,22 @@ export default function SearchFilterPage({
                 type="button"
                 role="tab"
                 aria-selected={filterState.type === "restaurant"}
-                className={filterState.type === "restaurant" ? "is-active" : ""}
+                data-active={filterState.type === "restaurant"}
+                className={searchStyles.searchTypeButtonClassName(
+                  filterState.type === "restaurant"
+                )}
                 onClick={() => handleTypeChange("restaurant")}
               >
                 Nhà hàng
               </button>
             </div>
 
-            <label className="search-sort-control">
+            <label className={searchStyles.searchSortControlClassName}>
               <span>Sắp xếp:</span>
-              <FormControl size="small">
+              <FormControl
+                size="small"
+                className={searchStyles.searchSortFormControlClassName}
+              >
                 <Select<SortOptionId>
                   value={filterState.sort}
                   onChange={handleSortChange}
@@ -398,24 +421,31 @@ export default function SearchFilterPage({
           </div>
 
           {activeFilters.length > 0 ? (
-            <div className="search-active-filters" aria-label="Bộ lọc đang áp dụng">
+            <div
+              className={searchStyles.searchActiveFiltersClassName}
+              aria-label="Bộ lọc đang áp dụng"
+            >
               {activeFilters.map((filter) => (
                 <Chip
                   key={filter.id}
                   label={filter.label}
                   onDelete={() => removeFilter(filter.id)}
                   deleteIcon={<CloseOutlinedIcon />}
-                  className="search-active-chip"
+                  className={searchStyles.searchActiveChipClassName}
                 />
               ))}
-              <button type="button" onClick={clearFilters}>
+              <button
+                type="button"
+                className={searchStyles.searchClearFiltersButtonClassName}
+                onClick={clearFilters}
+              >
                 Xóa tất cả
               </button>
             </div>
           ) : null}
 
           {visibleResults.length > 0 ? (
-            <div className="search-results-grid">
+            <div className={searchStyles.searchResultsGridClassName}>
               {visibleResults.map((item) => (
                 <SearchResultCard
                   key={item.id}
@@ -425,10 +455,16 @@ export default function SearchFilterPage({
               ))}
             </div>
           ) : (
-            <div className="search-empty-state">
-              <TuneOutlinedIcon />
-              <h2>Không tìm thấy kết quả phù hợp</h2>
-              <p>Thử bỏ bớt bộ lọc hoặc tìm món ăn, nhà hàng khác.</p>
+            <div className={searchStyles.searchEmptyStateClassName}>
+              <TuneOutlinedIcon
+                className={searchStyles.searchEmptyStateIconClassName}
+              />
+              <h2 className={searchStyles.searchEmptyStateTitleClassName}>
+                Không tìm thấy kết quả phù hợp
+              </h2>
+              <p className={searchStyles.searchEmptyStateTextClassName}>
+                Thử bỏ bớt bộ lọc hoặc tìm món ăn, nhà hàng khác.
+              </p>
               <Button variant="contained" onClick={clearFilters}>
                 Xóa bộ lọc
               </Button>
@@ -436,9 +472,13 @@ export default function SearchFilterPage({
           )}
 
           {totalPages > 1 ? (
-            <nav className="search-pagination" aria-label="Phân trang kết quả">
+            <nav
+              className={searchStyles.searchPaginationClassName}
+              aria-label="Phân trang kết quả"
+            >
               <IconButton
                 aria-label="Trang trước"
+                className={searchStyles.searchPaginationIconButtonClassName}
                 disabled={page === 1}
                 onClick={() => updatePage(page - 1)}
               >
@@ -449,7 +489,10 @@ export default function SearchFilterPage({
                   <button
                     key={pageNumber}
                     type="button"
-                    className={pageNumber === page ? "is-active" : ""}
+                    data-active={pageNumber === page}
+                    className={searchStyles.searchPaginationButtonClassName(
+                      pageNumber === page
+                    )}
                     onClick={() => updatePage(pageNumber)}
                   >
                     {pageNumber}
@@ -458,6 +501,7 @@ export default function SearchFilterPage({
               )}
               <IconButton
                 aria-label="Trang sau"
+                className={searchStyles.searchPaginationIconButtonClassName}
                 disabled={page === totalPages}
                 onClick={() => updatePage(page + 1)}
               >
@@ -510,14 +554,16 @@ function FilterPanel({
   compact = false,
 }: FilterPanelProps) {
   return (
-    <div className={`search-filter-card${compact ? " is-compact" : ""}`}>
-      <h2>
-        <TuneOutlinedIcon />
+    <div className={searchStyles.searchFilterCardClassName(compact)}>
+      <h2 className={searchStyles.searchFilterTitleClassName}>
+        <TuneOutlinedIcon className={searchStyles.searchFilterTitleIconClassName} />
         Bộ lọc
       </h2>
 
-      <div className="search-filter-group">
-        <h3>Trạng thái</h3>
+      <div className={searchStyles.searchFilterGroupClassName(true)}>
+        <h3 className={searchStyles.searchFilterGroupTitleClassName}>
+          Trạng thái
+        </h3>
         <FormControlLabel
           control={
             <Checkbox
@@ -529,8 +575,8 @@ function FilterPanel({
         />
       </div>
 
-      <div className="search-filter-group">
-        <h3>Giá cả</h3>
+      <div className={searchStyles.searchFilterGroupClassName()}>
+        <h3 className={searchStyles.searchFilterGroupTitleClassName}>Giá cả</h3>
         {priceFilters.map((filter) => (
           <FormControlLabel
             key={filter.id}
@@ -545,8 +591,10 @@ function FilterPanel({
         ))}
       </div>
 
-      <div className="search-filter-group">
-        <h3>Khu vực ({deliveryLocationLabel})</h3>
+      <div className={searchStyles.searchFilterGroupClassName()}>
+        <h3 className={searchStyles.searchFilterGroupTitleClassName}>
+          Khu vực ({deliveryLocationLabel})
+        </h3>
         {areaFilters.map((filter) => (
           <FormControlLabel
             key={filter.id}
@@ -575,30 +623,41 @@ function SearchResultCard({ item, onAction }: SearchResultCardProps) {
   const isOutlinedAction = item.id === "pho-tai-nam" || item.type === "restaurant";
 
   return (
-    <article className="search-result-card">
-      <div className="search-result-card__media">
+    <article className={searchStyles.searchResultCardClassName}>
+      <div className={searchStyles.searchResultMediaClassName}>
         <Image
           src={item.image}
           alt={item.name}
           fill
           sizes="(max-width: 760px) 100vw, 360px"
+          className={searchStyles.searchResultImageClassName}
         />
-        <span className="search-rating-pill">
-          <StarOutlinedIcon fontSize="small" />
+        <span className={searchStyles.searchRatingPillClassName}>
+          <StarOutlinedIcon
+            fontSize="small"
+            className={searchStyles.searchRatingIconClassName}
+          />
           {item.rating.toFixed(1)}
         </span>
       </div>
 
-      <div className="search-result-card__body">
-        <div className="search-result-card__title-row">
-          <h2>{item.name}</h2>
-          <strong>{formatSearchCurrency(item.price)}</strong>
+      <div className={searchStyles.searchResultBodyClassName}>
+        <div className={searchStyles.searchResultTitleRowClassName}>
+          <h2 className={searchStyles.searchResultTitleClassName}>
+            {item.name}
+          </h2>
+          <strong className={searchStyles.searchResultPriceClassName}>
+            {formatSearchCurrency(item.price)}
+          </strong>
         </div>
-        <div className="search-result-card__meta">
-          <StorefrontOutlinedIcon fontSize="small" />
+        <div className={searchStyles.searchResultMetaClassName}>
+          <StorefrontOutlinedIcon
+            fontSize="small"
+            className={searchStyles.searchResultMetaIconClassName}
+          />
           {item.restaurantSlug ? (
             <Link
-              className="search-result-card__restaurant-link"
+              className={searchStyles.searchResultRestaurantLinkClassName}
               href={`/restaurants/${item.restaurantSlug}`}
             >
               {item.restaurantName}
@@ -607,17 +666,25 @@ function SearchResultCard({ item, onAction }: SearchResultCardProps) {
             <span>{item.restaurantName}</span>
           )}
         </div>
-        <p className="search-result-card__description">{item.description}</p>
-        <div className="search-result-card__tags">
-          <span>{item.districtLabel}</span>
-          <span>{item.deliveryMinutes} phút</span>
-          <span className={item.isOpen ? "is-open" : "is-closed"}>
+        <p className={searchStyles.searchResultDescriptionClassName}>
+          {item.description}
+        </p>
+        <div className={searchStyles.searchResultTagsClassName}>
+          <span className={searchStyles.searchResultTagClassName}>
+            {item.districtLabel}
+          </span>
+          <span className={searchStyles.searchResultTagClassName}>
+            {item.deliveryMinutes} phút
+          </span>
+          <span
+            className={searchStyles.searchResultStatusTagClassName(item.isOpen)}
+          >
             {item.isOpen ? "Đang mở cửa" : "Đang đóng cửa"}
           </span>
         </div>
         {item.type === "restaurant" && item.restaurantSlug ? (
           <Link
-            className="search-result-card__action is-outlined"
+            className={searchStyles.searchResultActionClassName(true)}
             href={`/restaurants/${item.restaurantSlug}`}
           >
             <StorefrontOutlinedIcon fontSize="small" />
@@ -626,9 +693,9 @@ function SearchResultCard({ item, onAction }: SearchResultCardProps) {
         ) : (
           <button
             type="button"
-            className={`search-result-card__action${
-              isOutlinedAction ? " is-outlined" : ""
-            }`}
+            className={searchStyles.searchResultActionClassName(
+              isOutlinedAction
+            )}
             onClick={onAction}
           >
             <AddShoppingCartOutlinedIcon fontSize="small" />

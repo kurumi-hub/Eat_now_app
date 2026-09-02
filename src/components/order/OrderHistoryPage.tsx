@@ -21,11 +21,11 @@ import {
   formatOrderCurrency,
   formatOrderDateTime,
   getMergedOrderHistory,
-  getOrderStatusClass,
   orderStatusLabels,
   type OrderDisplayRecord,
 } from "./orderData";
 import ReorderModal from "./ReorderModal";
+import * as orderStyles from "./tailwindClasses";
 
 type OrderHistoryPageProps = {
   user: PublicUser | null;
@@ -127,7 +127,7 @@ export default function OrderHistoryPage({
   );
 
   return (
-    <div className="order-history-page">
+    <div className={orderStyles.orderHistoryPageClassName}>
       <CustomerHeader
         user={user}
         onPlaceholder={showSnackbar}
@@ -135,16 +135,16 @@ export default function OrderHistoryPage({
         deliveryLocationLabel={deliveryLocationLabel}
       />
 
-      <main className="order-history-main">
-        <div className="order-history-header-container">
-          <div className="order-history-title-row">
+      <main className={orderStyles.orderHistoryMainClassName}>
+        <div>
+          <div className={orderStyles.orderHistoryTitleRowClassName}>
             <div>
               <h1>Lịch sử đơn hàng</h1>
-              <p className="order-history-subtitle">
+              <p className={orderStyles.orderHistorySubtitleClassName}>
                 Xem lại và quản lý các đơn hàng bạn đã đặt.
               </p>
             </div>
-            <Link className="order-history-cart-link" href="/cart">
+            <Link className={orderStyles.orderHistoryCartLinkClassName} href="/cart">
               <ReceiptLongOutlinedIcon fontSize="small" />
               Giỏ hàng
             </Link>
@@ -152,58 +152,67 @@ export default function OrderHistoryPage({
         </div>
 
         {/* Toolbar: Filter Chips + Search */}
-        <div className="order-history-toolbar">
-          <div className="order-history-filter-panel order-history-filters">
+        <div className={orderStyles.orderHistoryToolbarClassName}>
+          <div className={orderStyles.orderHistoryFilterPanelClassName}>
             <button
               type="button"
-              className={`order-history-chip ${
-                selectedStatuses.length === 0 ? "active" : ""
-              }`}
+              className={orderStyles.orderHistoryChipClassName(
+                selectedStatuses.length === 0
+              )}
+              data-active={selectedStatuses.length === 0}
               onClick={() => setSelectedStatuses([])}
             >
               Tất cả
             </button>
             <button
               type="button"
-              className={`order-history-chip ${
-                selectedStatuses.includes("pending") ? "active" : ""
-              }`}
+              className={orderStyles.orderHistoryChipClassName(
+                selectedStatuses.includes("pending")
+              )}
+              data-active={selectedStatuses.includes("pending")}
               onClick={() => toggleStatus("pending")}
             >
               Đang xử lý
             </button>
             <button
               type="button"
-              className={`order-history-chip ${
-                selectedStatuses.includes("completed") ? "active" : ""
-              }`}
+              className={orderStyles.orderHistoryChipClassName(
+                selectedStatuses.includes("completed")
+              )}
+              data-active={selectedStatuses.includes("completed")}
               onClick={() => toggleStatus("completed")}
             >
               Đã hoàn thành
             </button>
             <button
               type="button"
-              className={`order-history-chip ${
-                selectedStatuses.includes("cancelled") ? "active" : ""
-              }`}
+              className={orderStyles.orderHistoryChipClassName(
+                selectedStatuses.includes("cancelled")
+              )}
+              data-active={selectedStatuses.includes("cancelled")}
               onClick={() => toggleStatus("cancelled")}
             >
               Đã hủy
             </button>
             <button
               type="button"
-              className={`order-history-chip ${
-                selectedStatuses.includes("rejected") ? "active" : ""
-              }`}
+              className={orderStyles.orderHistoryChipClassName(
+                selectedStatuses.includes("rejected")
+              )}
+              data-active={selectedStatuses.includes("rejected")}
               onClick={() => toggleStatus("rejected")}
             >
               Bị từ chối
             </button>
           </div>
 
-          <label className="order-history-search">
-            <SearchOutlinedIcon fontSize="small" />
+          <label className={orderStyles.orderHistorySearchClassName}>
+            <SearchOutlinedIcon
+              className={orderStyles.orderHistorySearchIconClassName}
+              fontSize="small"
+            />
             <input
+              className={orderStyles.orderHistorySearchInputClassName}
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
@@ -214,16 +223,16 @@ export default function OrderHistoryPage({
 
         {/* Bento Grid */}
         {visibleOrders.length === 0 ? (
-          <div className="order-empty-card">
-            <FastfoodOutlinedIcon />
+          <div className={orderStyles.orderEmptyCardClassName}>
+            <FastfoodOutlinedIcon className={orderStyles.orderEmptyIconClassName} />
             <h2>Không có đơn hàng nào</h2>
-            <p>
+            <p className={orderStyles.orderEmptyTextClassName}>
               Không tìm thấy đơn hàng phù hợp với bộ lọc hoặc từ khóa tìm kiếm
               của bạn.
             </p>
           </div>
         ) : (
-          <div className="order-history-bento-grid">
+          <div className={orderStyles.orderHistoryBentoGridClassName}>
             {visibleOrders.map((order, index) => {
               const isFirstActive = index === firstActiveOrderIndex;
               const isCancelled =
@@ -232,72 +241,61 @@ export default function OrderHistoryPage({
               if (isFirstActive) {
                 return (
                   <div
-                    className="order-history-card order-history-large-card"
+                    className={orderStyles.orderHistoryLargeCardClassName}
                     key={order.id}
                   >
-                    <div className="order-history-large-image-area">
+                    <div className={orderStyles.orderHistoryLargeImageAreaClassName}>
                       <Image
                         src={order.restaurantImage}
                         alt={order.restaurantName}
                         width={300}
                         height={200}
-                        className="order-history-large-image"
+                        className={orderStyles.orderHistoryImageClassName}
                       />
                     </div>
-                    <div className="order-history-large-content">
+                    <div className={orderStyles.orderHistoryLargeContentClassName}>
                       <div>
-                        <div className="order-history-large-top">
-                          <div className="order-history-large-title-group">
+                        <div className={orderStyles.orderHistoryLargeTopClassName}>
+                          <div className={orderStyles.orderHistoryLargeTitleGroupClassName}>
                             <span
-                              className={`order-status-chip ${getOrderStatusClass(
+                              className={orderStyles.orderStatusChipClassName(
                                 order.status
-                              )}`}
+                              )}
                             >
                               {orderStatusLabels[order.status]}
                             </span>
-                            <h2>{order.restaurantName}</h2>
+                            <h2 className={orderStyles.orderHistoryLargeTitleClassName}>
+                              {order.restaurantName}
+                            </h2>
                           </div>
-                          <span className="order-history-price">
+                          <span className={orderStyles.orderHistoryLargePriceClassName}>
                             {formatOrderCurrency(order.total)}
                           </span>
                         </div>
-                        <p className="order-history-code">
+                        <p className={orderStyles.orderHistoryCodeClassName}>
                           Mã đơn: #{order.id} •{" "}
                           <span
-                            className={`order-history-payment-pill ${
+                            className={orderStyles.orderHistoryPaymentPillClassName(
                               order.paymentLabel.includes("VNPAY")
-                                ? "is-vnpay"
-                                : "is-cod"
-                            }`}
+                                ? "vnpay"
+                                : "cod"
+                            )}
                           >
                             {order.paymentLabel}
                           </span>
                         </p>
-                        <p className="order-history-date">
+                        <p className={orderStyles.orderHistoryDateClassName}>
                           <ScheduleOutlinedIcon fontSize="small" />{" "}
                           {formatOrderDateTime(order.createdAt)}
                         </p>
                       </div>
 
-                      <div className="order-history-large-actions">
+                      <div className={orderStyles.orderHistoryLargeActionsClassName}>
                         <Button
                           variant="outlined"
                           component={Link}
                           href={`/orders/${order.id}`}
-                          sx={{
-                            border: "2px solid #8e7164",
-                            color: "#5a4136",
-                            borderRadius: "12px",
-                            px: 3,
-                            py: 1,
-                            fontWeight: 700,
-                            textTransform: "none",
-                            "&:hover": {
-                              borderColor: "#7a3000",
-                              color: "#7a3000",
-                              background: "#f3f3f6",
-                            },
-                          }}
+                          className={orderStyles.orderHistoryLargeOutlinedButtonClassName}
                         >
                           Xem chi tiết
                         </Button>
@@ -305,19 +303,7 @@ export default function OrderHistoryPage({
                           variant="contained"
                           component={Link}
                           href={`/orders/${order.id}/tracking`}
-                          sx={{
-                            background: "#a04100",
-                            color: "#ffffff",
-                            borderRadius: "12px",
-                            px: 3,
-                            py: 1,
-                            fontWeight: 700,
-                            textTransform: "none",
-                            boxShadow: "0 4px 14px rgba(160, 65, 0, 0.25)",
-                            "&:hover": {
-                              background: "#7a3000",
-                            },
-                          }}
+                          className={orderStyles.orderHistoryLargeContainedButtonClassName}
                         >
                           Theo dõi đơn
                         </Button>
@@ -330,51 +316,53 @@ export default function OrderHistoryPage({
               if (isCancelled) {
                 return (
                   <div
-                    className="order-history-card order-history-small-card order-history-cancelled"
+                    className={orderStyles.orderHistorySmallCardClassName(true)}
                     key={order.id}
                   >
-                    <div className="order-history-card-top">
+                    <div className={orderStyles.orderHistoryCardTopClassName}>
                       <span
-                        className={`order-status-chip ${getOrderStatusClass(
+                        className={orderStyles.orderStatusChipClassName(
                           order.status
-                        )}`}
+                        )}
                       >
                         {orderStatusLabels[order.status]}
                       </span>
-                      <span className="order-history-code">
+                      <span className={orderStyles.orderHistoryCodeClassName}>
                         #{order.id} •{" "}
                         <span
-                          className={`order-history-payment-pill ${
+                          className={orderStyles.orderHistoryPaymentPillClassName(
                             order.paymentLabel.includes("VNPAY")
-                              ? "is-vnpay"
-                              : "is-cod"
-                          }`}
+                              ? "vnpay"
+                              : "cod"
+                          )}
                         >
                           {order.paymentLabel}
                         </span>
                       </span>
                     </div>
 
-                    <div className="order-history-card-body">
-                      <div className="order-history-small-image-container">
+                    <div className={orderStyles.orderHistoryCardBodyClassName}>
+                      <div className={orderStyles.orderHistorySmallImageContainerClassName}>
                         <Image
                           src={order.restaurantImage}
                           alt={order.restaurantName}
                           width={80}
                           height={80}
-                          className="order-history-small-image"
+                          className={orderStyles.orderHistoryImageClassName}
                         />
                       </div>
-                      <div className="order-history-small-info">
-                        <h3>{order.restaurantName}</h3>
-                        <p className="order-history-date">
+                      <div className={orderStyles.orderHistorySmallInfoClassName}>
+                        <h3 className={orderStyles.orderHistorySmallTitleClassName}>
+                          {order.restaurantName}
+                        </h3>
+                        <p className={orderStyles.orderHistorySmallDateClassName}>
                           {formatOrderDateTime(order.createdAt)}
                         </p>
-                        <strong className="order-history-price">
+                        <strong className={orderStyles.orderHistorySmallPriceClassName}>
                           {formatOrderCurrency(order.total)}
                         </strong>
                         {order.issueReason && (
-                          <small className="order-history-issue-reason">
+                          <small className={orderStyles.orderHistoryIssueReasonClassName}>
                             <InfoOutlinedIcon sx={{ fontSize: "14px" }} />
                             {order.issueReason}
                           </small>
@@ -382,25 +370,13 @@ export default function OrderHistoryPage({
                       </div>
                     </div>
 
-                    <div className="order-history-actions">
+                    <div className={orderStyles.orderHistoryActionsClassName}>
                       <Button
                         variant="outlined"
                         component={Link}
                         href={`/orders/${order.id}`}
                         fullWidth
-                        sx={{
-                          border: "1px solid #ddc1b4",
-                          color: "#5a4136",
-                          borderRadius: "10px",
-                          py: 0.8,
-                          fontWeight: 700,
-                          textTransform: "none",
-                          "&:hover": {
-                            borderColor: "#7a3000",
-                            color: "#7a3000",
-                            background: "#f3f3f6",
-                          },
-                        }}
+                        className={orderStyles.orderHistoryOutlinedButtonClassName}
                       >
                         Xem chi tiết
                       </Button>
@@ -411,53 +387,55 @@ export default function OrderHistoryPage({
 
               return (
                 <div
-                  className="order-history-card order-history-small-card"
+                  className={orderStyles.orderHistorySmallCardClassName()}
                   key={order.id}
                 >
-                  <div className="order-history-card-top">
+                  <div className={orderStyles.orderHistoryCardTopClassName}>
                     <span
-                      className={`order-status-chip ${getOrderStatusClass(
+                      className={orderStyles.orderStatusChipClassName(
                         order.status
-                      )}`}
+                      )}
                     >
                       {orderStatusLabels[order.status]}
                     </span>
-                    <span className="order-history-code">
+                    <span className={orderStyles.orderHistoryCodeClassName}>
                       #{order.id} •{" "}
                       <span
-                        className={`order-history-payment-pill ${
+                        className={orderStyles.orderHistoryPaymentPillClassName(
                           order.paymentLabel.includes("VNPAY")
-                            ? "is-vnpay"
-                            : "is-cod"
-                        }`}
+                            ? "vnpay"
+                            : "cod"
+                        )}
                       >
                         {order.paymentLabel}
                       </span>
                     </span>
                   </div>
 
-                  <div className="order-history-card-body">
-                    <div className="order-history-small-image-container">
+                  <div className={orderStyles.orderHistoryCardBodyClassName}>
+                    <div className={orderStyles.orderHistorySmallImageContainerClassName}>
                       <Image
                         src={order.restaurantImage}
                         alt={order.restaurantName}
                         width={80}
                         height={80}
-                        className="order-history-small-image"
+                        className={orderStyles.orderHistoryImageClassName}
                       />
                     </div>
-                    <div className="order-history-small-info">
-                      <h3>{order.restaurantName}</h3>
-                      <p className="order-history-date">
+                    <div className={orderStyles.orderHistorySmallInfoClassName}>
+                      <h3 className={orderStyles.orderHistorySmallTitleClassName}>
+                        {order.restaurantName}
+                      </h3>
+                      <p className={orderStyles.orderHistorySmallDateClassName}>
                         {formatOrderDateTime(order.createdAt)}
                       </p>
-                      <strong className="order-history-price">
+                      <strong className={orderStyles.orderHistorySmallPriceClassName}>
                         {formatOrderCurrency(order.total)}
                       </strong>
                     </div>
                   </div>
 
-                  <div className="order-history-actions">
+                  <div className={orderStyles.orderHistoryActionsClassName}>
                     {order.status === "completed" ? (
                       <>
                         <Button
@@ -466,19 +444,7 @@ export default function OrderHistoryPage({
                             showSnackbar("Chức năng đánh giá đang phát triển")
                           }
                           fullWidth
-                          sx={{
-                            border: "1px solid #ddc1b4",
-                            color: "#5a4136",
-                            borderRadius: "10px",
-                            py: 0.8,
-                            fontWeight: 700,
-                            textTransform: "none",
-                            "&:hover": {
-                              borderColor: "#7a3000",
-                              color: "#7a3000",
-                              background: "#f3f3f6",
-                            },
-                          }}
+                          className={orderStyles.orderHistoryOutlinedButtonClassName}
                         >
                           Đánh giá
                         </Button>
@@ -487,18 +453,7 @@ export default function OrderHistoryPage({
                           startIcon={<ReplayOutlinedIcon />}
                           onClick={() => setReorderingOrder(order)}
                           fullWidth
-                          sx={{
-                            background: "#a04100",
-                            color: "#ffffff",
-                            borderRadius: "10px",
-                            py: 0.8,
-                            fontWeight: 700,
-                            textTransform: "none",
-                            boxShadow: "0 2px 8px rgba(160, 65, 0, 0.2)",
-                            "&:hover": {
-                              background: "#7a3000",
-                            },
-                          }}
+                          className={orderStyles.orderHistoryContainedButtonClassName}
                         >
                           Đặt lại
                         </Button>
@@ -510,19 +465,7 @@ export default function OrderHistoryPage({
                           component={Link}
                           href={`/orders/${order.id}`}
                           fullWidth
-                          sx={{
-                            border: "1px solid #ddc1b4",
-                            color: "#5a4136",
-                            borderRadius: "10px",
-                            py: 0.8,
-                            fontWeight: 700,
-                            textTransform: "none",
-                            "&:hover": {
-                              borderColor: "#7a3000",
-                              color: "#7a3000",
-                              background: "#f3f3f6",
-                            },
-                          }}
+                          className={orderStyles.orderHistoryOutlinedButtonClassName}
                         >
                           Xem chi tiết
                         </Button>
@@ -534,17 +477,7 @@ export default function OrderHistoryPage({
                             component={Link}
                             href={`/orders/${order.id}/tracking`}
                             fullWidth
-                            sx={{
-                              background: "#a04100",
-                              color: "#ffffff",
-                              borderRadius: "10px",
-                              py: 0.8,
-                              fontWeight: 700,
-                              textTransform: "none",
-                              "&:hover": {
-                                background: "#7a3000",
-                              },
-                            }}
+                            className={orderStyles.orderHistoryContainedButtonClassName}
                           >
                             Theo dõi
                           </Button>

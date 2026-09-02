@@ -148,18 +148,23 @@ test("Restaurant detail add button writes available items into CartContext", asy
   assert.doesNotMatch(component, /Tính năng thêm .* sprint tiếp theo/);
 });
 
-test("Cart CSS is imported globally and responsive", async () => {
+test("Cart styles are owned by a responsive Tailwind helper", async () => {
   const layout = await readProjectFile("src", "app", "layout.tsx");
-  const css = await readProjectFile("src", "styles", "cart.css");
+  const helper = await readProjectFile(
+    "src",
+    "components",
+    "cart",
+    "tailwindClasses.ts"
+  );
 
-  assert.match(layout, /@\/styles\/cart\.css/);
-  assert.match(css, /\.cart-page/);
-  assert.match(css, /\.cart-layout/);
-  assert.match(css, /\.cart-items-card/);
-  assert.match(css, /\.cart-summary-card/);
-  assert.match(css, /@media \(max-width: 900px\)/);
-  assert.match(css, /@media \(max-width: 640px\)/);
-  assert.match(css, /overflow-x: hidden/);
+  assert.doesNotMatch(layout, /@\/styles\/cart\.css/);
+  assert.match(helper, /cartPageClassName/);
+  assert.match(helper, /cartLayoutClassName/);
+  assert.match(helper, /cartItemsCardClassName/);
+  assert.match(helper, /cartSummaryCardClassName/);
+  assert.match(helper, /max-\[900px\]:/);
+  assert.match(helper, /max-\[640px\]:/);
+  assert.match(helper, /overflow-x-hidden/);
 });
 
 test("Customer header cart action links to the Cart route", async () => {

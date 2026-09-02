@@ -11,6 +11,7 @@ import type { ReactElement } from "react";
 
 import type { VoucherItem } from "@/components/voucher/voucherData";
 import { mockUserVouchers } from "@/components/voucher/voucherData";
+import * as orderStyles from "./tailwindClasses";
 
 type VoucherPickerModalProps = {
   open: boolean;
@@ -44,31 +45,40 @@ export default function VoucherPickerModal({
   );
 
   return (
-    <div className="order-voucher-picker-overlay" role="dialog" aria-modal="true">
-      <div className="order-voucher-picker-modal">
-        <div className="order-voucher-picker-header">
-          <h3>Chọn mã ưu đãi</h3>
+    <div
+      className={orderStyles.orderVoucherPickerOverlayClassName}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className={orderStyles.orderVoucherPickerModalClassName}>
+        <div className={orderStyles.orderVoucherPickerHeaderClassName}>
+          <h3 className={orderStyles.orderVoucherPickerTitleClassName}>
+            Chọn mã ưu đãi
+          </h3>
           <IconButton onClick={onClose} size="small" aria-label="Đóng">
             <CloseOutlinedIcon />
           </IconButton>
         </div>
 
         {activeVouchers.length === 0 ? (
-          <p className="order-voucher-picker-empty">
+          <p className={orderStyles.orderVoucherPickerEmptyClassName}>
             Bạn chưa có mã ưu đãi nào khả dụng.
           </p>
         ) : (
-          <div className="order-voucher-picker-list">
+          <div className={orderStyles.orderVoucherPickerListClassName}>
             {activeVouchers.map((voucher) => {
               const isApplied =
                 appliedCode?.toUpperCase() === voucher.code.toUpperCase();
 
               return (
-                <div className="order-voucher-picker-item" key={voucher.id}>
-                  <div className="order-voucher-picker-item__icon">
+                <div
+                  className={orderStyles.orderVoucherPickerItemClassName}
+                  key={voucher.id}
+                >
+                  <div className={orderStyles.orderVoucherPickerItemIconClassName}>
                     {getPickerIcon(voucher.icon)}
                   </div>
-                  <div className="order-voucher-picker-item__info">
+                  <div className={orderStyles.orderVoucherPickerItemInfoClassName}>
                     <strong>{voucher.title}</strong>
                     <span>{voucher.description}</span>
                     <small>
@@ -81,7 +91,7 @@ export default function VoucherPickerModal({
                   <Button
                     variant={isApplied ? "outlined" : "contained"}
                     size="small"
-                    className="order-voucher-picker-item__btn"
+                    className={orderStyles.orderVoucherPickerItemButtonClassName}
                     disabled={isApplied}
                     onClick={() => onSelect(voucher)}
                   >

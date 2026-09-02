@@ -7,6 +7,7 @@ import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import { Button } from "@mui/material";
 import Image from "next/image";
 import { formatOrderCurrency, OrderDisplayItem } from "./orderData";
+import * as orderStyles from "./tailwindClasses";
 
 type ReorderModalProps = {
   open: boolean;
@@ -31,44 +32,54 @@ export default function ReorderModal({ open, items, onClose, onConfirm }: Reorde
   const newTotal = availableItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   
   return (
-    <div className="order-reorder-modal">
-      <div className="order-reorder-card">
+    <div className={orderStyles.orderReorderModalClassName}>
+      <div className={orderStyles.orderReorderCardClassName}>
         {/* Header */}
-        <div className="order-reorder-header">
+        <div className={orderStyles.orderReorderHeaderClassName}>
           <div>
             <h2>Kiểm tra lại đơn hàng</h2>
             <p>Giá và tình trạng món có thể đã thay đổi.</p>
           </div>
-          <button className="order-reorder-close" onClick={onClose}>
+          <button
+            className={orderStyles.orderReorderCloseButtonClassName}
+            onClick={onClose}
+          >
             <CloseOutlinedIcon />
           </button>
         </div>
         
         {/* Items */}
-        <div className="order-reorder-items">
+        <div className={orderStyles.orderReorderItemsClassName}>
           {checkedItems.map(item => (
             <div 
-              className={`order-reorder-item ${!item.available ? 'is-unavailable' : ''}`}
+              className={orderStyles.orderReorderItemClassName(item.available)}
+              data-availability={item.available ? "available" : "unavailable"}
               key={item.foodId}
             >
-              <div className="order-reorder-item__media">
+              <div className={orderStyles.orderReorderItemMediaClassName}>
                 {!item.available && (
-                  <div className="order-reorder-item__overlay">
+                  <div className={orderStyles.orderReorderItemOverlayClassName}>
                     <BlockOutlinedIcon />
                   </div>
                 )}
-                <Image src={item.image} alt={item.name} fill sizes="64px" />
+                <Image
+                  src={item.image}
+                  alt={item.name}
+                  fill
+                  sizes="64px"
+                  className={orderStyles.orderReorderItemImageClassName}
+                />
               </div>
-              <div className="order-reorder-item__info">
+              <div className={orderStyles.orderReorderItemInfoClassName}>
                 <div>
-                  <h3 className={!item.available ? 'is-strikethrough' : ''}>
+                  <h3 className={orderStyles.orderReorderItemTitleClassName(item.available)}>
                     {item.quantity}x {item.name}
                   </h3>
-                  <span className={!item.available ? 'is-strikethrough' : ''}>
+                  <span className={orderStyles.orderReorderItemPriceClassName(item.available)}>
                     {formatOrderCurrency(item.price * item.quantity)}
                   </span>
                 </div>
-                <span className={`order-reorder-badge ${item.available ? 'is-available' : 'is-soldout'}`}>
+                <span className={orderStyles.orderReorderBadgeClassName(item.available)}>
                   {item.available ? (
                     <><CheckCircleOutlinedIcon fontSize="small" /> Còn hàng</>
                   ) : (
@@ -81,22 +92,22 @@ export default function ReorderModal({ open, items, onClose, onConfirm }: Reorde
         </div>
         
         {/* Footer */}
-        <div className="order-reorder-footer">
-          <div className="order-reorder-total">
+        <div className={orderStyles.orderReorderFooterClassName}>
+          <div className={orderStyles.orderReorderTotalClassName}>
             <span>Tổng cộng mới</span>
             <strong>{formatOrderCurrency(newTotal)}</strong>
           </div>
-          <div className="order-reorder-actions">
+          <div className={orderStyles.orderReorderActionsClassName}>
             <Button
               variant="outlined"
-              className="order-reorder-cancel"
+              className={orderStyles.orderReorderCancelButtonClassName}
               onClick={onClose}
             >
               Hủy
             </Button>
             <Button
               variant="contained"
-              className="order-reorder-confirm"
+              className={orderStyles.orderReorderConfirmButtonClassName}
               onClick={onConfirm}
             >
               Thêm vào giỏ

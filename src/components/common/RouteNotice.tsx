@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import * as routeNoticeStyles from "./tailwindClasses";
+
 type RouteNoticeAction = {
   href: string;
   label: string;
@@ -23,25 +25,36 @@ export default function RouteNotice({
   children,
 }: RouteNoticeProps) {
   return (
-    <main className="route-state">
-      <section className="route-state__card" aria-labelledby="route-notice-title">
-        {eyebrow ? <p className="route-state__eyebrow">{eyebrow}</p> : null}
-        <h1 id="route-notice-title" className="route-state__title">
+    <main className={routeNoticeStyles.routeNoticePageClassName}>
+      <section
+        className={routeNoticeStyles.routeNoticeCardClassName}
+        aria-labelledby="route-notice-title"
+      >
+        {eyebrow ? (
+          <p className={routeNoticeStyles.routeNoticeEyebrowClassName}>
+            {eyebrow}
+          </p>
+        ) : null}
+        <h1
+          id="route-notice-title"
+          className={routeNoticeStyles.routeNoticeTitleClassName}
+        >
           {title}
         </h1>
-        <p className="route-state__message">{message}</p>
+        <p className={routeNoticeStyles.routeNoticeMessageClassName}>
+          {message}
+        </p>
         {children}
         {actions.length > 0 ? (
-          <div className="route-state__actions">
+          <div className={routeNoticeStyles.routeNoticeActionsClassName}>
             {actions.map((action) => (
               <Link
                 key={`${action.href}-${action.label}`}
                 href={action.href}
-                className={
-                  action.variant === "primary"
-                    ? "route-button route-button--primary"
-                    : "route-button"
-                }
+                className={routeNoticeStyles.routeNoticeButtonClassName(
+                  action.variant
+                )}
+                data-variant={action.variant ?? "secondary"}
               >
                 {action.label}
               </Link>

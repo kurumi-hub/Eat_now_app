@@ -28,6 +28,7 @@ import {
   orderStatusLabels,
   orderTimelineSteps,
 } from "./orderData";
+import * as orderStyles from "./tailwindClasses";
 
 type OrderDetailPageProps = {
   orderId: string;
@@ -69,7 +70,7 @@ export default function OrderDetailPage({
   };
 
   return (
-    <div className="order-detail-page">
+    <div className={orderStyles.orderDetailPageClassName}>
       <CustomerHeader
         user={user}
         onPlaceholder={showSnackbar}
@@ -77,9 +78,10 @@ export default function OrderDetailPage({
         deliveryLocationLabel={deliveryLocationLabel}
       />
 
-      <main className="order-detail-main">
-        <div className="order-detail-title-row">
+      <main className={orderStyles.orderDetailMainClassName}>
+        <div className={orderStyles.orderDetailTitleRowClassName}>
           <button
+            className={orderStyles.orderBackButtonClassName}
             type="button"
             aria-label="Quay lại lịch sử đơn hàng"
             onClick={() => router.push("/orders")}
@@ -87,41 +89,35 @@ export default function OrderDetailPage({
             <ArrowBackOutlinedIcon />
           </button>
           <div>
-            <span>#{order.id}</span>
+            <span className={orderStyles.orderFlowTitleEyebrowClassName}>
+              #{order.id}
+            </span>
             <h1>Chi tiết đơn hàng</h1>
           </div>
         </div>
 
-        <div className="order-detail-layout">
-          <section className="order-detail-content">
-            <article
-              className={`order-detail-status-card${
-                order.status === "completed" ? " is-completed" : ""
-              }${
-                order.status === "cancelled" || order.status === "rejected"
-                  ? " is-cancelled"
-                  : ""
-              }`}
-            >
-              <div>
-                <p>
+        <div className={orderStyles.orderDetailLayoutClassName}>
+          <section className={orderStyles.orderDetailContentClassName}>
+            <article className={orderStyles.orderDetailStatusCardClassName}>
+              <div className={orderStyles.orderDetailStatusTopClassName}>
+                <p className={orderStyles.orderDetailStatusMetaClassName}>
                   Mã đơn: #{order.id} • {order.restaurantName}
                 </p>
-                <div>
-                  <h2>
+                <div className={orderStyles.orderDetailStatusTitleGroupClassName}>
+                  <h2 className={orderStyles.orderDetailStatusTitleClassName}>
                     {order.status === "pending"
                       ? pendingStatusLabel
                       : orderStatusLabels[order.status]}
                   </h2>
                   {order.status === "pending" && (
-                    <span>
+                    <span className={orderStyles.orderDetailStatusNewPillClassName}>
                       <ScheduleOutlinedIcon fontSize="small" />
                       Mới
                     </span>
                   )}
                 </div>
               </div>
-              <div className="order-detail-status-icon">
+              <div className={orderStyles.orderDetailStatusIconClassName(order.status)}>
                 {order.status === "completed" ? (
                   <CheckCircleOutlinedIcon />
                 ) : order.status === "cancelled" || order.status === "rejected" ? (
@@ -130,16 +126,16 @@ export default function OrderDetailPage({
                   <ScheduleOutlinedIcon />
                 )}
               </div>
-              <p>
+              <p className={orderStyles.orderDetailStatusDescriptionClassName}>
                 {order.status === "cancelled" || order.status === "rejected"
                   ? order.issueReason || orderStatusDescriptions[order.status]
                   : orderStatusDescriptions[order.status]}
               </p>
             </article>
 
-            <article className="order-detail-card">
+            <article className={orderStyles.orderDetailCardClassName}>
               <h2>Tiến trình</h2>
-              <div className="order-detail-timeline">
+              <div className={orderStyles.orderDetailTimelineClassName}>
                 {(order.status === "cancelled" || order.status === "rejected"
                   ? [
                       ...orderTimelineSteps.slice(0, 1),
@@ -161,18 +157,30 @@ export default function OrderDetailPage({
                     isComplete = index === 0;
                     isCurrent = index === 1;
                   }
+                  const timelineState = isComplete
+                    ? "complete"
+                    : isCurrent
+                    ? "current"
+                    : "pending";
 
                   return (
                     <div
-                      className={`order-detail-timeline-step${
-                        isComplete ? " is-complete" : ""
-                      }${isCurrent ? " is-current" : ""}`}
+                      className={orderStyles.orderDetailTimelineStepClassName(
+                        timelineState
+                      )}
+                      data-state={timelineState}
                       key={step.id}
                     >
-                      <span />
+                      <span
+                        className={orderStyles.orderDetailTimelineMarkerClassName(
+                          timelineState
+                        )}
+                      />
                       <div>
-                        <h3>{step.title}</h3>
-                        <p>
+                        <h3 className={orderStyles.orderDetailTimelineTitleClassName}>
+                          {step.title}
+                        </h3>
+                        <p className={orderStyles.orderDetailCardTextClassName}>
                           {order.status === "cancelled" || order.status === "rejected"
                             ? step.timeLabel
                             : order.status === "completed"
@@ -188,23 +196,32 @@ export default function OrderDetailPage({
               </div>
             </article>
 
-            <article className="order-detail-card">
+            <article className={orderStyles.orderDetailCardClassName}>
               <h2>Món ăn đã đặt</h2>
-              <div className="order-detail-item-list">
+              <div className={orderStyles.orderDetailItemListClassName}>
                 {order.items.map((item) => (
-                  <div className="order-detail-item" key={item.foodId}>
+                  <div className={orderStyles.orderDetailItemClassName} key={item.foodId}>
                     <Image
                       src={item.image}
                       alt={item.name}
                       width={64}
                       height={64}
+                      className={orderStyles.orderDetailItemImageClassName}
                     />
                     <div>
-                      <h3>{item.name}</h3>
-                      <p>x{item.quantity}</p>
-                      {item.note ? <small>{item.note}</small> : null}
+                      <h3 className={orderStyles.orderDetailItemNameClassName}>
+                        {item.name}
+                      </h3>
+                      <p className={orderStyles.orderDetailItemMetaClassName}>
+                        x{item.quantity}
+                      </p>
+                      {item.note ? (
+                        <small className={orderStyles.orderDetailItemNoteClassName}>
+                          {item.note}
+                        </small>
+                      ) : null}
                     </div>
-                    <strong>
+                    <strong className={orderStyles.orderDetailItemPriceClassName}>
                       {formatOrderCurrency(item.price * item.quantity)}
                     </strong>
                   </div>
@@ -213,37 +230,37 @@ export default function OrderDetailPage({
             </article>
           </section>
 
-          <aside className="order-detail-sidebar">
-            <article className="order-detail-card">
+          <aside className={orderStyles.orderDetailSidebarClassName}>
+            <article className={orderStyles.orderDetailCardClassName}>
               <h2>Tổng cộng</h2>
-              <div className="order-detail-total-rows">
-                <div>
+              <div className={orderStyles.orderDetailTotalRowsClassName}>
+                <div className={orderStyles.orderDetailTotalRowClassName}>
                   <span>Tạm tính ({order.itemCount} món)</span>
                   <strong>{formatOrderCurrency(order.subtotal)}</strong>
                 </div>
-                <div>
+                <div className={orderStyles.orderDetailTotalRowClassName}>
                   <span>Phí giao hàng</span>
                   <strong>{formatOrderCurrency(order.deliveryFee)}</strong>
                 </div>
                 {order.discount > 0 && (
-                  <div>
+                  <div className={orderStyles.orderDetailTotalRowClassName}>
                     <span>
                       Ưu đãi
                       {order.appliedVoucherCode
                         ? ` (${order.appliedVoucherCode})`
                         : ""}
                     </span>
-                    <strong className="order-detail-discount">
+                    <strong className={orderStyles.orderDetailDiscountClassName}>
                       -{formatOrderCurrency(order.discount)}
                     </strong>
                   </div>
                 )}
               </div>
-              <div className="order-detail-total">
+              <div className={orderStyles.orderDetailTotalClassName}>
                 <span>Tổng thanh toán</span>
                 <strong>{formatOrderCurrency(order.total)}</strong>
               </div>
-              <div className="order-detail-payment-note">
+              <div className={orderStyles.orderDetailPaymentNoteClassName}>
                 <PaymentsOutlinedIcon fontSize="small" />
                 <div>
                   <span>{order.paymentLabel}</span>
@@ -258,7 +275,7 @@ export default function OrderDetailPage({
               </div>
             </article>
 
-            <article className="order-detail-card">
+            <article className={orderStyles.orderDetailCardClassName}>
               <h2>
                 <LocationOnOutlinedIcon fontSize="small" />
                 Giao hàng đến
@@ -273,7 +290,7 @@ export default function OrderDetailPage({
             {order.status !== "completed" && order.status !== "cancelled" && order.status !== "rejected" && (
               <>
                 <Link
-                  className="order-detail-track-link"
+                  className={orderStyles.orderDetailTrackLinkClassName}
                   href={`/orders/${order.id}/tracking`}
                 >
                   <LocalShippingOutlinedIcon fontSize="small" />
@@ -281,7 +298,7 @@ export default function OrderDetailPage({
                 </Link>
                 <Button
                   variant="outlined"
-                  className="order-detail-cancel-button"
+                  className={orderStyles.orderDetailCancelButtonClassName}
                   startIcon={<CancelOutlinedIcon />}
                   onClick={() => setCancelDialogOpen(true)}
                 >
@@ -293,10 +310,9 @@ export default function OrderDetailPage({
             {order.status === "completed" && (
               <Button
                 variant="contained"
-                className="order-detail-review-button order-submit-button"
+                className={orderStyles.orderDetailReviewButtonClassName}
                 startIcon={<StarOutlinedIcon />}
                 onClick={() => showSnackbar("Đánh giá sẽ được phát triển sau.")}
-                style={{ borderRadius: 12, minHeight: 48, marginTop: 4 }}
               >
                 Đánh giá
               </Button>
@@ -305,16 +321,15 @@ export default function OrderDetailPage({
             {(order.status === "completed" || order.status === "cancelled" || order.status === "rejected") && (
               <Button
                 variant="outlined"
-                className="order-detail-reorder-button"
+                className={orderStyles.orderDetailReorderButtonClassName}
                 startIcon={<ReplayOutlinedIcon />}
                 onClick={() => router.push(`/restaurant/${order.restaurantSlug}`)}
-                style={{ borderRadius: 12, minHeight: 48, marginTop: 4, borderColor: '#8e7164', color: '#7a3000' }}
               >
                 Đặt lại
               </Button>
             )}
 
-            <Link className="order-detail-history-link" href="/orders">
+            <Link className={orderStyles.orderDetailHistoryLinkClassName} href="/orders">
               <ReceiptLongOutlinedIcon fontSize="small" />
               Lịch sử đơn hàng
             </Link>
@@ -325,9 +340,9 @@ export default function OrderDetailPage({
       <CustomerFooter onPlaceholder={showSnackbar} />
 
       {cancelDialogOpen && (
-        <div className="order-cancel-modal">
-          <div className="order-cancel-card">
-            <div className="order-cancel-icon">
+        <div className={orderStyles.orderDetailCancelModalClassName}>
+          <div className={orderStyles.orderDetailCancelCardClassName}>
+            <div className={orderStyles.orderDetailCancelIconClassName}>
               <CancelOutlinedIcon />
             </div>
             <h2>Xác nhận hủy đơn hàng</h2>
@@ -337,7 +352,7 @@ export default function OrderDetailPage({
             </p>
             <Button
               variant="contained"
-              className="order-cancel-confirm"
+              className={orderStyles.orderDetailCancelConfirmClassName}
               onClick={() => {
                 showSnackbar("Hủy đơn sẽ được xử lý khi có API đơn hàng.");
                 setCancelDialogOpen(false);
@@ -347,7 +362,7 @@ export default function OrderDetailPage({
             </Button>
             <Button
               variant="text"
-              className="order-cancel-keep"
+              className={orderStyles.orderDetailCancelKeepClassName}
               onClick={() => setCancelDialogOpen(false)}
             >
               Giữ đơn hàng

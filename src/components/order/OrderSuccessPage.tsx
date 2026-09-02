@@ -14,6 +14,7 @@ import { useEffect } from "react";
 import { useCart } from "@/contexts/CartContext";
 import type { OrderReceipt } from "@/contexts/CartContext";
 import { formatOrderCurrency } from "./orderData";
+import * as orderStyles from "./tailwindClasses";
 
 function getReceiptRestaurantLabel(lastOrder: OrderReceipt) {
   const restaurantNames = Array.from(
@@ -41,43 +42,47 @@ export default function OrderSuccessPage() {
   };
 
   return (
-    <main className="order-result-page">
-      <section className="order-success-card" aria-live="polite">
-        <div className="order-success-icon">
+    <main className={orderStyles.orderResultPageClassName}>
+      <section className={orderStyles.orderResultCardClassName} aria-live="polite">
+        <div className={orderStyles.orderResultIconClassName("success")}>
           <CheckCircleIcon aria-hidden="true" />
         </div>
-        <h1>Đặt hàng thành công!</h1>
-        <p>Đơn hàng của bạn đang được xử lý.</p>
+        <h1 className={orderStyles.orderResultTitleClassName}>
+          Đặt hàng thành công!
+        </h1>
+        <p className={orderStyles.orderResultTextClassName}>
+          Đơn hàng của bạn đang được xử lý.
+        </p>
 
         {lastOrder ? (
-          <div className="order-receipt-card">
-            <div className="order-receipt-id">
+          <div className={orderStyles.orderReceiptCardClassName}>
+            <div className={orderStyles.orderReceiptIdClassName}>
               <span>Mã đơn hàng</span>
               <strong>#{lastOrder.id}</strong>
             </div>
 
-            <div className="order-receipt-row">
+            <div className={orderStyles.orderReceiptRowClassName}>
               <span>Nhà hàng</span>
               <strong>{getReceiptRestaurantLabel(lastOrder)}</strong>
             </div>
             {lastOrder.discount > 0 ? (
-              <div className="order-receipt-row">
+              <div className={orderStyles.orderReceiptRowClassName}>
                 <span>
                   Ưu đãi
                   {lastOrder.appliedVoucherCode
                     ? ` (${lastOrder.appliedVoucherCode})`
                     : ""}
                 </span>
-                <strong className="order-discount-text">
+                <strong className={orderStyles.orderDiscountTextClassName}>
                   -{formatOrderCurrency(lastOrder.discount)}
                 </strong>
               </div>
             ) : null}
-            <div className="order-receipt-row">
+            <div className={orderStyles.orderReceiptRowClassName}>
               <span>Tổng cộng</span>
               <strong>{formatOrderCurrency(lastOrder.total)}</strong>
             </div>
-            <div className="order-receipt-row">
+            <div className={orderStyles.orderReceiptRowClassName}>
               <span>Thanh toán</span>
               <strong>
                 {lastOrder.paymentMethod === "vnpay"
@@ -85,25 +90,25 @@ export default function OrderSuccessPage() {
                   : "Tiền mặt (COD)"}
               </strong>
             </div>
-            <div className="order-receipt-row is-address">
+            <div className={orderStyles.orderReceiptAddressRowClassName}>
               <span>
                 <LocationOnOutlinedIcon fontSize="small" />
                 Giao đến
               </span>
               <strong>{lastOrder.address}</strong>
             </div>
-            <div className="order-receipt-row">
+            <div className={orderStyles.orderReceiptRowClassName}>
               <span>
                 <LocalShippingOutlinedIcon fontSize="small" />
                 Thời gian dự kiến
               </span>
-              <strong className="order-receipt-pill">
+              <strong className={orderStyles.orderReceiptPillClassName}>
                 {lastOrder.estimatedDeliveryLabel}
               </strong>
             </div>
           </div>
         ) : (
-          <div className="order-receipt-card">
+          <div className={orderStyles.orderReceiptCardClassName}>
             <ReceiptLongOutlinedIcon aria-hidden="true" />
             <p>
               EatNow chưa tìm thấy biên nhận gần nhất trên thiết bị này. Bạn có
@@ -112,24 +117,24 @@ export default function OrderSuccessPage() {
           </div>
         )}
 
-        <div className="order-result-actions">
+        <div className={orderStyles.orderResultActionsClassName}>
           {lastOrder ? (
             <Link
-              className="order-tracking-link"
+              className={orderStyles.orderPrimaryActionLinkClassName}
               href={`/orders/${lastOrder.id}/tracking`}
             >
               <LocalShippingOutlinedIcon fontSize="small" />
               Theo dõi đơn hàng
             </Link>
           ) : (
-            <Link className="order-tracking-link" href="/orders">
+            <Link className={orderStyles.orderPrimaryActionLinkClassName} href="/orders">
               <ReceiptLongOutlinedIcon fontSize="small" />
               Lịch sử đơn hàng
             </Link>
           )}
           <Button
             variant="outlined"
-            className="order-continue-button"
+            className={orderStyles.orderContinueButtonClassName}
             onClick={handleContinueShopping}
             endIcon={<ArrowForwardOutlinedIcon />}
           >
@@ -137,7 +142,7 @@ export default function OrderSuccessPage() {
           </Button>
         </div>
 
-        <Link className="order-home-link" href="/">
+        <Link className={orderStyles.orderHomeLinkClassName} href="/">
           <HomeOutlinedIcon fontSize="small" />
           Về trang chủ
         </Link>

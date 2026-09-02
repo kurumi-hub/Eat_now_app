@@ -28,6 +28,7 @@ import {
   orderStatusLabels,
   orderTimelineSteps,
 } from "./orderData";
+import * as orderStyles from "./tailwindClasses";
 
 type OrderTrackingPageProps = {
   orderId: string;
@@ -52,9 +53,9 @@ function getTimelineState(stepStatus: OrderStatus, orderStatus: OrderStatus) {
   const currentIndex = Math.max(trackableStatuses.indexOf(orderStatus), 0);
   const stepIndex = trackableStatuses.indexOf(stepStatus);
 
-  if (stepIndex < currentIndex) return "is-complete";
-  if (stepIndex === currentIndex) return "is-current";
-  return "";
+  if (stepIndex < currentIndex) return "complete";
+  if (stepIndex === currentIndex) return "current";
+  return "pending";
 }
 
 export default function OrderTrackingPage({
@@ -91,7 +92,7 @@ export default function OrderTrackingPage({
   };
 
   return (
-    <div className="order-tracking-page">
+    <div className={orderStyles.orderTrackingPageClassName}>
       <CustomerHeader
         user={user}
         onPlaceholder={showSnackbar}
@@ -99,9 +100,10 @@ export default function OrderTrackingPage({
         deliveryLocationLabel={deliveryLocationLabel}
       />
 
-      <main className="order-tracking-main">
-        <div className="order-tracking-title-row">
+      <main className={orderStyles.orderTrackingMainClassName}>
+        <div className={orderStyles.orderTrackingTitleRowClassName}>
           <button
+            className={orderStyles.orderBackButtonClassName}
             type="button"
             aria-label="Quay lại chi tiết đơn hàng"
             onClick={() => router.push(`/orders/${order.id}`)}
@@ -110,38 +112,41 @@ export default function OrderTrackingPage({
           </button>
           <div>
             <h1>Theo dõi đơn hàng</h1>
-            <p>
+            <p className={orderStyles.orderTrackingTitleMetaClassName}>
               Mã đơn: <strong>#{order.id}</strong>
             </p>
           </div>
         </div>
 
-        <div className="order-tracking-layout">
-          <section className="order-tracking-content">
-            <article className="order-tracking-map" aria-label="Bản đồ giao hàng">
-              <div className="order-tracking-map__canvas">
-                <span className="order-tracking-map__route is-primary" />
-                <span className="order-tracking-map__route is-secondary" />
-                <span className="order-tracking-map__pin is-restaurant">
+        <div className={orderStyles.orderTrackingLayoutClassName}>
+          <section className={orderStyles.orderTrackingContentClassName}>
+            <article
+              className={orderStyles.orderTrackingMapClassName}
+              aria-label="Bản đồ giao hàng"
+            >
+              <div className={orderStyles.orderTrackingMapCanvasClassName}>
+                <span className={orderStyles.orderTrackingMapRouteClassName("primary")} />
+                <span className={orderStyles.orderTrackingMapRouteClassName("secondary")} />
+                <span className={orderStyles.orderTrackingMapPinClassName("restaurant")}>
                   <RestaurantOutlinedIcon fontSize="small" />
                 </span>
-                <span className="order-tracking-map__pin is-courier">
+                <span className={orderStyles.orderTrackingMapPinClassName("courier")}>
                   <DeliveryDiningOutlinedIcon fontSize="small" />
                 </span>
-                <span className="order-tracking-map__pin is-customer">
+                <span className={orderStyles.orderTrackingMapPinClassName("customer")}>
                   <LocationOnOutlinedIcon fontSize="small" />
                 </span>
               </div>
 
-              <div className="order-tracking-eta-card">
+              <div className={orderStyles.orderTrackingEtaCardClassName}>
                 <span>Dự kiến giao hàng</span>
                 <strong>{order.estimatedDeliveryLabel}</strong>
                 <small>Cập nhật lúc: {order.updatedAtLabel}</small>
               </div>
             </article>
 
-            <article className="order-tracking-card">
-              <div className="order-tracking-card__heading">
+            <article className={orderStyles.orderTrackingCardClassName}>
+              <div className={orderStyles.orderTrackingCardHeadingClassName}>
                 <div>
                   <span>Trạng thái đơn hàng</span>
                   <h2>{activeStepLabel}</h2>
@@ -149,17 +154,24 @@ export default function OrderTrackingPage({
                 <DeliveryDiningOutlinedIcon />
               </div>
 
-              <div className="order-tracking-timeline">
+              <div className={orderStyles.orderTrackingTimelineClassName}>
                 {orderTimelineSteps.map((step) => {
                   const stateClass = getTimelineState(step.id, order.status);
 
                   return (
                     <div
-                      className={`order-tracking-timeline-step ${stateClass}`}
+                      className={orderStyles.orderTrackingTimelineStepClassName(
+                        stateClass
+                      )}
+                      data-state={stateClass}
                       key={step.id}
                     >
-                      <span>
-                        {stateClass === "is-complete" ? (
+                      <span
+                        className={orderStyles.orderTrackingTimelineMarkerClassName(
+                          stateClass
+                        )}
+                      >
+                        {stateClass === "complete" ? (
                           <CheckCircleOutlinedIcon fontSize="small" />
                         ) : step.id === "completed" ? (
                           <DoneAllOutlinedIcon fontSize="small" />
@@ -170,7 +182,7 @@ export default function OrderTrackingPage({
                       <div>
                         <h3>{step.title}</h3>
                         <p>
-                          {stateClass === "is-current"
+                          {stateClass === "current"
                             ? step.description
                             : step.timeLabel || "Chờ nhận hàng"}
                         </p>
@@ -182,14 +194,15 @@ export default function OrderTrackingPage({
             </article>
           </section>
 
-          <aside className="order-tracking-sidebar">
-            <article className="order-tracking-summary-card">
-              <div className="order-tracking-summary-heading">
+          <aside className={orderStyles.orderTrackingSidebarClassName}>
+            <article className={orderStyles.orderTrackingSummaryCardClassName}>
+              <div className={orderStyles.orderTrackingSummaryHeadingClassName}>
                 <h2>Chi tiết đơn hàng</h2>
                 <Button
                   variant="text"
                   size="small"
                   startIcon={<SupportAgentOutlinedIcon />}
+                  className={orderStyles.orderTrackingSupportButtonClassName}
                   onClick={() =>
                     showSnackbar("EatNow đã ghi nhận yêu cầu hỗ trợ đơn hàng.")
                   }
@@ -198,63 +211,76 @@ export default function OrderTrackingPage({
                 </Button>
               </div>
 
-              <div className="order-tracking-restaurant">
+              <div className={orderStyles.orderTrackingRestaurantClassName}>
                 <Image
                   src={order.restaurantImage}
                   alt={order.restaurantName}
                   width={48}
                   height={48}
+                  className={orderStyles.orderTrackingRestaurantImageClassName}
                 />
                 <div>
-                  <h3>{order.restaurantName}</h3>
-                  <p>{order.restaurantAddress}</p>
+                  <h3 className={orderStyles.orderTrackingRestaurantTitleClassName}>
+                    {order.restaurantName}
+                  </h3>
+                  <p className={orderStyles.orderTrackingRestaurantTextClassName}>
+                    {order.restaurantAddress}
+                  </p>
                 </div>
               </div>
 
-              <div className="order-tracking-items">
+              <div className={orderStyles.orderTrackingItemsClassName}>
                 {order.items.map((item) => (
-                  <div className="order-tracking-item" key={item.foodId}>
-                    <span>{item.quantity}x</span>
+                  <div className={orderStyles.orderTrackingItemClassName} key={item.foodId}>
+                    <span className={orderStyles.orderTrackingItemQuantityClassName}>
+                      {item.quantity}x
+                    </span>
                     <div>
-                      <h3>{item.name}</h3>
-                      {item.note ? <p>{item.note}</p> : null}
+                      <h3 className={orderStyles.orderTrackingItemTitleClassName}>
+                        {item.name}
+                      </h3>
+                      {item.note ? (
+                        <p className={orderStyles.orderTrackingItemNoteClassName}>
+                          {item.note}
+                        </p>
+                      ) : null}
                     </div>
-                    <strong>
+                    <strong className={orderStyles.orderTrackingItemPriceClassName}>
                       {formatOrderCurrency(item.price * item.quantity)}
                     </strong>
                   </div>
                 ))}
               </div>
 
-              <div className="order-tracking-totals">
-                <div>
+              <div className={orderStyles.orderTrackingTotalsClassName}>
+                <div className={orderStyles.orderTrackingTotalRowClassName}>
                   <span>Tạm tính</span>
                   <strong>{formatOrderCurrency(order.subtotal)}</strong>
                 </div>
-                <div>
+                <div className={orderStyles.orderTrackingTotalRowClassName}>
                   <span>Phí giao hàng</span>
                   <strong>{formatOrderCurrency(order.deliveryFee)}</strong>
                 </div>
                 {order.discount > 0 && (
-                  <div>
+                  <div className={orderStyles.orderTrackingTotalRowClassName}>
                     <span>
                       Ưu đãi
                       {order.appliedVoucherCode
                         ? ` (${order.appliedVoucherCode})`
                         : ""}
                     </span>
-                    <strong className="order-tracking-discount">
+                    <strong className={orderStyles.orderTrackingDiscountClassName}>
                       -{formatOrderCurrency(order.discount)}
                     </strong>
                   </div>
                 )}
                 {order.surcharge > 0 && (
-                  <div>
+                  <div className={orderStyles.orderTrackingTotalRowClassName}>
                     <span>Phụ phí</span>
                     <strong>{formatOrderCurrency(order.surcharge)}</strong>
                   </div>
                 )}
-                <div>
+                <div className={orderStyles.orderTrackingTotalRowClassName}>
                   <span>
                     <PaymentsOutlinedIcon fontSize="small" />
                     Thanh toán
@@ -263,13 +289,16 @@ export default function OrderTrackingPage({
                 </div>
               </div>
 
-              <div className="order-tracking-total">
+              <div className={orderStyles.orderTrackingTotalClassName}>
                 <span>Tổng cộng</span>
                 <strong>{formatOrderCurrency(order.total)}</strong>
               </div>
             </article>
 
-            <Link className="order-tracking-detail-link" href={`/orders/${order.id}`}>
+            <Link
+              className={orderStyles.orderTrackingDetailLinkClassName}
+              href={`/orders/${order.id}`}
+            >
               <ReceiptLongOutlinedIcon fontSize="small" />
               Xem chi tiết đơn
             </Link>
