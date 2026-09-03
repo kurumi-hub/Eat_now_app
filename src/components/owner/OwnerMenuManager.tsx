@@ -167,13 +167,15 @@ export default function OwnerMenuManager({
     {notice && <div className={`owner-notice ${notice.ok ? "is-success" : "is-error"}`} role="status">{notice.message}<button onClick={() => setNotice(null)}>×</button></div>}
     <div className="owner-menu__filters">
       <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm tên món..." />
-      <select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="Lọc theo danh mục">
-        <option value="all">Tất cả danh mục ({foods.length})</option>
-        {data.categories.filter((item) => item.isActive).map((item) => <option key={item.id} value={item.id}>{item.name} ({foods.filter((food) => food.category?.id === item.id).length})</option>)}
-      </select>
       <select value={status} onChange={(event) => setStatus(event.target.value)}><option value="all">Tất cả trạng thái</option><option value="visible">Đang bán</option><option value="soldout">Tạm hết</option><option value="hidden">Đang ẩn</option></select>
     </div>
-    <div className="owner-menu__catalog">
+    <div className="owner-menu__layout">
+      <aside className="owner-menu__categories">
+        <div><h3>Danh mục</h3><span>{foods.length} món</span></div>
+        <button type="button" className={category === "all" ? "is-active" : ""} onClick={() => setCategory("all")}><span>Tất cả món</span><b>{foods.length}</b></button>
+        {data.categories.filter((item) => item.isActive).map((item) => <button type="button" key={item.id} className={category === item.id ? "is-active" : ""} onClick={() => setCategory(item.id)}><span>{item.name}</span><b>{foods.filter((food) => food.category?.id === item.id).length}</b></button>)}
+      </aside>
+      <div className="owner-menu__catalog">
         {!canReorder && <p className="owner-menu__reorder-note">Xóa bộ lọc để sắp xếp toàn bộ menu.</p>}
         <div className="owner-menu-list">
       {filtered.map((food) => {
@@ -193,6 +195,7 @@ export default function OwnerMenuManager({
       })}
       {!filtered.length && <div className="owner-menu-empty"><strong>Chưa có món phù hợp</strong><span>Thêm món mới hoặc thay đổi bộ lọc.</span></div>}
         </div>
+      </div>
     </div>
   </section>
     {editing && <div className="owner-food-modal" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !pending) closeEditor(); }}>
