@@ -214,7 +214,16 @@
 
 /* Split order workspace */
 .owner-orders__split { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: 16px; align-items: start; }
-.owner-order-list--compact { position: sticky; top: 18px; max-height: calc(100vh - 40px); padding-right: 3px; overflow-y: auto; }
+.owner-order-list-column { position: sticky; top: 18px; display: grid; min-width: 0; gap: 10px; }
+.owner-order-list--compact { max-height: calc(100vh - 112px); padding-right: 3px; overflow-y: auto; transition: opacity .18s ease; }
+.owner-order-list--compact.is-loading { opacity: .55; pointer-events: none; }
+.owner-order-pagination { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 11px; border: 1px solid var(--owner-line); border-radius: 12px; background: #fff; box-shadow: 0 4px 12px rgba(119, 87, 77, .05); }
+.owner-order-pagination p { margin: 0; color: var(--owner-muted); font-size: 11px; white-space: nowrap; }
+.owner-order-pagination > div { display: flex; align-items: center; gap: 4px; }
+.owner-order-pagination button { display: grid; min-width: 29px; height: 29px; padding: 0 7px; place-items: center; border: 1px solid var(--owner-line); border-radius: 8px; background: #fff; color: var(--owner-ink); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.owner-order-pagination button:hover:not(:disabled), .owner-order-pagination button.is-active { border-color: var(--owner-accent); background: #ffd3c6; color: var(--owner-accent); }
+.owner-order-pagination button:disabled { cursor: not-allowed; opacity: .42; }
+.owner-order-pagination span { min-width: 15px; color: var(--owner-muted); font-size: 12px; text-align: center; }
 .owner-order-list-card { display: grid; gap: 12px; width: 100%; padding: 15px; border: 1px solid var(--owner-line); border-radius: 13px; background: #fff; color: var(--owner-ink); font: inherit; text-align: left; box-shadow: 0 4px 12px rgba(119, 87, 77, .05); cursor: pointer; }
 .owner-order-list-card:hover { border-color: rgba(122, 48, 0, .45); transform: translateY(-1px); }
 .owner-order-list-card.is-selected { border: 2px solid #ff6b00; padding: 14px; box-shadow: 0 8px 18px rgba(122, 48, 0, .11); }
@@ -263,7 +272,8 @@
 }
 @media (max-width: 860px) {
   .owner-orders__split { grid-template-columns: 1fr; }
-  .owner-order-list--compact { position: static; display: flex; max-height: none; padding: 1px 1px 8px; overflow-x: auto; }
+  .owner-order-list-column { position: static; }
+  .owner-order-list--compact { display: flex; max-height: none; padding: 1px 1px 8px; overflow-x: auto; }
   .owner-order-list-card { min-width: 280px; }
   .owner-menu__layout { grid-template-columns: 1fr; }
   .owner-menu__categories { position: static; display: flex; overflow-x: auto; }

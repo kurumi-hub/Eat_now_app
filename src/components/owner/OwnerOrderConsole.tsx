@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { confirmShipperPickupAction, transitionOwnerOrderAction } from "@/app/owner/actions";
@@ -18,6 +18,7 @@ const DELIVERY: Record<string, string> = { unassigned: "Chưa tìm tài xế", s
 const FILTERS = [["all", "Tất cả"], ["new", "Đơn mới"], ["active", "Đang xử lý"],
   ["ready", "Sẵn sàng"], ["delivering", "Đang giao"], ["incident", "Có sự cố"],
   ["completed", "Hoàn thành"], ["cancelled", "Đã hủy"]] as const;
+const PAGE_SIZE = 10;
 function money(value: number) { return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(value); }
 function time(value?: string) { return value ? new Date(value).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "—"; }
 function searchDeadline(item: OwnerOrderItem) {
@@ -37,27 +38,40 @@ export default function OwnerOrderConsole({ restaurantId, data: initialData, men
   const router = useRouter(); const [pending, startTransition] = useTransition();
   const [data, setData] = useState(initialData);
   const [filter, setFilter] = useState<(typeof FILTERS)[number][0]>("all"); const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [loadingPage, setLoadingPage] = useState(false);
   const [notice, setNotice] = useState<OwnerActionResult | null>(null); const [sound, setSound] = useState(false);
   const [realtimeState, setRealtimeState] = useState<"connecting" | "live" | "retrying">("connecting");
   const [confirmingOrderId, setConfirmingOrderId] = useState("");
   const [pickupFeedback, setPickupFeedback] = useState<PickupFeedback | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState(initialData.items[0]?.id ?? "");
-  const syncOrders = useCallback(async () => {
+  const queryRef = useRef({ page: 1, filter: "all" as (typeof FILTERS)[number][0], search: "" });
+  const requestIdRef = useRef(0);
+  const syncOrders = useCallback(async (query = queryRef.current) => {
+    const requestId = ++requestIdRef.current;
+    setLoadingPage(true);
     const supabase = createClient();
     const { data: next, error } = await supabase.rpc("api_list_restaurant_orders", {
       p_restaurant_id: restaurantId,
-      p_status: null,
-      p_search: null,
-      p_limit: 100,
-      p_offset: 0,
+      p_status: query.filter === "all" ? null : query.filter,
+      p_search: query.search.trim() || null,
+      p_limit: PAGE_SIZE,
+      p_offset: (query.page - 1) * PAGE_SIZE,
     });
+    if (requestId !== requestIdRef.current) return;
+    setLoadingPage(false);
     if (error) {
       setRealtimeState("retrying");
       return;
     }
     setData(parseOwnerOrders(next));
   }, [restaurantId]);
-  useEffect(() => setData(initialData), [initialData]);
+  useEffect(() => {
+    const query = { page, filter, search };
+    queryRef.current = query;
+    const timer = window.setTimeout(() => void syncOrders(query), search.trim() ? 300 : 0);
+    return () => window.clearTimeout(timer);
+  }, [filter, page, search, syncOrders]);
   useEffect(() => {
     const supabase = createClient();
     let refreshTimer: number | undefined;
@@ -116,13 +130,22 @@ export default function OwnerOrderConsole({ restaurantId, data: initialData, men
       void supabase.removeChannel(channel);
     };
   }, [restaurantId, sound, syncOrders]);
-  const items = useMemo(() => data.items.filter((item) => {
-    const matchesSearch = !search.trim() || `${item.code} ${item.receiverName} ${item.receiverPhone}`.toLowerCase().includes(search.trim().toLowerCase());
-    const matchesFilter = filter === "all" || filter === "new" && item.status === "pending" ||
-      filter === "active" && ["confirmed", "preparing", "ready", "delivering"].includes(item.status) ||
-      filter === "incident" && item.incidentStatus === "open" || item.status === filter || item.deliveryStatus === filter;
-    return matchesSearch && matchesFilter;
-  }), [data.items, filter, search]);
+  const items = data.items.slice(0, PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
+  const pageStart = data.total ? (page - 1) * PAGE_SIZE + 1 : 0;
+  const pageEnd = Math.min(page * PAGE_SIZE, data.total);
+  const paginationItems = useMemo(() => {
+    const visiblePages = Array.from({ length: totalPages }, (_, index) => index + 1)
+      .filter((value) => value === 1 || value === totalPages || Math.abs(value - page) <= 1);
+    return visiblePages.reduce<Array<number | string>>((result, value, index) => {
+      if (index > 0 && value - visiblePages[index - 1] > 1) result.push(`gap-${value}`);
+      result.push(value);
+      return result;
+    }, []);
+  }, [page, totalPages]);
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
   const menuImages = useMemo(() => new Map(menu.foods.map((food) => {
     const image = food.images.find((item) => item.isPrimary) ?? food.images[0];
     return [food.name.trim().toLocaleLowerCase("vi"), image] as const;
@@ -167,16 +190,16 @@ export default function OwnerOrderConsole({ restaurantId, data: initialData, men
   return <section className="owner-orders">
     <div className="owner-orders__heading"><div><p>Điều hành theo thời gian thực</p><h2>Quản lý đơn hàng</h2><span>{data.total} đơn · <b className={`realtime-status is-${realtimeState}`}>{realtimeState === "live" ? "Đang trực tiếp" : realtimeState === "retrying" ? "Đang kết nối lại" : "Đang kết nối"}</b></span></div><button type="button" className={sound ? "is-on" : ""} onClick={() => setSound((value) => !value)}>{sound ? "Âm báo đang bật" : "Bật âm báo"}</button></div>
     {notice && <div className={`owner-notice ${notice.ok ? "is-success" : "is-error"}`}><span>{notice.message}</span><button type="button" onClick={() => setNotice(null)}>×</button></div>}
-    <div className="owner-orders__tools"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm mã đơn, khách hoặc số điện thoại"/><div>{FILTERS.map(([value,label]) => <button type="button" key={value} className={filter === value ? "is-active" : ""} onClick={() => setFilter(value)}>{label}</button>)}</div></div>
+    <div className="owner-orders__tools"><input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); setSelectedOrderId(""); }} placeholder="Tìm mã đơn, khách hoặc số điện thoại"/><div>{FILTERS.map(([value,label]) => <button type="button" key={value} className={filter === value ? "is-active" : ""} onClick={() => { setFilter(value); setPage(1); setSelectedOrderId(""); }}>{label}</button>)}</div></div>
     {items.length && selectedOrder ? <div className="owner-orders__split">
-      <div className="owner-order-list owner-order-list--compact">{items.map((item) => {
+      <div className="owner-order-list-column"><div className={`owner-order-list owner-order-list--compact${loadingPage ? " is-loading" : ""}`}>{items.map((item) => {
         const preview = menuImages.get(item.items[0]?.name.trim().toLocaleLowerCase("vi") ?? "");
         return <button type="button" key={item.id} className={`owner-order-list-card${item.id === selectedOrder.id ? " is-selected" : ""}${item.incidentStatus === "open" ? " has-incident" : ""}`} onClick={() => setSelectedOrderId(item.id)}>
           <span className="owner-order-list-card__top"><strong>{item.code}</strong><small>{time(item.createdAt)}</small></span>
           <span className="owner-order-list-card__summary"><span className="owner-order-list-card__preview">{preview ? <img src={preview.url} alt={preview.altText || item.items[0]?.name || "Món ăn"} /> : <b>{item.items[0]?.name.slice(0, 1).toUpperCase() || "E"}</b>}</span><span className="owner-order-list-card__customer"><b>{item.receiverName}</b><small>{item.items.reduce((sum, food) => sum + food.quantity, 0)} món · {money(item.totalPrice)}</small><em>{item.items.slice(0, 2).map((food) => food.name).join(", ")}</em></span></span>
           <span className="owner-order-list-card__status"><mark>{STATUS[item.status] || item.status}</mark><em>{DELIVERY[item.deliveryStatus] || item.deliveryStatus}</em></span>
         </button>;
-      })}</div>
+      })}</div><nav className="owner-order-pagination" aria-label="Phân trang đơn hàng"><p>Hiển thị {pageStart}–{pageEnd} / {data.total}</p><div><button type="button" aria-label="Trang trước" disabled={page === 1 || loadingPage} onClick={() => { setPage((value) => Math.max(1, value - 1)); setSelectedOrderId(""); }}>‹</button>{paginationItems.map((item) => typeof item === "number" ? <button type="button" key={item} className={page === item ? "is-active" : ""} aria-current={page === item ? "page" : undefined} disabled={loadingPage} onClick={() => { setPage(item); setSelectedOrderId(""); }}>{item}</button> : <span key={item}>…</span>)}<button type="button" aria-label="Trang sau" disabled={page === totalPages || loadingPage} onClick={() => { setPage((value) => Math.min(totalPages, value + 1)); setSelectedOrderId(""); }}>›</button></div></nav></div>
       <article className={`owner-order-card owner-order-detail${selectedOrder.incidentStatus === "open" ? " has-incident" : ""}`}>
         <header><div><span>{selectedOrder.code}</span><h3>{selectedOrder.receiverName}</h3><small>{time(selectedOrder.createdAt)} · {selectedOrder.receiverPhone}</small></div><div><b>{STATUS[selectedOrder.status] || selectedOrder.status}</b><em>{DELIVERY[selectedOrder.deliveryStatus] || selectedOrder.deliveryStatus}</em></div></header>
         {selectedOrder.incidentStatus === "open" && <div className="owner-order-incident"><strong>Cần hỗ trợ</strong><span>{selectedOrder.incidentReason || "Đơn đang được Admin kiểm tra."}</span></div>}
