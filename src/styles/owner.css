@@ -238,17 +238,8 @@
 .owner-order-detail { min-width: 0; }
 .owner-order-detail .order-journey { border-bottom: 1px solid #edf0f2; }
 
-/* Menu category navigator */
-.owner-menu__filters { grid-template-columns: minmax(220px, 1fr) 210px; }
-.owner-menu__layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 16px; align-items: start; }
-.owner-menu__categories { position: sticky; top: 18px; display: grid; gap: 7px; padding: 14px; border: 1px solid var(--owner-line); border-radius: 14px; background: #fff; box-shadow: 0 4px 12px rgba(119, 87, 77, .05); }
-.owner-menu__categories > div { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 3px 5px 10px; }
-.owner-menu__categories h3 { margin: 0; font: 800 19px var(--font-baloo), sans-serif; }
-.owner-menu__categories > div span { color: var(--owner-muted); font-size: 11px; }
-.owner-menu__categories button { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 10px; border: 0; border-radius: 9px; background: transparent; color: var(--owner-muted); font: inherit; font-size: 13px; font-weight: 700; text-align: left; cursor: pointer; }
-.owner-menu__categories button:hover, .owner-menu__categories button.is-active { background: #ffd3c6; color: var(--owner-accent); }
-.owner-menu__categories button b { display: grid; min-width: 24px; height: 22px; place-items: center; border-radius: 999px; background: #f0ecea; font-size: 10px; }
-.owner-menu__categories button.is-active b { background: #fff; }
+/* Menu category dropdown */
+.owner-menu__filters { grid-template-columns: minmax(220px, 1fr) minmax(190px, .55fr) minmax(170px, .45fr); }
 .owner-menu__catalog { min-width: 0; }
 
 /* Consolidated settings */
@@ -275,10 +266,6 @@
   .owner-order-list-column { position: static; }
   .owner-order-list--compact { display: flex; max-height: none; padding: 1px 1px 8px; overflow-x: auto; }
   .owner-order-list-card { min-width: 280px; }
-  .owner-menu__layout { grid-template-columns: 1fr; }
-  .owner-menu__categories { position: static; display: flex; overflow-x: auto; }
-  .owner-menu__categories > div { display: none; }
-  .owner-menu__categories button { width: auto; min-width: max-content; }
 }
 @media (max-width: 640px) {
   .owner-dashboard-orders article { grid-template-columns: 48px minmax(0, 1fr); }
