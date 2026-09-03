@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState, useTransition, type FormEvent } from "react";
+import { useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
+import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
+import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
+import PhotoLibraryOutlinedIcon from "@mui/icons-material/PhotoLibraryOutlined";
+import PeopleOutlineOutlinedIcon from "@mui/icons-material/PeopleOutlineOutlined";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
+import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
+import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 
 import {
   applyRestaurantMediaAction, createRestaurantMediaUploadTicketAction,
@@ -40,6 +49,17 @@ const STATE_HELP: Record<string, string> = {
 };
 type Tab = "overview" | "orders" | "profile" | "menu" | "vouchers" | "hours" | "media" | "staff" | "wallet";
 const VALID_TABS: Tab[] = ["overview", "orders", "profile", "menu", "vouchers", "hours", "media", "staff", "wallet"];
+const TAB_ICONS: Record<Tab, ReactNode> = {
+  overview: <DashboardOutlinedIcon fontSize="small" />,
+  orders: <ReceiptLongOutlinedIcon fontSize="small" />,
+  profile: <StorefrontOutlinedIcon fontSize="small" />,
+  menu: <RestaurantMenuOutlinedIcon fontSize="small" />,
+  vouchers: <ConfirmationNumberOutlinedIcon fontSize="small" />,
+  hours: <ScheduleOutlinedIcon fontSize="small" />,
+  media: <PhotoLibraryOutlinedIcon fontSize="small" />,
+  staff: <PeopleOutlineOutlinedIcon fontSize="small" />,
+  wallet: <AccountBalanceWalletOutlinedIcon fontSize="small" />,
+};
 const BUCKET = "restaurant-media";
 const MAX_BYTES = 5 * 1024 * 1024;
 const TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" };
@@ -79,24 +99,32 @@ export default function OwnerDashboard({
 
   return <main className="owner-page">
     <header className="owner-heading">
-      <div><p>Kênh người bán EatNow</p><h1>{data.restaurant.name}</h1><span>{STATE[data.restaurant.orderState] || data.restaurant.orderState}</span></div>
+      <div><p>Kênh người bán EatNow</p><h1>{data.restaurant.name}</h1><span className={`owner-heading__status ${data.restaurant.acceptingOrders ? "is-open" : "is-paused"}`}>{STATE[data.restaurant.orderState] || data.restaurant.orderState}</span></div>
       <div className="owner-heading__actions">
         {restaurants.length > 1 && <select aria-label="Chọn nhà hàng" value={data.restaurant.id} onChange={(event) => router.push(`/owner?restaurant=${event.target.value}`)}>{restaurants.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>}
         <Link href="/account/seller">Nhà hàng & đăng ký mới</Link>
       </div>
     </header>
     {notice && <div className={`owner-notice ${notice.ok ? "is-success" : "is-error"}`} role="status">{notice.message}<button onClick={() => setNotice(null)}>×</button></div>}
-    <nav className="owner-tabs">{tabs.filter((item) => item[2]).map(([value, label]) => <button key={value} className={tab === value ? "is-active" : ""} onClick={() => setTab(value)}>{label}</button>)}</nav>
+    <div className="owner-workspace">
+      <nav className="owner-tabs" aria-label="Điều hướng kênh người bán">
+        <div className="owner-tabs__brand"><StorefrontOutlinedIcon /><div><strong>EatNow</strong><span>Restaurant Owner</span></div></div>
+        <div className="owner-tabs__items">{tabs.filter((item) => item[2]).map(([value, label]) => <button key={value} className={tab === value ? "is-active" : ""} aria-current={tab === value ? "page" : undefined} onClick={() => setTab(value)}><span className="owner-tabs__icon">{TAB_ICONS[value]}</span><span>{label}</span></button>)}</div>
+        <div className="owner-tabs__footer"><span>{data.restaurant.name.slice(0, 1).toUpperCase()}</span><div><strong>{data.restaurant.name}</strong><small>{data.restaurant.approvalStatus === "APPROVED" ? "Đã xác minh" : "Đang hoàn thiện"}</small></div></div>
+      </nav>
 
-    {tab === "overview" && <Overview data={data} pending={pending} canOrders={canOrders} canProfile={canProfile} run={run} />}
-    {tab === "orders" && permissions.has("restaurant.orders.manage") && <OwnerOrderConsole restaurantId={data.restaurant.id} data={orders} canReject={permissions.has("restaurant.orders.reject")} />}
-    {tab === "profile" && canProfile && <Profile data={data} pending={pending} run={run} />}
-    {tab === "menu" && canMenu && <OwnerMenuManager restaurantId={data.restaurant.id} data={menu} />}
-    {tab === "vouchers" && canVouchers && <VoucherManagementPanel mode="owner" restaurantId={data.restaurant.id} data={vouchers} />}
-    {tab === "hours" && canHours && <Hours data={data} pending={pending} run={run} />}
-    {tab === "media" && canMedia && <Media data={data} pending={pending} run={run} />}
-    {tab === "staff" && canStaff && <Staff userId={userId} data={data} pending={pending} canTransfer={canTransfer} run={run} />}
-    {tab === "wallet" && permissions.has("restaurant.finance.view") && <OwnerWalletPlaceholder />}
+      <section className="owner-content">
+        {tab === "overview" && <Overview data={data} pending={pending} canOrders={canOrders} canProfile={canProfile} run={run} />}
+        {tab === "orders" && permissions.has("restaurant.orders.manage") && <OwnerOrderConsole restaurantId={data.restaurant.id} data={orders} canReject={permissions.has("restaurant.orders.reject")} />}
+        {tab === "profile" && canProfile && <Profile data={data} pending={pending} run={run} />}
+        {tab === "menu" && canMenu && <OwnerMenuManager restaurantId={data.restaurant.id} data={menu} />}
+        {tab === "vouchers" && canVouchers && <VoucherManagementPanel mode="owner" restaurantId={data.restaurant.id} data={vouchers} />}
+        {tab === "hours" && canHours && <Hours data={data} pending={pending} run={run} />}
+        {tab === "media" && canMedia && <Media data={data} pending={pending} run={run} />}
+        {tab === "staff" && canStaff && <Staff userId={userId} data={data} pending={pending} canTransfer={canTransfer} run={run} />}
+        {tab === "wallet" && permissions.has("restaurant.finance.view") && <OwnerWalletPlaceholder />}
+      </section>
+    </div>
   </main>;
 }
 
