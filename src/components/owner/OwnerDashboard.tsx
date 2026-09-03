@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
@@ -139,8 +139,22 @@ function ownerMoney(value: number) {
 }
 
 function Overview({ data, menu, orders, pending, canOrders, canManageOrders, canMenu, canProfile, run, onOpenOrders, onOpenMenu }: { data: OwnerDashboardData; menu: OwnerMenuData; orders: OwnerOrderList; pending: boolean; canOrders: boolean; canManageOrders: boolean; canMenu: boolean; canProfile: boolean; run: (task: () => Promise<OwnerActionResult>) => void; onOpenOrders: () => void; onOpenMenu: () => void }) {
-  const [reason, setReason] = useState("Tạm dừng vận hành");
+  const [reason, setReason] = useState("");
+  const [pauseFormOpen, setPauseFormOpen] = useState(false);
   const restaurant = data.restaurant;
+  useEffect(() => {
+    if (!pauseFormOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !pending) setPauseFormOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [pauseFormOpen, pending]);
   const recentOrders = orders.items.filter((item) => !["completed", "cancelled"].includes(item.status)).slice(0, 4);
   const popularDishes = useMemo(() => {
     const totals = new Map<string, number>();
@@ -152,10 +166,7 @@ function Overview({ data, menu, orders, pending, canOrders, canManageOrders, can
   }, [menu.foods, orders.items]);
   return <div className="owner-grid">
     <section className={`owner-card owner-card--hero ${restaurant.acceptingOrders ? "is-accepting" : "is-paused"}`}><div><p>Trạng thái nhận đơn thực tế</p><div className="owner-order-state"><h2>{STATE[restaurant.orderState] || restaurant.orderState}</h2><b>{restaurant.acceptingOrders ? "Cho phép đơn mới: BẬT" : "Cho phép đơn mới: TẮT"}</b></div><span>{STATE_HELP[restaurant.orderState] || `Duyệt: ${restaurant.approvalStatus} · Vận hành: ${restaurant.lifecycleStatus}`}</span>{!restaurant.acceptingOrders && restaurant.pausedReason && <small>Lý do: {restaurant.pausedReason}</small>}</div>
-      {canOrders && restaurant.lifecycleStatus === "ACTIVE" && <div className="owner-order-control">
-        {restaurant.acceptingOrders && <input value={reason} onChange={(event) => setReason(event.target.value)} aria-label="Lý do tạm dừng" />}
-        <button disabled={pending || (restaurant.acceptingOrders && reason.trim().length < 3)} onClick={() => run(() => setAcceptingOrdersAction(restaurant.id, !restaurant.acceptingOrders, reason))}>{restaurant.acceptingOrders ? "Tạm dừng nhận đơn" : "Bật nhận đơn ngay"}</button>
-      </div>}
+      {canOrders && restaurant.lifecycleStatus === "ACTIVE" && <div className="owner-order-control"><button disabled={pending} onClick={() => { if (restaurant.acceptingOrders) { setReason(""); setPauseFormOpen(true); } else run(() => setAcceptingOrdersAction(restaurant.id, true, "")); }}>{restaurant.acceptingOrders ? "Tạm dừng nhận đơn" : "Bật nhận đơn ngay"}</button></div>}
       {canProfile && restaurant.lifecycleStatus === "SETUP" && restaurant.approvalStatus === "APPROVED" && <button disabled={pending} onClick={() => run(() => publishRestaurantAction(restaurant.id))}>Xuất bản nhà hàng</button>}
     </section>
     <section className="owner-metrics"><article><strong>{data.orderStats.today}</strong><span>Đơn hôm nay</span></article><article><strong>{data.orderStats.open}</strong><span>Đơn đang xử lý</span></article><article><strong>{data.orderStats.completedToday}</strong><span>Hoàn tất hôm nay</span></article></section>
@@ -165,6 +176,7 @@ function Overview({ data, menu, orders, pending, canOrders, canManageOrders, can
     </div>
     <section className="owner-card"><h2>Điều kiện vận hành</h2><ul className="owner-checklist"><li className={restaurant.approvalStatus === "APPROVED" ? "done" : ""}>Hồ sơ được phê duyệt</li><li className={restaurant.lat != null && restaurant.lon != null ? "done" : ""}>Có tọa độ giao hàng</li><li className={data.hours.length > 0 ? "done" : ""}>Đã cấu hình giờ mở cửa</li><li className={Boolean(restaurant.publishedAt) ? "done" : ""}>Đã xuất bản công khai</li></ul></section>
     <section className="owner-card"><h2>Thông tin nhanh</h2><dl className="owner-details"><div><dt>Địa chỉ</dt><dd>{restaurant.address}</dd></div><div><dt>Điện thoại</dt><dd>{restaurant.phone || "Chưa cập nhật"}</dd></div><div><dt>Múi giờ</dt><dd>{restaurant.timezone}</dd></div></dl></section>
+    {pauseFormOpen && <div className="owner-pause-modal" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !pending) setPauseFormOpen(false); }}><form className="owner-pause-dialog" role="dialog" aria-modal="true" aria-labelledby="owner-pause-title" onSubmit={(event) => { event.preventDefault(); run(async () => { const result = await setAcceptingOrdersAction(restaurant.id, false, reason); if (result.ok) setPauseFormOpen(false); return result; }); }}><div className="owner-pause-dialog__icon">Ⅱ</div><div><p>Tạm dừng vận hành</p><h2 id="owner-pause-title">Tạm dừng nhận đơn?</h2><span>Khách sẽ tạm thời không thể tạo đơn mới tại nhà hàng.</span></div><label>Lý do tạm dừng<textarea autoFocus rows={3} minLength={3} maxLength={240} required value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Ví dụ: Quán đang quá tải đơn hàng" /></label><div className="owner-pause-dialog__actions"><button type="button" disabled={pending} onClick={() => setPauseFormOpen(false)}>Hủy</button><button type="submit" disabled={pending || reason.trim().length < 3}>{pending ? "Đang xử lý…" : "Xác nhận tạm dừng"}</button></div></form></div>}
   </div>;
 }
 

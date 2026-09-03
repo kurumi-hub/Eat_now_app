@@ -315,3 +315,40 @@
   .owner-food-modal__panel { width: 100%; max-height: calc(100vh - 24px); border-radius: 20px 20px 0 0; }
   .owner-food-modal .owner-food-editor { border-radius: 20px 20px 0 0; }
 }
+
+/* Reliable stock switch and local image preview inside the food form */
+.owner-form .owner-switch { display: grid; grid-template-columns: 1fr !important; align-content: end; gap: 7px; }
+.owner-switch__control { display: flex; min-height: 44px; align-items: center; gap: 10px; padding: 8px 11px; border: 1px solid var(--owner-line); border-radius: 11px; background: #f9f9fc; cursor: pointer; }
+.owner-switch__control input { position: absolute; width: 1px !important; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.owner-switch__control i { position: relative; width: 42px; height: 24px; flex: 0 0 42px; border-radius: 999px; background: #b9b1ad; transition: background .16s ease; }
+.owner-switch__control i::after { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; content: ""; box-shadow: 0 1px 4px rgba(26, 28, 30, .28); transition: transform .16s ease; }
+.owner-switch__control input:checked + i { background: #27865c; }
+.owner-switch__control input:checked + i::after { transform: translateX(18px); }
+.owner-switch__control input:focus-visible + i { outline: 3px solid rgba(122, 48, 0, .18); outline-offset: 2px; }
+.owner-switch__control b { color: var(--owner-muted); font-size: 12px; }
+.owner-switch__control input:checked ~ b { color: #1d6b4b; }
+.owner-food-image-editor > div.is-preview { box-shadow: 0 0 0 3px rgba(255, 107, 0, .22); }
+.owner-food-image-editor > div > span { position: absolute; top: 7px; left: 7px; padding: 4px 7px; border-radius: 999px; background: #ff6b00; color: #fff; font-size: 9px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
+.owner-food-image-editor > label strong { overflow: hidden; color: var(--owner-ink); text-overflow: ellipsis; white-space: nowrap; }
+.owner-food-image-editor > label span { color: var(--owner-muted); font-size: 11px; font-weight: 500; line-height: 1.45; }
+
+/* Pause orders confirmation */
+.owner-pause-modal { position: fixed; inset: 0; z-index: 170; display: grid; place-items: center; padding: 20px; background: rgba(26, 28, 30, .5); backdrop-filter: blur(3px); }
+.owner-pause-dialog { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 18px; width: min(500px, 100%); padding: 24px; border-radius: 18px; background: #fff; box-shadow: 0 24px 70px rgba(26, 28, 30, .3); }
+.owner-pause-dialog__icon { display: grid; width: 52px; height: 52px; place-items: center; border-radius: 50%; background: #ffdbd0; color: var(--owner-accent); font-size: 20px; font-weight: 900; }
+.owner-pause-dialog p { margin: 0 0 4px; color: var(--owner-accent); font-size: 11px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.owner-pause-dialog h2 { margin: 0; font: 800 25px var(--font-baloo), sans-serif; }
+.owner-pause-dialog > div:nth-child(2) > span { display: block; margin-top: 5px; color: var(--owner-muted); font-size: 12px; line-height: 1.45; }
+.owner-pause-dialog label { grid-column: 1 / -1; display: grid; gap: 7px; color: var(--owner-ink); font-size: 12px; font-weight: 800; }
+.owner-pause-dialog textarea { box-sizing: border-box; width: 100%; resize: vertical; border: 1px solid var(--owner-line); border-radius: 11px; padding: 11px 12px; background: #f9f9fc; color: var(--owner-ink); font: inherit; }
+.owner-pause-dialog textarea:focus { border-color: var(--owner-accent); outline: 3px solid rgba(122, 48, 0, .09); }
+.owner-pause-dialog__actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 9px; }
+.owner-pause-dialog__actions button { border: 0; border-radius: 9px; padding: 10px 14px; background: #eee9e7; color: var(--owner-muted); font: inherit; font-weight: 800; cursor: pointer; }
+.owner-pause-dialog__actions button[type="submit"] { background: #923900; color: #fff; }
+.owner-pause-dialog__actions button:disabled { cursor: wait; opacity: .55; }
+@media (max-width: 520px) {
+  .owner-pause-modal { align-items: end; padding: 0; }
+  .owner-pause-dialog { box-sizing: border-box; grid-template-columns: 44px minmax(0, 1fr); width: 100%; border-radius: 20px 20px 0 0; }
+  .owner-pause-dialog__icon { width: 44px; height: 44px; }
+  .owner-pause-dialog__actions button { flex: 1; }
+}

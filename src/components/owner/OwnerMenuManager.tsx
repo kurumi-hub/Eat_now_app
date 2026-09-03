@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type FormEvent } from "react";
 
 import {
   applyFoodImageAction,
@@ -222,6 +222,17 @@ function FoodEditor({ data, draft, imageFile, currentImage, pending, notice, onC
   const updateGroup = (index: number, value: OwnerToppingGroup) => {
     const next = [...draft.toppingGroups]; next[index] = value; set("toppingGroups", next);
   };
+  const [previewUrl, setPreviewUrl] = useState("");
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!imageFile) {
+      setPreviewUrl("");
+      return;
+    }
+    const objectUrl = URL.createObjectURL(imageFile);
+    setPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [imageFile]);
   return <section className="owner-card owner-food-editor">
     <div className="owner-card__heading"><div><p>Biểu mẫu món ăn / {draft.id ? "Chỉnh sửa" : "Tạo mới"}</p><h2>{draft.id ? draft.name : "Thêm món ăn"}</h2><span>Món mới luôn được lưu ở trạng thái ẩn. Hãy thêm ảnh rồi bật món trong danh sách.</span></div><button type="button" onClick={onCancel}>Đóng</button></div>
     {notice && <div className={`owner-notice ${notice.ok ? "is-success" : "is-error"}`}>{notice.message}</div>}
@@ -231,12 +242,12 @@ function FoodEditor({ data, draft, imageFile, currentImage, pending, notice, onC
         <label>Giá bán cơ bản<input type="number" min="0" max="100000000" step="1000" value={draft.basePrice} onChange={(e) => set("basePrice", Number(e.target.value))} required /></label>
         <label className="full">Mô tả<textarea rows={4} maxLength={1000} value={draft.description} onChange={(e) => set("description", e.target.value)} /></label>
         <label>Category chính<select value={draft.categoryId} onChange={(e) => set("categoryId", e.target.value)} required><option value="">Chọn category do Admin tạo</option>{data.categories.filter((item) => item.isActive || item.id === draft.categoryId).map((item) => <option key={item.id} value={item.id}>{item.name}{!item.isActive ? " (đã tắt)" : ""}</option>)}</select></label>
-        <label className="owner-switch"><input type="checkbox" checked={draft.isAvailable} onChange={(e) => set("isAvailable", e.target.checked)} /> Món đang còn hàng</label>
+        <label className="owner-switch"><span>Trạng thái món</span><span className="owner-switch__control"><input type="checkbox" checked={draft.isAvailable} onChange={(e) => set("isAvailable", e.target.checked)} /><i aria-hidden="true" /><b>{draft.isAvailable ? "Món đang còn hàng" : "Món đang tạm hết"}</b></span></label>
       </div></fieldset>
 
       <fieldset><legend>Tag do Admin tạo</legend><div className="owner-tag-picker">{data.tags.filter((item) => item.isActive || draft.tagIds.includes(item.id)).map((item) => <label key={item.id} className={!item.isActive ? "is-disabled" : ""}><input type="checkbox" checked={draft.tagIds.includes(item.id)} disabled={!item.isActive && !draft.tagIds.includes(item.id)} onChange={(e) => set("tagIds", e.target.checked ? [...draft.tagIds, item.id] : draft.tagIds.filter((id) => id !== item.id))} />{item.name}{!item.isActive ? " (đã tắt)" : ""}</label>)}</div><p className="owner-field-note">Owner chỉ được chọn, không thể tạo category hoặc tag toàn hệ thống.</p></fieldset>
 
-      <fieldset><legend>Ảnh món ăn</legend><div className="owner-food-image-editor">{currentImage && <div><img src={currentImage.url} alt={currentImage.altText || draft.name} />{onDeleteImage && <button type="button" disabled={pending} onClick={onDeleteImage}>Xóa ảnh</button>}</div>}<label><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={(e) => onImage(e.target.files?.[0] ?? null)} />{imageFile ? imageFile.name : currentImage ? "Chọn ảnh mới để thay thế" : "Chọn ảnh chính (tối đa 5 MB)"}</label></div></fieldset>
+      <fieldset><legend>Ảnh món ăn</legend><div className="owner-food-image-editor">{(previewUrl || currentImage) && <div className={previewUrl ? "is-preview" : ""}><img src={previewUrl || currentImage?.url || ""} alt={previewUrl ? `Ảnh xem trước ${draft.name || "món ăn"}` : currentImage?.altText || draft.name} />{previewUrl ? <button type="button" disabled={pending} onClick={() => { onImage(null); if (imageInputRef.current) imageInputRef.current.value = ""; }}>Bỏ ảnh chọn</button> : onDeleteImage && <button type="button" disabled={pending} onClick={onDeleteImage}>Xóa ảnh</button>} {previewUrl && <span>Xem trước</span>}</div>}<label><input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={(e) => onImage(e.target.files?.[0] ?? null)} />{imageFile ? <><strong>{imageFile.name}</strong><span>Ảnh mới đang được xem trước. Ảnh chỉ tải lên sau khi lưu món.</span></> : currentImage ? "Chọn ảnh mới để thay thế" : "Chọn ảnh chính (tối đa 5 MB)"}</label></div></fieldset>
 
       <fieldset><legend>Size và giá theo size</legend><button type="button" className="owner-add-row" onClick={() => set("sizes", [...draft.sizes, { name: "", price: draft.basePrice, isAvailable: true, displayOrder: draft.sizes.length * 10 }])}>+ Thêm size</button><div className="owner-option-list">{draft.sizes.map((size, index) => <div className={`owner-option-row ${!size.isAvailable ? "is-disabled" : ""}`} key={size.id ?? `size-${index}`}><input aria-label="Tên size" placeholder="S / M / L" value={size.name} onChange={(e) => { const next = [...draft.sizes]; next[index] = { ...size, name: e.target.value }; set("sizes", next); }} /><input aria-label="Giá size" type="number" min="0" step="1000" value={size.price} onChange={(e) => { const next = [...draft.sizes]; next[index] = { ...size, price: Number(e.target.value) }; set("sizes", next); }} /><label><input type="checkbox" checked={size.isAvailable} onChange={(e) => { const next = [...draft.sizes]; next[index] = { ...size, isAvailable: e.target.checked }; set("sizes", next); }} /> Còn hàng</label>{size.id ? <span className="owner-option-hint">Tắt “Còn hàng” để ngừng dùng</span> : <button type="button" onClick={() => set("sizes", draft.sizes.filter((_, itemIndex) => itemIndex !== index))}>Bỏ</button>}</div>)}</div></fieldset>
 
