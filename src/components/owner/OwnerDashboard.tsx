@@ -6,11 +6,9 @@ import { useMemo, useState, useTransition, type FormEvent, type ReactNode } from
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
-import PhotoLibraryOutlinedIcon from "@mui/icons-material/PhotoLibraryOutlined";
-import PeopleOutlineOutlinedIcon from "@mui/icons-material/PeopleOutlineOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
-import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 
 import {
@@ -39,6 +37,10 @@ const STATE: Record<string, string> = {
   SUSPENDED: "Nhà hàng bị tạm ngưng", UNPUBLISHED: "Chưa xuất bản",
   APPROVAL_PENDING: "Chờ phê duyệt", REJECTED: "Hồ sơ bị từ chối", CLOSED: "Đã đóng",
 };
+const ORDER_STATE: Record<string, string> = {
+  pending: "Đơn mới", confirmed: "Đã nhận", preparing: "Đang chuẩn bị",
+  ready: "Chờ lấy hàng", delivering: "Đang giao", completed: "Hoàn thành", cancelled: "Đã hủy",
+};
 const STATE_HELP: Record<string, string> = {
   OPEN: "Khách có thể thêm món và tạo đơn mới ngay lúc này.",
   PAUSED: "Đơn mới đang bị chặn cho đến khi nhà hàng bật nhận đơn trở lại.",
@@ -47,17 +49,14 @@ const STATE_HELP: Record<string, string> = {
   SUSPENDED: "Nhà hàng đang bị tạm ngưng và không thể nhận đơn mới.",
   UNPUBLISHED: "Nhà hàng chưa được xuất bản công khai.",
 };
-type Tab = "overview" | "orders" | "profile" | "menu" | "vouchers" | "hours" | "media" | "staff" | "wallet";
-const VALID_TABS: Tab[] = ["overview", "orders", "profile", "menu", "vouchers", "hours", "media", "staff", "wallet"];
+type Tab = "overview" | "orders" | "menu" | "vouchers" | "settings" | "wallet";
+const VALID_TABS: Tab[] = ["overview", "orders", "menu", "vouchers", "settings", "wallet"];
 const TAB_ICONS: Record<Tab, ReactNode> = {
   overview: <DashboardOutlinedIcon fontSize="small" />,
   orders: <ReceiptLongOutlinedIcon fontSize="small" />,
-  profile: <StorefrontOutlinedIcon fontSize="small" />,
   menu: <RestaurantMenuOutlinedIcon fontSize="small" />,
   vouchers: <ConfirmationNumberOutlinedIcon fontSize="small" />,
-  hours: <ScheduleOutlinedIcon fontSize="small" />,
-  media: <PhotoLibraryOutlinedIcon fontSize="small" />,
-  staff: <PeopleOutlineOutlinedIcon fontSize="small" />,
+  settings: <SettingsOutlinedIcon fontSize="small" />,
   wallet: <AccountBalanceWalletOutlinedIcon fontSize="small" />,
 };
 const BUCKET = "restaurant-media";
@@ -86,11 +85,12 @@ export default function OwnerDashboard({
   const canVouchers = permissions.has("restaurant.voucher.manage");
   const canStaff = permissions.has("restaurant.staff.manage");
   const canTransfer = permissions.has("restaurant.ownership.transfer");
+  const canSettings = canProfile || canHours || canMedia || canStaff;
   const openOrderCount = orders.items.filter((item) => !["completed", "cancelled"].includes(item.status)).length;
   const tabs: Array<[Tab, string, boolean]> = [
-    ["overview", "Tổng quan", true], ["orders", `Đơn hàng (${openOrderCount})`, permissions.has("restaurant.orders.manage")], ["profile", "Hồ sơ", canProfile],
-    ["menu", "Thực đơn", canMenu], ["vouchers", "Voucher", canVouchers], ["hours", "Giờ hoạt động", canHours], ["media", "Hình ảnh", canMedia],
-    ["staff", "Nhân sự", canStaff], ["wallet", "Tài chính", permissions.has("restaurant.finance.view")],
+    ["overview", "Tổng quan", true], ["orders", `Đơn hàng (${openOrderCount})`, permissions.has("restaurant.orders.manage")],
+    ["menu", "Thực đơn", canMenu], ["vouchers", "Voucher", canVouchers], ["settings", "Cài đặt", canSettings],
+    ["wallet", "Tài chính", permissions.has("restaurant.finance.view")],
   ];
 
   const run = (task: () => Promise<OwnerActionResult>) => startTransition(async () => {
@@ -114,14 +114,11 @@ export default function OwnerDashboard({
       </nav>
 
       <section className="owner-content">
-        {tab === "overview" && <Overview data={data} pending={pending} canOrders={canOrders} canProfile={canProfile} run={run} />}
+        {tab === "overview" && <Overview data={data} menu={menu} orders={orders} pending={pending} canOrders={canOrders} canManageOrders={permissions.has("restaurant.orders.manage")} canMenu={canMenu} canProfile={canProfile} run={run} onOpenOrders={() => setTab("orders")} onOpenMenu={() => setTab("menu")} />}
         {tab === "orders" && permissions.has("restaurant.orders.manage") && <OwnerOrderConsole restaurantId={data.restaurant.id} data={orders} canReject={permissions.has("restaurant.orders.reject")} />}
-        {tab === "profile" && canProfile && <Profile data={data} pending={pending} run={run} />}
         {tab === "menu" && canMenu && <OwnerMenuManager restaurantId={data.restaurant.id} data={menu} />}
         {tab === "vouchers" && canVouchers && <VoucherManagementPanel mode="owner" restaurantId={data.restaurant.id} data={vouchers} />}
-        {tab === "hours" && canHours && <Hours data={data} pending={pending} run={run} />}
-        {tab === "media" && canMedia && <Media data={data} pending={pending} run={run} />}
-        {tab === "staff" && canStaff && <Staff userId={userId} data={data} pending={pending} canTransfer={canTransfer} run={run} />}
+        {tab === "settings" && canSettings && <Settings userId={userId} data={data} pending={pending} canProfile={canProfile} canHours={canHours} canMedia={canMedia} canStaff={canStaff} canTransfer={canTransfer} run={run} />}
         {tab === "wallet" && permissions.has("restaurant.finance.view") && <OwnerWalletPlaceholder />}
       </section>
     </div>
@@ -137,9 +134,22 @@ function OwnerWalletPlaceholder() {
   </section>;
 }
 
-function Overview({ data, pending, canOrders, canProfile, run }: { data: OwnerDashboardData; pending: boolean; canOrders: boolean; canProfile: boolean; run: (task: () => Promise<OwnerActionResult>) => void }) {
+function ownerMoney(value: number) {
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(value);
+}
+
+function Overview({ data, menu, orders, pending, canOrders, canManageOrders, canMenu, canProfile, run, onOpenOrders, onOpenMenu }: { data: OwnerDashboardData; menu: OwnerMenuData; orders: OwnerOrderList; pending: boolean; canOrders: boolean; canManageOrders: boolean; canMenu: boolean; canProfile: boolean; run: (task: () => Promise<OwnerActionResult>) => void; onOpenOrders: () => void; onOpenMenu: () => void }) {
   const [reason, setReason] = useState("Tạm dừng vận hành");
   const restaurant = data.restaurant;
+  const recentOrders = orders.items.filter((item) => !["completed", "cancelled"].includes(item.status)).slice(0, 4);
+  const popularDishes = useMemo(() => {
+    const totals = new Map<string, number>();
+    orders.items.filter((order) => order.status !== "cancelled").forEach((order) => order.items.forEach((item) => totals.set(item.name, (totals.get(item.name) ?? 0) + item.quantity)));
+    return [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([name, quantity]) => {
+      const food = menu.foods.find((item) => item.name.trim().toLowerCase() === name.trim().toLowerCase());
+      return { name, quantity, image: food?.images.find((item) => item.isPrimary) ?? food?.images[0] };
+    });
+  }, [menu.foods, orders.items]);
   return <div className="owner-grid">
     <section className={`owner-card owner-card--hero ${restaurant.acceptingOrders ? "is-accepting" : "is-paused"}`}><div><p>Trạng thái nhận đơn thực tế</p><div className="owner-order-state"><h2>{STATE[restaurant.orderState] || restaurant.orderState}</h2><b>{restaurant.acceptingOrders ? "Cho phép đơn mới: BẬT" : "Cho phép đơn mới: TẮT"}</b></div><span>{STATE_HELP[restaurant.orderState] || `Duyệt: ${restaurant.approvalStatus} · Vận hành: ${restaurant.lifecycleStatus}`}</span>{!restaurant.acceptingOrders && restaurant.pausedReason && <small>Lý do: {restaurant.pausedReason}</small>}</div>
       {canOrders && restaurant.lifecycleStatus === "ACTIVE" && <div className="owner-order-control">
@@ -149,9 +159,23 @@ function Overview({ data, pending, canOrders, canProfile, run }: { data: OwnerDa
       {canProfile && restaurant.lifecycleStatus === "SETUP" && restaurant.approvalStatus === "APPROVED" && <button disabled={pending} onClick={() => run(() => publishRestaurantAction(restaurant.id))}>Xuất bản nhà hàng</button>}
     </section>
     <section className="owner-metrics"><article><strong>{data.orderStats.today}</strong><span>Đơn hôm nay</span></article><article><strong>{data.orderStats.open}</strong><span>Đơn đang xử lý</span></article><article><strong>{data.orderStats.completedToday}</strong><span>Hoàn tất hôm nay</span></article></section>
+    <div className="owner-dashboard-panels">
+      <section className="owner-card owner-dashboard-panel"><div className="owner-dashboard-panel__heading"><div><h2>Đơn hàng đang xử lý</h2><p>Cập nhật từ dữ liệu đơn hàng gần nhất.</p></div>{canManageOrders && <button type="button" onClick={onOpenOrders}>Xem tất cả</button>}</div><div className="owner-dashboard-orders">{recentOrders.map((order) => <article key={order.id}><span>{order.code.replace(/^#?EN-?/i, "#")}</span><div><strong>{order.receiverName}</strong><small>{order.items.reduce((sum, item) => sum + item.quantity, 0)} món · {ownerMoney(order.totalPrice)}</small></div><mark>{ORDER_STATE[order.status] || order.status}</mark></article>)}{!recentOrders.length && <p className="owner-dashboard-empty">Chưa có đơn đang xử lý.</p>}</div></section>
+      <section className="owner-card owner-dashboard-panel"><div className="owner-dashboard-panel__heading"><div><h2>Món bán chạy</h2><p>Tổng hợp từ tối đa 100 đơn gần nhất.</p></div>{canMenu && <button type="button" onClick={onOpenMenu}>Thực đơn</button>}</div><div className="owner-popular-list">{popularDishes.map((food, index) => <article key={food.name}><div className="owner-popular-list__image">{food.image ? <img src={food.image.url} alt={food.image.altText || food.name} /> : <span>{index + 1}</span>}<b>{index + 1}</b></div><div><strong>{food.name}</strong><small>{food.quantity} phần đã đặt</small></div></article>)}{!popularDishes.length && <p className="owner-dashboard-empty">Chưa đủ dữ liệu để xếp hạng món.</p>}</div></section>
+    </div>
     <section className="owner-card"><h2>Điều kiện vận hành</h2><ul className="owner-checklist"><li className={restaurant.approvalStatus === "APPROVED" ? "done" : ""}>Hồ sơ được phê duyệt</li><li className={restaurant.lat != null && restaurant.lon != null ? "done" : ""}>Có tọa độ giao hàng</li><li className={data.hours.length > 0 ? "done" : ""}>Đã cấu hình giờ mở cửa</li><li className={Boolean(restaurant.publishedAt) ? "done" : ""}>Đã xuất bản công khai</li></ul></section>
     <section className="owner-card"><h2>Thông tin nhanh</h2><dl className="owner-details"><div><dt>Địa chỉ</dt><dd>{restaurant.address}</dd></div><div><dt>Điện thoại</dt><dd>{restaurant.phone || "Chưa cập nhật"}</dd></div><div><dt>Múi giờ</dt><dd>{restaurant.timezone}</dd></div></dl></section>
   </div>;
+}
+
+function Settings({ userId, data, pending, canProfile, canHours, canMedia, canStaff, canTransfer, run }: { userId: string; data: OwnerDashboardData; pending: boolean; canProfile: boolean; canHours: boolean; canMedia: boolean; canStaff: boolean; canTransfer: boolean; run: (task: () => Promise<OwnerActionResult>) => void }) {
+  return <section className="owner-settings">
+    <header className="owner-settings__heading"><p>Thiết lập nhà hàng</p><h2>Cài đặt vận hành</h2><span>Quản lý hồ sơ, giờ mở cửa, hình ảnh và nhân sự tại một nơi.</span></header>
+    {canProfile && <div className="owner-settings__section"><div className="owner-settings__label"><span>01</span><div><strong>Thông tin nhà hàng</strong><small>Hồ sơ công khai và vị trí giao hàng</small></div></div><Profile data={data} pending={pending} run={run} /></div>}
+    {canHours && <div className="owner-settings__section"><div className="owner-settings__label"><span>02</span><div><strong>Giờ mở cửa</strong><small>Lịch nhận đơn theo từng ngày</small></div></div><Hours data={data} pending={pending} run={run} /></div>}
+    {canMedia && <div className="owner-settings__section"><div className="owner-settings__label"><span>03</span><div><strong>Hình ảnh</strong><small>Logo, ảnh bìa và thư viện nhà hàng</small></div></div><Media data={data} pending={pending} run={run} /></div>}
+    {canStaff && <div className="owner-settings__section"><div className="owner-settings__label"><span>04</span><div><strong>Nhân sự</strong><small>Lời mời và quyền quản lý nhà hàng</small></div></div><Staff userId={userId} data={data} pending={pending} canTransfer={canTransfer} run={run} /></div>}
+  </section>;
 }
 
 function Profile({ data, pending, run }: { data: OwnerDashboardData; pending: boolean; run: (task: () => Promise<OwnerActionResult>) => void }) {

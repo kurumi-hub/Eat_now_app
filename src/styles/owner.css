@@ -190,3 +190,90 @@
   .owner-metrics { gap: 10px; }
   .owner-metrics article { min-height: 90px; }
 }
+
+/* Dashboard activity panels */
+.owner-dashboard-panels { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(280px, .85fr); gap: 18px; }
+.owner-dashboard-panel { min-height: 390px; padding: 0; overflow: hidden; }
+.owner-dashboard-panel__heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 20px 22px; border-bottom: 1px solid var(--owner-line); }
+.owner-dashboard-panel__heading h2 { margin: 0 0 3px; }
+.owner-dashboard-panel__heading p { margin: 0; color: var(--owner-muted); font-size: 12px; }
+.owner-dashboard-panel__heading button { padding: 7px 0; background: transparent; color: var(--owner-accent); box-shadow: none; }
+.owner-dashboard-orders, .owner-popular-list { display: grid; gap: 11px; padding: 14px; }
+.owner-dashboard-orders article { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; gap: 13px; align-items: center; padding: 13px; border: 1px solid rgba(221, 193, 180, .48); border-radius: 11px; }
+.owner-dashboard-orders article > span { display: grid; width: 54px; height: 50px; place-items: center; border-radius: 9px; background: #e2e2e5; color: var(--owner-muted); font-size: 13px; font-weight: 900; }
+.owner-dashboard-orders article:first-child > span { background: #ff6b00; color: #fff; }
+.owner-dashboard-orders article div, .owner-popular-list article > div:last-child { display: grid; min-width: 0; gap: 4px; }
+.owner-dashboard-orders strong, .owner-popular-list strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.owner-dashboard-orders small, .owner-popular-list small { color: var(--owner-muted); }
+.owner-dashboard-orders mark { border-radius: 999px; padding: 6px 9px; background: #ffdbd0; color: var(--owner-accent); font-size: 10px; font-weight: 900; text-transform: uppercase; }
+.owner-popular-list article { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 13px; align-items: center; }
+.owner-popular-list__image { position: relative; display: grid; width: 64px; height: 64px; place-items: center; overflow: hidden; border-radius: 10px; background: var(--owner-soft); color: var(--owner-accent); font-size: 20px; font-weight: 900; }
+.owner-popular-list__image img { width: 100%; height: 100%; object-fit: cover; }
+.owner-popular-list__image b { position: absolute; top: 0; left: 0; min-width: 21px; padding: 3px 5px; background: var(--owner-accent); color: #fff; font-size: 10px; text-align: center; }
+.owner-dashboard-empty { margin: 0; padding: 30px 12px; color: var(--owner-muted); text-align: center; }
+
+/* Split order workspace */
+.owner-orders__split { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.owner-order-list--compact { position: sticky; top: 18px; max-height: calc(100vh - 40px); padding-right: 3px; overflow-y: auto; }
+.owner-order-list-card { display: grid; gap: 12px; width: 100%; padding: 15px; border: 1px solid var(--owner-line); border-radius: 13px; background: #fff; color: var(--owner-ink); font: inherit; text-align: left; box-shadow: 0 4px 12px rgba(119, 87, 77, .05); cursor: pointer; }
+.owner-order-list-card:hover { border-color: rgba(122, 48, 0, .45); transform: translateY(-1px); }
+.owner-order-list-card.is-selected { border: 2px solid #ff6b00; padding: 14px; box-shadow: 0 8px 18px rgba(122, 48, 0, .11); }
+.owner-order-list-card.has-incident { border-color: #d97b70; }
+.owner-order-list-card__top, .owner-order-list-card__customer, .owner-order-list-card__status { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.owner-order-list-card__top strong { color: var(--owner-accent); font-size: 16px; }
+.owner-order-list-card__top small, .owner-order-list-card__customer small { color: var(--owner-muted); font-size: 11px; }
+.owner-order-list-card__customer { align-items: flex-start; flex-direction: column; gap: 3px; }
+.owner-order-list-card__status { justify-content: flex-start; flex-wrap: wrap; }
+.owner-order-list-card__status mark, .owner-order-list-card__status em { border-radius: 999px; padding: 5px 8px; background: #ffdbd0; color: var(--owner-accent); font-size: 10px; font-style: normal; font-weight: 800; }
+.owner-order-list-card__status em { background: #e8f0f7; color: #3e637c; }
+.owner-order-detail { min-width: 0; }
+.owner-order-detail .order-journey { border-bottom: 1px solid #edf0f2; }
+
+/* Menu category navigator */
+.owner-menu__filters { grid-template-columns: minmax(220px, 1fr) 210px; }
+.owner-menu__layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 16px; align-items: start; }
+.owner-menu__categories { position: sticky; top: 18px; display: grid; gap: 7px; padding: 14px; border: 1px solid var(--owner-line); border-radius: 14px; background: #fff; box-shadow: 0 4px 12px rgba(119, 87, 77, .05); }
+.owner-menu__categories > div { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 3px 5px 10px; }
+.owner-menu__categories h3 { margin: 0; font: 800 19px var(--font-baloo), sans-serif; }
+.owner-menu__categories > div span { color: var(--owner-muted); font-size: 11px; }
+.owner-menu__categories button { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 10px; border: 0; border-radius: 9px; background: transparent; color: var(--owner-muted); font: inherit; font-size: 13px; font-weight: 700; text-align: left; cursor: pointer; }
+.owner-menu__categories button:hover, .owner-menu__categories button.is-active { background: #ffd3c6; color: var(--owner-accent); }
+.owner-menu__categories button b { display: grid; min-width: 24px; height: 22px; place-items: center; border-radius: 999px; background: #f0ecea; font-size: 10px; }
+.owner-menu__categories button.is-active b { background: #fff; }
+.owner-menu__catalog { min-width: 0; }
+
+/* Consolidated settings */
+.owner-settings { display: grid; gap: 22px; }
+.owner-settings__heading { padding: 24px; border: 1px solid var(--owner-line); border-radius: 14px; background: #fff; box-shadow: 0 4px 12px rgba(119, 87, 77, .06); }
+.owner-settings__heading p { margin: 0 0 5px; color: var(--owner-accent); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.owner-settings__heading h2 { margin: 0; font: 800 30px var(--font-baloo), sans-serif; }
+.owner-settings__heading span { color: var(--owner-muted); }
+.owner-settings__section { display: grid; gap: 10px; }
+.owner-settings__label { display: flex; align-items: center; gap: 10px; padding-inline: 4px; }
+.owner-settings__label > span { display: grid; width: 31px; height: 31px; flex: 0 0 31px; place-items: center; border-radius: 9px; background: #ffd3c6; color: var(--owner-accent); font-size: 11px; font-weight: 900; }
+.owner-settings__label div { display: grid; gap: 2px; }
+.owner-settings__label strong { font-size: 14px; }
+.owner-settings__label small { color: var(--owner-muted); }
+
+@media (max-width: 1180px) {
+  .owner-dashboard-panels { grid-template-columns: 1fr; }
+  .owner-dashboard-panel { min-height: 0; }
+  .owner-orders__split { grid-template-columns: minmax(250px, 310px) minmax(0, 1fr); }
+  .owner-order-card__body { grid-template-columns: 1fr; }
+}
+@media (max-width: 860px) {
+  .owner-orders__split { grid-template-columns: 1fr; }
+  .owner-order-list--compact { position: static; display: flex; max-height: none; padding: 1px 1px 8px; overflow-x: auto; }
+  .owner-order-list-card { min-width: 280px; }
+  .owner-menu__layout { grid-template-columns: 1fr; }
+  .owner-menu__categories { position: static; display: flex; overflow-x: auto; }
+  .owner-menu__categories > div { display: none; }
+  .owner-menu__categories button { width: auto; min-width: max-content; }
+}
+@media (max-width: 640px) {
+  .owner-dashboard-orders article { grid-template-columns: 48px minmax(0, 1fr); }
+  .owner-dashboard-orders article > span { width: 48px; height: 46px; }
+  .owner-dashboard-orders mark { grid-column: 2; width: fit-content; }
+  .owner-menu__filters { grid-template-columns: 1fr; }
+  .owner-order-list-card { min-width: 250px; }
+}
