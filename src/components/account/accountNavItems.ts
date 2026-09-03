@@ -3,6 +3,7 @@ import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlin
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
+import TwoWheelerOutlinedIcon from "@mui/icons-material/TwoWheelerOutlined";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
 import type { ComponentType } from "react";
 
@@ -43,6 +44,11 @@ export const accountNavItems: AccountNavItem[] = [
     label: "Bán hàng cùng EatNow",
     icon: StorefrontOutlinedIcon,
     allowedRoles: ["CUSTOMER", "RESTAURANT_OWNER"],
+  },
+  {
+    href: "/shipper",
+    label: "Kênh tài xế",
+    icon: TwoWheelerOutlinedIcon,
   },
 ];
 

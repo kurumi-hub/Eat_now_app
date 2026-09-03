@@ -10,6 +10,7 @@ import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
+import TwoWheelerOutlinedIcon from "@mui/icons-material/TwoWheelerOutlined";
 import {
   Avatar,
   Badge,
@@ -84,6 +85,7 @@ const navItems: { label: string; href: string; sectionId?: string }[] = [
   { label: "Khám phá", href: "/#home-hero", sectionId: "home-hero" },
   { label: "Nhà hàng", href: "/restaurants" },
   { label: "Ưu đãi", href: "/vouchers" },
+  { label: "Kênh tài xế", href: "/shipper" },
 ];
 
 function getInitials(fullName = "EatNow") {
@@ -466,6 +468,18 @@ export default function CustomerHeader({
                     </MenuItem>
                   </Link>
                 ) : null}
+                <Link
+                  href="/shipper"
+                  className={accountMenuLinkClassName}
+                  onClick={handleMenuClose}
+                >
+                  <MenuItem component="span">
+                    <ListItemIcon>
+                      <TwoWheelerOutlinedIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Kênh tài xế</ListItemText>
+                  </MenuItem>
+                </Link>
                 <Divider />
                 <form action={logout}>
                   <button type="submit" className={accountMenuLogoutClassName}>

@@ -16,6 +16,35 @@
   --color-eatnow-info: var(--eatnow-info);
   --font-display: var(--font-baloo);
   --font-sans: var(--font-be-vietnam);
+
+  /* ── Shipper Design Tokens (Material Design 3) ── */
+  --color-shipper-primary: #af2900;
+  --color-shipper-primary-container: #d2421b;
+  --color-shipper-on-primary: #ffffff;
+  --color-shipper-on-primary-container: #fffbff;
+  --color-shipper-bg: #fff8f5;
+  --color-shipper-bg-cream: #FFF8F4;
+  --color-shipper-surface: #fff8f5;
+  --color-shipper-surface-white: #FFFFFF;
+  --color-shipper-surface-container: #fbebe2;
+  --color-shipper-surface-high: #f5e5dd;
+  --color-shipper-surface-low: #fff1ea;
+  --color-shipper-surface-lowest: #ffffff;
+  --color-shipper-surface-highest: #efdfd7;
+  --color-shipper-surface-variant: #efdfd7;
+  --color-shipper-on-surface: #221a15;
+  --color-shipper-on-surface-variant: #5a413a;
+  --color-shipper-secondary: #685c55;
+  --color-shipper-secondary-container: #f0dfd6;
+  --color-shipper-border: #EADFD8;
+  --color-shipper-divider: #F1E6DF;
+  --color-shipper-hover: #FDF1EA;
+  --color-shipper-selected: #FCE6D8;
+  --color-shipper-success: #27865C;
+  --color-shipper-warning: #E59A21;
+  --color-shipper-error: #D63A3A;
+  --color-shipper-outline: #8e7069;
+  --color-shipper-outline-variant: #e2bfb6;
 }
 
 html {
@@ -76,5 +105,37 @@ html {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Shipper Animations ── */
+@keyframes shipperPulseRing {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  80%, 100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+@keyframes shipperCountdown {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: 283;
+  }
+}
+
+@keyframes shipperSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

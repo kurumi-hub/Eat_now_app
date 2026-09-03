@@ -50,6 +50,12 @@ export default function CustomerFooter({ onPlaceholder }: CustomerFooterProps) {
           >
             Chính sách
           </button>
+          <Link
+            className={footerButtonClassName}
+            href="/shipper"
+          >
+            Kênh tài xế
+          </Link>
           <button
             className={footerButtonClassName}
             type="button"

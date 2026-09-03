@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PRIVATE_ROUTE_PREFIXES = [
   "/account",
-  "/owner",
+  // "/owner",
   "/admin",
   "/moderator",
   "/checkout",

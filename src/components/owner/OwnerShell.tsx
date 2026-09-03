@@ -4,6 +4,7 @@ import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
@@ -102,6 +103,16 @@ export default function OwnerShell({ children }: OwnerShellProps) {
           </div>
         </div>
 
+        <Link
+          href="/"
+          className="mx-1 flex min-h-[36px] items-center justify-center gap-2 rounded-[7px] border border-[#ddc1b4] bg-[#fff8f5] px-3 py-1.5 text-xs font-bold text-[#7a3000] hover:bg-[#ffd3c6] transition-colors shadow-sm"
+          title="Quay về trang chủ EatNow"
+          onClick={closeMenu}
+        >
+          <HomeOutlinedIcon fontSize="small" />
+          <span>Về trang chủ EatNow</span>
+        </Link>
+
         <nav className={ownerStyles.sidebarNavClassName} aria-label="Owner main menu">
           {ownerNavItems.map((item) => (
             <SidebarLink
@@ -165,7 +176,17 @@ export default function OwnerShell({ children }: OwnerShellProps) {
             {activeItem?.label ?? "Dashboard"}
           </span>
         </div>
-        <span className={ownerStyles.mobileBadgeClassName}>{ordersBadge}</span>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1 rounded-full border border-[#ddc1b4] bg-[#fff8f5] px-2.5 py-1 text-xs font-bold text-[#7a3000] hover:bg-[#ffd3c6] transition-colors"
+            title="Quay về trang chủ EatNow"
+          >
+            <HomeOutlinedIcon fontSize="small" />
+            <span>Về EatNow</span>
+          </Link>
+          <span className={ownerStyles.mobileBadgeClassName}>{ordersBadge}</span>
+        </div>
       </header>
 
       <main className={ownerStyles.mainClassName}>{children}</main>
