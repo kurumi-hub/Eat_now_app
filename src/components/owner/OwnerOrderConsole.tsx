@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation";
 
 import { confirmShipperPickupAction, transitionOwnerOrderAction } from "@/app/owner/actions";
-import type { OwnerActionResult, OwnerOrderItem, OwnerOrderList } from "@/types/owner";
+import type { OwnerActionResult, OwnerMenuData, OwnerOrderItem, OwnerOrderList } from "@/types/owner";
 import { createClient } from "@/utils/supabase/client";
 import OrderJourneyTimeline from "@/components/order/OrderJourneyTimeline";
 import { parseOwnerOrders } from "@/lib/data/owner";
@@ -33,7 +33,7 @@ type PickupFeedback = {
   message: string;
 };
 
-export default function OwnerOrderConsole({ restaurantId, data: initialData, canReject }: { restaurantId: string; data: OwnerOrderList; canReject: boolean }) {
+export default function OwnerOrderConsole({ restaurantId, data: initialData, menu, canReject }: { restaurantId: string; data: OwnerOrderList; menu: OwnerMenuData; canReject: boolean }) {
   const router = useRouter(); const [pending, startTransition] = useTransition();
   const [data, setData] = useState(initialData);
   const [filter, setFilter] = useState<(typeof FILTERS)[number][0]>("all"); const [search, setSearch] = useState("");
@@ -123,6 +123,10 @@ export default function OwnerOrderConsole({ restaurantId, data: initialData, can
       filter === "incident" && item.incidentStatus === "open" || item.status === filter || item.deliveryStatus === filter;
     return matchesSearch && matchesFilter;
   }), [data.items, filter, search]);
+  const menuImages = useMemo(() => new Map(menu.foods.map((food) => {
+    const image = food.images.find((item) => item.isPrimary) ?? food.images[0];
+    return [food.name.trim().toLocaleLowerCase("vi"), image] as const;
+  })), [menu.foods]);
   const selectedOrder = items.find((item) => item.id === selectedOrderId) ?? items[0];
   const run = (item: OwnerOrderItem, action: "accept" | "reject" | "start_preparing" | "ready") => {
     let reason = ""; let etaMinutes: number | undefined;
@@ -165,17 +169,20 @@ export default function OwnerOrderConsole({ restaurantId, data: initialData, can
     {notice && <div className={`owner-notice ${notice.ok ? "is-success" : "is-error"}`}><span>{notice.message}</span><button type="button" onClick={() => setNotice(null)}>×</button></div>}
     <div className="owner-orders__tools"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm mã đơn, khách hoặc số điện thoại"/><div>{FILTERS.map(([value,label]) => <button type="button" key={value} className={filter === value ? "is-active" : ""} onClick={() => setFilter(value)}>{label}</button>)}</div></div>
     {items.length && selectedOrder ? <div className="owner-orders__split">
-      <div className="owner-order-list owner-order-list--compact">{items.map((item) => <button type="button" key={item.id} className={`owner-order-list-card${item.id === selectedOrder.id ? " is-selected" : ""}${item.incidentStatus === "open" ? " has-incident" : ""}`} onClick={() => setSelectedOrderId(item.id)}>
-        <span className="owner-order-list-card__top"><strong>{item.code}</strong><small>{time(item.createdAt)}</small></span>
-        <span className="owner-order-list-card__customer"><b>{item.receiverName}</b><small>{item.items.reduce((sum, food) => sum + food.quantity, 0)} món · {money(item.totalPrice)}</small></span>
-        <span className="owner-order-list-card__status"><mark>{STATUS[item.status] || item.status}</mark><em>{DELIVERY[item.deliveryStatus] || item.deliveryStatus}</em></span>
-      </button>)}</div>
+      <div className="owner-order-list owner-order-list--compact">{items.map((item) => {
+        const preview = menuImages.get(item.items[0]?.name.trim().toLocaleLowerCase("vi") ?? "");
+        return <button type="button" key={item.id} className={`owner-order-list-card${item.id === selectedOrder.id ? " is-selected" : ""}${item.incidentStatus === "open" ? " has-incident" : ""}`} onClick={() => setSelectedOrderId(item.id)}>
+          <span className="owner-order-list-card__top"><strong>{item.code}</strong><small>{time(item.createdAt)}</small></span>
+          <span className="owner-order-list-card__summary"><span className="owner-order-list-card__preview">{preview ? <img src={preview.url} alt={preview.altText || item.items[0]?.name || "Món ăn"} /> : <b>{item.items[0]?.name.slice(0, 1).toUpperCase() || "E"}</b>}</span><span className="owner-order-list-card__customer"><b>{item.receiverName}</b><small>{item.items.reduce((sum, food) => sum + food.quantity, 0)} món · {money(item.totalPrice)}</small><em>{item.items.slice(0, 2).map((food) => food.name).join(", ")}</em></span></span>
+          <span className="owner-order-list-card__status"><mark>{STATUS[item.status] || item.status}</mark><em>{DELIVERY[item.deliveryStatus] || item.deliveryStatus}</em></span>
+        </button>;
+      })}</div>
       <article className={`owner-order-card owner-order-detail${selectedOrder.incidentStatus === "open" ? " has-incident" : ""}`}>
         <header><div><span>{selectedOrder.code}</span><h3>{selectedOrder.receiverName}</h3><small>{time(selectedOrder.createdAt)} · {selectedOrder.receiverPhone}</small></div><div><b>{STATUS[selectedOrder.status] || selectedOrder.status}</b><em>{DELIVERY[selectedOrder.deliveryStatus] || selectedOrder.deliveryStatus}</em></div></header>
         {selectedOrder.incidentStatus === "open" && <div className="owner-order-incident"><strong>Cần hỗ trợ</strong><span>{selectedOrder.incidentReason || "Đơn đang được Admin kiểm tra."}</span></div>}
         {selectedOrder.deliveryStatus === "arrived_at_restaurant" && selectedOrder.pickupConfirmationRequestedAt && <div className="owner-order-pickup"><strong>Tài xế đang chờ xác nhận lấy món</strong><span>Kiểm tra đúng tài xế và biển số trước khi xác nhận bàn giao.</span></div>}
         <OrderJourneyTimeline orderStatus={selectedOrder.status} deliveryStatus={selectedOrder.deliveryStatus} events={selectedOrder.events} />
-        <div className="owner-order-card__body"><div><h4>Chi tiết món ăn</h4>{selectedOrder.items.map((food,index) => <p key={`${food.name}-${index}`}><strong>{food.quantity}× {food.name}{food.size ? ` · ${food.size}` : ""}</strong><span>{money(food.lineTotal)}</span>{food.note && <small>{food.note}</small>}</p>)}</div><dl><div><dt>Giao đến</dt><dd>{selectedOrder.deliveryAddress}</dd></div><div><dt>Thanh toán</dt><dd>{selectedOrder.payment.method.toUpperCase()} · {selectedOrder.payment.status}</dd></div><div><dt>Tổng tiền</dt><dd>{money(selectedOrder.totalPrice)}</dd></div>{selectedOrder.status === "pending" && selectedOrder.responseDueAt && <div><dt>Phản hồi trước</dt><dd>{time(selectedOrder.responseDueAt)}</dd></div>}{selectedOrder.status === "confirmed" && !selectedOrder.shipper && <div><dt>Thời hạn tìm tài xế</dt><dd>{time(searchDeadline(selectedOrder))}</dd></div>}{selectedOrder.shipper && <div><dt>Tài xế</dt><dd>{selectedOrder.shipper.name} · {selectedOrder.shipper.plateNumber}</dd></div>}{selectedOrder.preparationDueAt && <div><dt>Dự kiến xong</dt><dd>{time(selectedOrder.preparationDueAt)}</dd></div>}</dl></div>
+        <div className="owner-order-card__body"><div><h4>Chi tiết món ăn</h4><div className="owner-order-food-list">{selectedOrder.items.map((food,index) => { const image = menuImages.get(food.name.trim().toLocaleLowerCase("vi")); return <article className="owner-order-food-row" key={`${food.name}-${index}`}><span className="owner-order-food-row__image">{image ? <img src={image.url} alt={image.altText || food.name} /> : <b>{food.name.slice(0, 1).toUpperCase()}</b>}</span><span><strong>{food.quantity}× {food.name}{food.size ? ` · ${food.size}` : ""}</strong>{food.note && <small>{food.note}</small>}</span><b>{money(food.lineTotal)}</b></article>; })}</div></div><dl><div><dt>Giao đến</dt><dd>{selectedOrder.deliveryAddress}</dd></div><div><dt>Thanh toán</dt><dd>{selectedOrder.payment.method.toUpperCase()} · {selectedOrder.payment.status}</dd></div><div><dt>Tổng tiền</dt><dd>{money(selectedOrder.totalPrice)}</dd></div>{selectedOrder.status === "pending" && selectedOrder.responseDueAt && <div><dt>Phản hồi trước</dt><dd>{time(selectedOrder.responseDueAt)}</dd></div>}{selectedOrder.status === "confirmed" && !selectedOrder.shipper && <div><dt>Thời hạn tìm tài xế</dt><dd>{time(searchDeadline(selectedOrder))}</dd></div>}{selectedOrder.shipper && <div><dt>Tài xế</dt><dd>{selectedOrder.shipper.name} · {selectedOrder.shipper.plateNumber}</dd></div>}{selectedOrder.preparationDueAt && <div><dt>Dự kiến xong</dt><dd>{time(selectedOrder.preparationDueAt)}</dd></div>}</dl></div>
         {selectedOrder.note && <blockquote>Ghi chú khách: {selectedOrder.note}</blockquote>}
         <details><summary>Lịch sử trạng thái ({selectedOrder.events.length})</summary><ol>{selectedOrder.events.map((event) => <li key={event.id}><span>{event.toOrderStatus || event.toDeliveryStatus || event.eventType}</span><small>{event.source} · {time(event.createdAt)}{event.note ? ` · ${event.note}` : ""}</small></li>)}</ol></details>
         {pickupFeedback?.orderId === selectedOrder.id && <div className={`owner-order-pickup-feedback is-${pickupFeedback.state}`} role="status" aria-live="polite">{pickupFeedback.message}</div>}

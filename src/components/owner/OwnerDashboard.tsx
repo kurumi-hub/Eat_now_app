@@ -115,7 +115,7 @@ export default function OwnerDashboard({
 
       <section className="owner-content">
         {tab === "overview" && <Overview data={data} menu={menu} orders={orders} pending={pending} canOrders={canOrders} canManageOrders={permissions.has("restaurant.orders.manage")} canMenu={canMenu} canProfile={canProfile} run={run} onOpenOrders={() => setTab("orders")} onOpenMenu={() => setTab("menu")} />}
-        {tab === "orders" && permissions.has("restaurant.orders.manage") && <OwnerOrderConsole restaurantId={data.restaurant.id} data={orders} canReject={permissions.has("restaurant.orders.reject")} />}
+        {tab === "orders" && permissions.has("restaurant.orders.manage") && <OwnerOrderConsole restaurantId={data.restaurant.id} data={orders} menu={menu} canReject={permissions.has("restaurant.orders.reject")} />}
         {tab === "menu" && canMenu && <OwnerMenuManager restaurantId={data.restaurant.id} data={menu} />}
         {tab === "vouchers" && canVouchers && <VoucherManagementPanel mode="owner" restaurantId={data.restaurant.id} data={vouchers} />}
         {tab === "settings" && canSettings && <Settings userId={userId} data={data} pending={pending} canProfile={canProfile} canHours={canHours} canMedia={canMedia} canStaff={canStaff} canTransfer={canTransfer} run={run} />}
@@ -169,12 +169,24 @@ function Overview({ data, menu, orders, pending, canOrders, canManageOrders, can
 }
 
 function Settings({ userId, data, pending, canProfile, canHours, canMedia, canStaff, canTransfer, run }: { userId: string; data: OwnerDashboardData; pending: boolean; canProfile: boolean; canHours: boolean; canMedia: boolean; canStaff: boolean; canTransfer: boolean; run: (task: () => Promise<OwnerActionResult>) => void }) {
+  type SettingsTab = "profile" | "hours" | "media" | "staff";
+  const settingsTabs: Array<{ id: SettingsTab; label: string; description: string; visible: boolean }> = [
+    { id: "profile", label: "Thông tin nhà hàng", description: "Hồ sơ và vị trí", visible: canProfile },
+    { id: "hours", label: "Giờ mở cửa", description: "Lịch nhận đơn", visible: canHours },
+    { id: "media", label: "Hình ảnh", description: "Logo, ảnh bìa và thư viện", visible: canMedia },
+    { id: "staff", label: "Nhân sự", description: "Lời mời và phân quyền", visible: canStaff },
+  ];
+  const availableTabs = settingsTabs.filter((item) => item.visible);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>(availableTabs[0]?.id ?? "profile");
   return <section className="owner-settings">
     <header className="owner-settings__heading"><p>Thiết lập nhà hàng</p><h2>Cài đặt vận hành</h2><span>Quản lý hồ sơ, giờ mở cửa, hình ảnh và nhân sự tại một nơi.</span></header>
-    {canProfile && <div className="owner-settings__section"><div className="owner-settings__label"><span>01</span><div><strong>Thông tin nhà hàng</strong><small>Hồ sơ công khai và vị trí giao hàng</small></div></div><Profile data={data} pending={pending} run={run} /></div>}
-    {canHours && <div className="owner-settings__section"><div className="owner-settings__label"><span>02</span><div><strong>Giờ mở cửa</strong><small>Lịch nhận đơn theo từng ngày</small></div></div><Hours data={data} pending={pending} run={run} /></div>}
-    {canMedia && <div className="owner-settings__section"><div className="owner-settings__label"><span>03</span><div><strong>Hình ảnh</strong><small>Logo, ảnh bìa và thư viện nhà hàng</small></div></div><Media data={data} pending={pending} run={run} /></div>}
-    {canStaff && <div className="owner-settings__section"><div className="owner-settings__label"><span>04</span><div><strong>Nhân sự</strong><small>Lời mời và quyền quản lý nhà hàng</small></div></div><Staff userId={userId} data={data} pending={pending} canTransfer={canTransfer} run={run} /></div>}
+    <nav className="owner-settings__tabs" aria-label="Các mục cài đặt">{availableTabs.map((item) => <button type="button" key={item.id} className={settingsTab === item.id ? "is-active" : ""} aria-current={settingsTab === item.id ? "page" : undefined} onClick={() => setSettingsTab(item.id)}><strong>{item.label}</strong><small>{item.description}</small></button>)}</nav>
+    <div className="owner-settings__panel">
+      {settingsTab === "profile" && canProfile && <Profile data={data} pending={pending} run={run} />}
+      {settingsTab === "hours" && canHours && <Hours data={data} pending={pending} run={run} />}
+      {settingsTab === "media" && canMedia && <Media data={data} pending={pending} run={run} />}
+      {settingsTab === "staff" && canStaff && <Staff userId={userId} data={data} pending={pending} canTransfer={canTransfer} run={run} />}
+    </div>
   </section>;
 }
 

@@ -63,6 +63,22 @@ export default function OwnerMenuManager({
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   useEffect(() => setFoods(data.foods), [data.foods]);
+  useEffect(() => {
+    if (!editing) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !pending) {
+        setEditing(null);
+        setImageFile(null);
+      }
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [editing, pending]);
 
   const filtered = useMemo(() => foods.filter((food) => {
     const query = search.trim().toLocaleLowerCase("vi");
@@ -142,18 +158,11 @@ export default function OwnerMenuManager({
     });
   };
 
-  if (editing) {
-    const existing = editing.id ? foods.find((food) => food.id === editing.id) : undefined;
-    const currentImage = existing?.images.find((item) => item.isPrimary) ?? existing?.images[0];
-    return <FoodEditor data={data} draft={editing} imageFile={imageFile}
-      currentImage={currentImage}
-      pending={pending} onChange={setEditing} onImage={setImageFile}
-      onCancel={() => { setEditing(null); setImageFile(null); }} onSubmit={submit}
-      onDeleteImage={currentImage ? () => run(() => deleteFoodImageAction(currentImage.id)) : undefined}
-      notice={notice} />;
-  }
+  const existing = editing?.id ? foods.find((food) => food.id === editing.id) : undefined;
+  const currentImage = existing?.images.find((item) => item.isPrimary) ?? existing?.images[0];
+  const closeEditor = () => { setEditing(null); setImageFile(null); };
 
-  return <section className="owner-menu">
+  return <><section className="owner-menu">
     <div className="owner-menu__heading"><div><p>Quản lý theo từng nhà hàng</p><h2>Thực đơn</h2><span>Mỗi món có một category chính và có thể gắn nhiều tag.</span></div><button disabled={pending} onClick={() => setEditing(emptyDraft())}>+ Thêm món</button></div>
     {notice && <div className={`owner-notice ${notice.ok ? "is-success" : "is-error"}`} role="status">{notice.message}<button onClick={() => setNotice(null)}>×</button></div>}
     <div className="owner-menu__filters">
@@ -188,7 +197,18 @@ export default function OwnerMenuManager({
         </div>
       </div>
     </div>
-  </section>;
+  </section>
+    {editing && <div className="owner-food-modal" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !pending) closeEditor(); }}>
+      <div className="owner-food-modal__panel" role="dialog" aria-modal="true" aria-label={editing.id ? `Chỉnh sửa ${editing.name}` : "Thêm món ăn"}>
+        <FoodEditor data={data} draft={editing} imageFile={imageFile}
+          currentImage={currentImage}
+          pending={pending} onChange={setEditing} onImage={setImageFile}
+          onCancel={closeEditor} onSubmit={submit}
+          onDeleteImage={currentImage ? () => run(() => deleteFoodImageAction(currentImage.id)) : undefined}
+          notice={notice} />
+      </div>
+    </div>}
+  </>;
 }
 
 function FoodEditor({ data, draft, imageFile, currentImage, pending, notice, onChange, onImage, onCancel, onSubmit, onDeleteImage }: {
@@ -203,7 +223,7 @@ function FoodEditor({ data, draft, imageFile, currentImage, pending, notice, onC
     const next = [...draft.toppingGroups]; next[index] = value; set("toppingGroups", next);
   };
   return <section className="owner-card owner-food-editor">
-    <div className="owner-card__heading"><div><p>Thực đơn / {draft.id ? "Chỉnh sửa" : "Tạo mới"}</p><h2>{draft.id ? draft.name : "Thêm món ăn"}</h2><span>Món mới luôn được lưu ở trạng thái ẩn. Hãy thêm ảnh rồi bật món trong danh sách.</span></div><button type="button" onClick={onCancel}>Quay lại</button></div>
+    <div className="owner-card__heading"><div><p>Biểu mẫu món ăn / {draft.id ? "Chỉnh sửa" : "Tạo mới"}</p><h2>{draft.id ? draft.name : "Thêm món ăn"}</h2><span>Món mới luôn được lưu ở trạng thái ẩn. Hãy thêm ảnh rồi bật món trong danh sách.</span></div><button type="button" onClick={onCancel}>Đóng</button></div>
     {notice && <div className={`owner-notice ${notice.ok ? "is-success" : "is-error"}`}>{notice.message}</div>}
     <form onSubmit={onSubmit} className="owner-food-form">
       <fieldset><legend>Thông tin món</legend><div className="owner-form">
