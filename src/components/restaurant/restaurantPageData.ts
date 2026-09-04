@@ -31,6 +31,9 @@ export type RestaurantDirectory = {
   items: RestaurantListItem[];
   categories: RestaurantListCategory[];
   total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
 };
 
 export type ViewerLocation = {

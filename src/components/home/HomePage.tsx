@@ -1,8 +1,6 @@
 "use client";
 
-import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
-import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import StarBorderOutlinedIcon from "@mui/icons-material/StarBorderOutlined";
@@ -13,7 +11,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { PublicUser } from "@/types/auth";
 import type { SiteMediaItem } from "@/types/siteMedia";
-import { signalNavigationStart } from "@/utils/navigationFeedback";
 import { nearbyFoods } from "./homeData";
 import type { HomeCategory, HomeRestaurant } from "./homeData";
 
@@ -29,15 +26,7 @@ type SnackbarState = {
   message: string;
 };
 
-function scrollToSection(sectionId: string) {
-  document.getElementById(sectionId)?.scrollIntoView({
-    behavior: "smooth",
-    block: "start",
-  });
-}
-
 export default function HomePage({
-  user,
   categories,
   featuredRestaurants,
   heroImage,
@@ -192,34 +181,6 @@ export default function HomePage({
         <SmartToyOutlinedIcon />
         <span>Trợ lý FoodBot</span>
       </button>
-
-      <nav className="home-bottom-nav" aria-label="Điều hướng nhanh">
-        <button
-          className="is-active"
-          type="button"
-          onClick={() => scrollToSection("home-hero")}
-        >
-          <HomeOutlinedIcon />
-          <span>Khám phá</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => scrollToSection("featured-restaurants")}
-        >
-          <RestaurantMenuOutlinedIcon />
-          <span>Nhà hàng</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            signalNavigationStart();
-            router.push(user ? "/account/profile" : "/login");
-          }}
-        >
-          <AccountCircleOutlinedIcon />
-          <span>Tài khoản</span>
-        </button>
-      </nav>
 
       <Snackbar
         open={snackbar.open}

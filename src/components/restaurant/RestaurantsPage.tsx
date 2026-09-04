@@ -1,16 +1,12 @@
 "use client";
 
-import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import BakeryDiningOutlinedIcon from "@mui/icons-material/BakeryDiningOutlined";
 import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
-import ExploreOutlinedIcon from "@mui/icons-material/ExploreOutlined";
 import FastfoodOutlinedIcon from "@mui/icons-material/FastfoodOutlined";
-import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import LocalCafeOutlinedIcon from "@mui/icons-material/LocalCafeOutlined";
 import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import RamenDiningOutlinedIcon from "@mui/icons-material/RamenDiningOutlined";
-import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
 import RiceBowlOutlinedIcon from "@mui/icons-material/RiceBowlOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
@@ -22,9 +18,9 @@ import type { SvgIconComponent } from "@mui/icons-material";
 import { Alert, Snackbar } from "@mui/material";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState, useTransition } from "react";
 
-import type { PublicUser } from "@/types/auth";
 import {
   distanceKm,
   estimatedDeliveryMinutes,
@@ -41,13 +37,20 @@ import {
 
 type RestaurantsPageProps = {
   data: RestaurantDirectory;
-  user: PublicUser | null;
   initialLocation: ViewerLocation | null;
   initialCategoryId?: string;
   initialSearch?: string;
+  initialFilterIds?: RestaurantFilterId[];
+  initialSort?: RestaurantSortId;
+  initialPage?: number;
 };
 
-const PAGE_SIZE = 12;
+const FILTER_PARAMS: Record<RestaurantFilterId, string> = {
+  open: "open",
+  freeship: "freeship",
+  promotion: "promotion",
+  nearby: "nearby",
+};
 
 function iconForCategory(category: RestaurantListCategory): SvgIconComponent {
   const label = category.label.toLocaleLowerCase("vi");
@@ -86,53 +89,57 @@ function requestBrowserLocation() {
 
 export default function RestaurantsPage({
   data,
-  user,
   initialLocation,
   initialCategoryId = "",
   initialSearch = "",
+  initialFilterIds = [],
+  initialSort = "recommended",
+  initialPage = 1,
 }: RestaurantsPageProps) {
-  const [activeCategoryId, setActiveCategoryId] = useState(initialCategoryId);
-  const [activeFilterIds, setActiveFilterIds] = useState<RestaurantFilterId[]>([]);
-  const [sort, setSort] = useState<RestaurantSortId>("recommended");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isNavigating, startNavigation] = useTransition();
   const [search, setSearch] = useState(initialSearch);
   const [location, setLocation] = useState<ViewerLocation | null>(initialLocation);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [notice, setNotice] = useState("");
+  const totalPages = Math.max(1, Math.ceil(data.total / data.pageSize));
+  const hasActiveFilters = Boolean(
+    initialCategoryId ||
+    initialFilterIds.length ||
+    initialSearch ||
+    initialSort !== "recommended"
+  );
 
-  const filteredRestaurants = useMemo(() => {
-    const normalizedSearch = search.trim().toLocaleLowerCase("vi");
-    const items = data.items.filter((restaurant) => {
-      const distance = distanceKm(location, restaurant);
-      const matchesSearch = !normalizedSearch ||
-        restaurant.name.toLocaleLowerCase("vi").includes(normalizedSearch) ||
-        restaurant.address.toLocaleLowerCase("vi").includes(normalizedSearch) ||
-        restaurant.categoryLabels.some((label) =>
-          label.toLocaleLowerCase("vi").includes(normalizedSearch)
-        );
-      const matchesCategory = !activeCategoryId ||
-        restaurant.categoryIds.includes(activeCategoryId);
-      const matchesFilters = activeFilterIds.every((filterId) => {
-        if (filterId === "open") return restaurant.orderState === "OPEN";
-        if (filterId === "freeship") return restaurant.hasFreeship;
-        if (filterId === "promotion") return restaurant.hasPromotion;
-        return distance !== null && distance <= 3;
-      });
-      return matchesSearch && matchesCategory && matchesFilters;
+  const updateQuery = useCallback((
+    updates: Record<string, string | null>,
+    resetPage = true
+  ) => {
+    const next = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value) next.set(key, value);
+      else next.delete(key);
     });
+    if (resetPage && !("page" in updates)) next.delete("page");
+    const query = next.toString();
+    startNavigation(() => router.replace(`/restaurants${query ? `?${query}` : ""}`, { scroll: false }));
+  }, [router, searchParams]);
 
-    return [...items].sort((left, right) => {
-      if (sort === "rating") {
-        return right.rating - left.rating || right.reviewCount - left.reviewCount;
-      }
-      if (sort === "nearest") {
-        return (distanceKm(location, left) ?? Number.POSITIVE_INFINITY) -
-          (distanceKm(location, right) ?? Number.POSITIVE_INFINITY);
-      }
-      return right.rating - left.rating || right.reviewCount - left.reviewCount;
-    });
-  }, [activeCategoryId, activeFilterIds, data.items, location, search, sort]);
-
-  useEffect(() => setVisibleCount(PAGE_SIZE), [activeCategoryId, activeFilterIds, search, sort]);
+  useEffect(() => setSearch(initialSearch), [initialSearch]);
+  useEffect(() => setLocation(initialLocation), [initialLocation?.lat, initialLocation?.lon]);
+  useEffect(() => {
+    const normalized = search.trim();
+    if (normalized === initialSearch) return;
+    const timer = window.setTimeout(
+      () => updateQuery({ q: normalized || null }),
+      400
+    );
+    return () => window.clearTimeout(timer);
+  }, [initialSearch, search, updateQuery]);
+  useEffect(() => {
+    if (data.total > 0 && initialPage > totalPages) {
+      updateQuery({ page: String(totalPages) }, false);
+    }
+  }, [data.total, initialPage, totalPages, updateQuery]);
 
   const ensureLocation = async () => {
     if (location) return location;
@@ -147,39 +154,58 @@ export default function RestaurantsPage({
   };
 
   const toggleQuickFilter = async (filterId: RestaurantFilterId) => {
-    if (filterId === "nearby" && !activeFilterIds.includes(filterId)) {
-      const nextLocation = await ensureLocation();
+    const active = initialFilterIds.includes(filterId);
+    let nextLocation = location;
+    if (filterId === "nearby" && !active) {
+      nextLocation = await ensureLocation();
       if (!nextLocation) return;
     }
-    setActiveFilterIds((current) =>
-      current.includes(filterId)
-        ? current.filter((id) => id !== filterId)
-        : [...current, filterId]
-    );
+    updateQuery({
+      [FILTER_PARAMS[filterId]]: active ? null : "1",
+      ...(filterId === "nearby" && nextLocation ? {
+        lat: active && initialSort !== "nearest" ? null : String(nextLocation.lat),
+        lon: active && initialSort !== "nearest" ? null : String(nextLocation.lon),
+      } : {}),
+    });
   };
 
   const changeSort = async (nextSort: RestaurantSortId) => {
-    if (nextSort === "nearest" && !(await ensureLocation())) return;
-    setSort(nextSort);
+    let nextLocation = location;
+    if (nextSort === "nearest") {
+      nextLocation = await ensureLocation();
+      if (!nextLocation) return;
+    }
+    updateQuery({
+      sort: nextSort === "recommended" ? null : nextSort,
+      ...(nextSort === "nearest" && nextLocation ? {
+        lat: String(nextLocation.lat),
+        lon: String(nextLocation.lon),
+      } : !initialFilterIds.includes("nearby") ? { lat: null, lon: null } : {}),
+    });
   };
 
   const clearFilters = () => {
-    setActiveCategoryId("");
-    setActiveFilterIds([]);
     setSearch("");
+    updateQuery({
+      q: null,
+      category: null,
+      open: null,
+      freeship: null,
+      promotion: null,
+      nearby: null,
+      sort: null,
+      page: null,
+      lat: null,
+      lon: null,
+    }, false);
   };
-
-  const visibleRestaurants = filteredRestaurants.slice(0, visibleCount);
-  const hasActiveFilters = Boolean(
-    activeCategoryId || activeFilterIds.length || search.trim()
-  );
 
   return (
     <div className="restaurant-list-page">
       <main className="restaurant-list-main">
         <section className="restaurant-list-intro" aria-labelledby="restaurants-title">
           <nav className="restaurant-list-breadcrumb" aria-label="Đường dẫn">
-            <Link href="/">Trang chủ</Link>
+            <Link href="/?home=1">Trang chủ</Link>
             <ChevronRightOutlinedIcon fontSize="small" />
             <span>Nhà hàng</span>
           </nav>
@@ -188,7 +214,7 @@ export default function RestaurantsPage({
             <div>
               <h1 id="restaurants-title">Khám phá nhà hàng</h1>
               <p>
-                Tìm thấy <strong>{filteredRestaurants.length.toLocaleString("vi-VN")}</strong>{" "}
+                Tìm thấy <strong>{data.total.toLocaleString("vi-VN")}</strong>{" "}
                 nhà hàng phù hợp
               </p>
             </div>
@@ -209,14 +235,15 @@ export default function RestaurantsPage({
               <div className="restaurant-category-rail">
                 {data.categories.map((category) => {
                   const Icon = iconForCategory(category);
-                  const active = category.id === activeCategoryId;
+                  const active = category.id === initialCategoryId;
                   return (
                     <button
                       key={category.id}
                       type="button"
                       className={active ? "is-active" : ""}
                       aria-pressed={active}
-                      onClick={() => setActiveCategoryId(active ? "" : category.id)}
+                      disabled={isNavigating}
+                      onClick={() => updateQuery({ category: active ? null : category.id })}
                     >
                       <span className="restaurant-category-rail__icon"><Icon /></span>
                       <span>{category.label}</span>
@@ -233,6 +260,7 @@ export default function RestaurantsPage({
             <button
               type="button"
               className={`restaurant-filter-chip restaurant-filter-chip--control${hasActiveFilters ? " is-active" : ""}`}
+              disabled={isNavigating}
               onClick={clearFilters}
             >
               <TuneOutlinedIcon fontSize="small" />
@@ -243,8 +271,9 @@ export default function RestaurantsPage({
               <button
                 key={filter.id}
                 type="button"
-                className={`restaurant-filter-chip${activeFilterIds.includes(filter.id) ? " is-active" : ""}`}
-                aria-pressed={activeFilterIds.includes(filter.id)}
+                disabled={isNavigating}
+                className={`restaurant-filter-chip${initialFilterIds.includes(filter.id) ? " is-active" : ""}`}
+                aria-pressed={initialFilterIds.includes(filter.id)}
                 onClick={() => void toggleQuickFilter(filter.id)}
               >
                 {filter.id === "promotion" ? <LocalOfferOutlinedIcon fontSize="small" /> : null}
@@ -256,7 +285,8 @@ export default function RestaurantsPage({
           <label className="restaurant-sort-control">
             <span>Sắp xếp:</span>
             <select
-              value={sort}
+              value={initialSort}
+              disabled={isNavigating}
               onChange={(event) => void changeSort(event.target.value as RestaurantSortId)}
             >
               {restaurantSortOptions.map((option) => (
@@ -269,13 +299,13 @@ export default function RestaurantsPage({
         <section className="restaurant-results-section" aria-labelledby="restaurant-results-title">
           <div className="restaurant-results-heading">
             <h2 id="restaurant-results-title">Nhà hàng phù hợp với bạn</h2>
-            <span>{filteredRestaurants.length.toLocaleString("vi-VN")} kết quả</span>
+            <span>{data.total.toLocaleString("vi-VN")} kết quả</span>
           </div>
 
-          {visibleRestaurants.length ? (
+          {data.items.length ? (
             <>
-              <div className="restaurant-list-grid">
-                {visibleRestaurants.map((restaurant, index) => (
+              <div className={`restaurant-list-grid${isNavigating ? " is-loading" : ""}`} aria-busy={isNavigating}>
+                {data.items.map((restaurant, index) => (
                   <RestaurantCard
                     key={restaurant.id}
                     restaurant={restaurant}
@@ -284,12 +314,26 @@ export default function RestaurantsPage({
                   />
                 ))}
               </div>
-              {visibleCount < filteredRestaurants.length ? (
-                <div className="restaurant-list-more-row">
-                  <button type="button" onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}>
-                    Xem thêm nhà hàng
+              {totalPages > 1 ? (
+                <nav className="restaurant-list-pagination" aria-label="Phân trang nhà hàng">
+                  <button
+                    type="button"
+                    disabled={isNavigating || initialPage <= 1}
+                    onClick={() => updateQuery({ page: String(initialPage - 1) }, false)}
+                  >
+                    Trang trước
                   </button>
-                </div>
+                  <span>
+                    Trang <strong>{initialPage}</strong> / {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={isNavigating || initialPage >= totalPages}
+                    onClick={() => updateQuery({ page: String(initialPage + 1) }, false)}
+                  >
+                    Trang sau
+                  </button>
+                </nav>
               ) : null}
             </>
           ) : (
@@ -302,15 +346,6 @@ export default function RestaurantsPage({
           )}
         </section>
       </main>
-
-      <nav className="restaurant-list-bottom-nav" aria-label="Điều hướng nhanh">
-        <Link href="/"><HomeOutlinedIcon /><span>Trang chủ</span></Link>
-        <Link className="is-active" href="/restaurants"><ExploreOutlinedIcon /><span>Khám phá</span></Link>
-        <Link href="/orders"><ReceiptLongOutlinedIcon /><span>Đơn hàng</span></Link>
-        <Link href={user ? "/account/profile" : "/login?next=/account/profile"}>
-          <AccountCircleOutlinedIcon /><span>Tài khoản</span>
-        </Link>
-      </nav>
 
       <Snackbar
         open={Boolean(notice)}

@@ -378,6 +378,48 @@
 .restaurant-list-card__status.is-closed { color: #9a3a32; }
 .restaurant-list-card__status.is-closed > span { background: #c14e43; }
 
+.restaurant-list-grid.is-loading {
+  opacity: .55;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+.restaurant-list-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.restaurant-list-pagination button {
+  min-height: 42px;
+  border: 1px solid #d9bcae;
+  border-radius: 999px;
+  background: #fff;
+  color: #873808;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  padding: 9px 18px;
+}
+
+.restaurant-list-pagination button:hover:not(:disabled) {
+  border-color: #a04100;
+  background: #fff5ef;
+}
+
+.restaurant-list-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.restaurant-list-pagination span {
+  color: #70584d;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .restaurant-list-more-row {
   display: flex;
   justify-content: center;
@@ -438,6 +480,8 @@
   .restaurant-category-rail button { min-width: 84px; min-height: 92px; }
   .restaurant-list-grid { grid-template-columns: 1fr; }
   .restaurant-list-card__media { height: 190px; }
+  .restaurant-list-pagination { gap: 8px; }
+  .restaurant-list-pagination button { min-height: 40px; padding-inline: 13px; }
   .restaurant-list-bottom-nav {
     position: fixed;
     right: 10px;

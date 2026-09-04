@@ -128,7 +128,7 @@ export default function FoodDetailPage({
     <div className="restaurant-detail-page food-detail-page">
       <main className="food-detail-main">
         <nav className="restaurant-detail-breadcrumb" aria-label="Đường dẫn">
-          <Link href="/">Trang chủ</Link><span>/</span>
+          <Link href="/?home=1">Trang chủ</Link><span>/</span>
           <Link href="/restaurants">Nhà hàng</Link><span>/</span>
           <Link href={`/restaurants/${restaurant.slug}`}>{restaurant.name}</Link><span>/</span>
           <strong>{food.name}</strong>

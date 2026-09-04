@@ -91,6 +91,23 @@ type RestaurantDirectoryRpc = {
   }>;
   categories?: Array<{ id: string; name: string }>;
   total?: number;
+  page?: number;
+  page_size?: number;
+  has_more?: boolean;
+};
+
+export type RestaurantDirectoryQuery = {
+  search?: string;
+  categoryId?: string;
+  openOnly?: boolean;
+  freeshipOnly?: boolean;
+  promotionOnly?: boolean;
+  lat?: number | null;
+  lon?: number | null;
+  maxDistanceKm?: number | null;
+  sort?: "recommended" | "nearest" | "rating";
+  page?: number;
+  pageSize?: number;
 };
 
 type RestaurantPageExtrasRpc = {
@@ -242,11 +259,24 @@ function mapDirectoryItem(
   };
 }
 
-const fetchRestaurantDirectory = unstable_cache(async (): Promise<RestaurantDirectory> => {
+const fetchRestaurantDirectory = unstable_cache(async (
+  query: RestaurantDirectoryQuery
+): Promise<RestaurantDirectory> => {
   const supabase = createPublicClient();
+  const page = Math.max(1, Math.trunc(query.page ?? 1));
+  const pageSize = Math.min(48, Math.max(1, Math.trunc(query.pageSize ?? 12)));
   const { data, error } = await supabase.rpc("api_list_public_restaurants", {
-    p_limit: 100,
-    p_offset: 0,
+    p_search: query.search?.trim() || null,
+    p_category_id: query.categoryId?.trim() || null,
+    p_open_only: query.openOnly === true,
+    p_freeship_only: query.freeshipOnly === true,
+    p_promotion_only: query.promotionOnly === true,
+    p_lat: query.lat ?? null,
+    p_lon: query.lon ?? null,
+    p_max_distance_km: query.maxDistanceKm ?? null,
+    p_sort: query.sort ?? "recommended",
+    p_limit: pageSize,
+    p_offset: (page - 1) * pageSize,
   });
 
   if (!error && data) {
@@ -255,7 +285,14 @@ const fetchRestaurantDirectory = unstable_cache(async (): Promise<RestaurantDire
     const categories: RestaurantListCategory[] = (payload.categories ?? []).map(
       (category) => ({ id: category.id, label: category.name })
     );
-    return { items, categories, total: Number(payload.total ?? items.length) };
+    return {
+      items,
+      categories,
+      total: Number(payload.total ?? items.length),
+      page: Number(payload.page ?? page),
+      pageSize: Number(payload.page_size ?? pageSize),
+      hasMore: payload.has_more === true,
+    };
   }
 
   const isMissingRpc =
@@ -266,8 +303,8 @@ const fetchRestaurantDirectory = unstable_cache(async (): Promise<RestaurantDire
     throw new Error(error?.message ?? "Không thể tải danh sách nhà hàng.");
   }
 
-  // Cho phép deploy source trước SQL 48. RPC nổi bật không có category/toạ độ,
-  // nhưng trang vẫn hiển thị được dữ liệu thật thay vì rơi về dữ liệu mock.
+  // Cho phép deploy source trước SQL 52. RPC nổi bật vẫn lấy dữ liệu thật,
+  // nhưng không hỗ trợ bộ lọc nâng cao và chỉ được dùng làm phương án tạm thời.
   const { data: featured, error: featuredError } = await supabase.rpc(
     "api_featured_restaurants",
     { p_limit: 50 }
@@ -281,18 +318,31 @@ const fetchRestaurantDirectory = unstable_cache(async (): Promise<RestaurantDire
       categories: [],
     })
   );
-  return { items, categories: [], total: items.length };
-}, ["public-restaurant-directory-v1"], {
+  const offset = (page - 1) * pageSize;
+  const pageItems = items.slice(offset, offset + pageSize);
+  return {
+    items: pageItems,
+    categories: [],
+    total: items.length,
+    page,
+    pageSize,
+    hasMore: offset + pageItems.length < items.length,
+  };
+}, ["public-restaurant-directory-v2-server-filters"], {
   revalidate: 60,
   tags: ["catalog", "restaurants", "vouchers"],
 });
 
-export async function getRestaurantDirectory(): Promise<RestaurantDirectory> {
+export async function getRestaurantDirectory(
+  query: RestaurantDirectoryQuery = {}
+): Promise<RestaurantDirectory> {
   try {
-    return await fetchRestaurantDirectory();
+    return await fetchRestaurantDirectory(query);
   } catch (error) {
     console.error("getRestaurantDirectory RPC error:", error);
-    return { items: [], categories: [], total: 0 };
+    const page = Math.max(1, Math.trunc(query.page ?? 1));
+    const pageSize = Math.min(48, Math.max(1, Math.trunc(query.pageSize ?? 12)));
+    return { items: [], categories: [], total: 0, page, pageSize, hasMore: false };
   }
 }
 

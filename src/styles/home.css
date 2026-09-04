@@ -747,7 +747,8 @@
   outline-offset: 4px;
 }
 
-.home-bottom-nav {
+.home-bottom-nav,
+.mobile-bottom-nav {
   display: none;
 }
 
@@ -893,7 +894,7 @@
     bottom: 92px;
   }
 
-  .home-bottom-nav {
+  .mobile-bottom-nav {
     position: fixed;
     right: 12px;
     bottom: 12px;
@@ -909,7 +910,7 @@
     padding: 8px;
   }
 
-  .home-bottom-nav button {
+  .mobile-bottom-nav a {
     display: grid;
     min-width: 0;
     min-height: 48px;
@@ -925,13 +926,17 @@
     line-height: 14px;
   }
 
-  .home-bottom-nav button.is-active {
+  .mobile-bottom-nav a.is-active {
     background: #ffd3c6;
     color: #7a594f;
   }
 
-  .home-bottom-nav svg {
+  .mobile-bottom-nav svg {
     font-size: 20px;
+  }
+
+  .site-chrome.has-mobile-bottom-nav {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
   }
 }
 

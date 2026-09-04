@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
 import SiteFooter from "@/components/common/SiteFooter";
+import MobileBottomNav from "@/components/common/MobileBottomNav";
 import CustomerHeader from "@/components/home/CustomerHeader";
 import type { PublicUser } from "@/types/auth";
 
@@ -23,6 +24,8 @@ const CHROMELESS_PREFIXES = [
   "/auth",
 ];
 
+const WORKSPACE_PREFIXES = ["/admin", "/moderator", "/owner", "/shipper"];
+
 export default function SiteChrome({
   user,
   deliveryAddress,
@@ -32,6 +35,9 @@ export default function SiteChrome({
   const router = useRouter();
   const [notice, setNotice] = useState("");
   const hideChrome = CHROMELESS_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+  const showMobileBottomNav = !WORKSPACE_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
   const navigateToSection = (sectionId: string) => {
@@ -49,7 +55,7 @@ export default function SiteChrome({
   if (hideChrome) return children;
 
   return (
-    <div className="site-chrome">
+    <div className={`site-chrome${showMobileBottomNav ? " has-mobile-bottom-nav" : ""}`}>
       <CustomerHeader
         user={user}
         deliveryAddress={deliveryAddress}
@@ -67,6 +73,7 @@ export default function SiteChrome({
       />
       {children}
       <SiteFooter onPlaceholder={setNotice} />
+      {showMobileBottomNav ? <MobileBottomNav user={user} /> : null}
       <Snackbar
         open={Boolean(notice)}
         autoHideDuration={3200}

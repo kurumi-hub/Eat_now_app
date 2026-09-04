@@ -2,11 +2,9 @@
 
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
-import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
-import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import StarOutlinedIcon from "@mui/icons-material/StarOutlined";
@@ -221,7 +219,7 @@ export default function RestaurantDetailPage({
     <div className="restaurant-detail-page">
       <main className="restaurant-detail-main">
         <nav className="restaurant-detail-breadcrumb" aria-label="Đường dẫn">
-          <Link href="/">Trang chủ</Link><span>/</span>
+          <Link href="/?home=1">Trang chủ</Link><span>/</span>
           <Link href="/restaurants">Nhà hàng</Link><span>/</span>
           <strong>{restaurant.name}</strong>
         </nav>
@@ -470,12 +468,6 @@ export default function RestaurantDetailPage({
         </section>
 
       </main>
-
-      <nav className="restaurant-bottom-nav" aria-label="Điều hướng nhanh">
-        <Link href="/"><HomeOutlinedIcon /><span>Trang chủ</span></Link>
-        <Link className="is-active" href="/restaurants"><RestaurantMenuOutlinedIcon /><span>Khám phá</span></Link>
-        <Link href="/orders"><ReceiptLongOutlinedIcon /><span>Đơn hàng</span></Link>
-      </nav>
 
       <Dialog
         open={voucherDialogOpen}
