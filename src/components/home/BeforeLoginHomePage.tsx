@@ -4,7 +4,6 @@ import LocalMallOutlinedIcon from "@mui/icons-material/LocalMallOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import RestaurantOutlinedIcon from "@mui/icons-material/RestaurantOutlined";
 import RouteOutlinedIcon from "@mui/icons-material/RouteOutlined";
-import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -27,8 +26,6 @@ import {
   beforeFaqSectionClassName,
   beforeFaqTabClassName,
   beforeFaqTabsClassName,
-  beforeFoodbotClassName,
-  beforeFoodbotLabelClassName,
   beforeFooterBrandClassName,
   beforeFooterButtonClassName,
   beforeFooterClassName,
@@ -341,11 +338,6 @@ export default function BeforeLoginHomePage({
           </div>
         </section>
       </main>
-
-      <Link className={beforeFoodbotClassName} href="/login" aria-label="Trợ lý FoodBot">
-        <SmartToyOutlinedIcon />
-        <span className={beforeFoodbotLabelClassName}>Trợ lý FoodBot</span>
-      </Link>
 
       <footer className={beforeFooterClassName}>
         <div className={beforeFooterInnerClassName}>

@@ -4,6 +4,7 @@ import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import { Baloo_2, Be_Vietnam_Pro } from "next/font/google";
 
 import { CartProvider } from "@/contexts/CartContext";
+import FoodBotWidget from "@/components/chatbot/FoodBotWidget";
 import AppThemeProvider from "@/theme/AppThemeProvider";
 import "./globals.css";
 import "@/styles/variables.css";
@@ -47,7 +48,10 @@ export default function RootLayout({
       <body className="eatnow-body">
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
           <AppThemeProvider>
-            <CartProvider>{children}</CartProvider>
+            <CartProvider>
+              {children}
+              <FoodBotWidget />
+            </CartProvider>
           </AppThemeProvider>
         </AppRouterCacheProvider>
       </body>

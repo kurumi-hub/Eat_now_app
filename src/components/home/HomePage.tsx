@@ -5,7 +5,6 @@ import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
-import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import StarBorderOutlinedIcon from "@mui/icons-material/StarBorderOutlined";
 import { Alert, Button, Snackbar } from "@mui/material";
 import Image from "next/image";
@@ -47,8 +46,6 @@ import {
   flashProgressClassName,
   flashRestaurantNameClassName,
   flashTitleGroupClassName,
-  foodbotClassName,
-  foodbotLabelClassName,
   foodCardClassName,
   foodGridClassName,
   foodMediaClassName,
@@ -384,20 +381,6 @@ export default function HomePage({
           </div>
         </section>
       </main>
-
-      <button
-        className={foodbotClassName}
-        type="button"
-        aria-label="Mở trợ lý FoodBot"
-        onClick={() =>
-          showPlaceholder(
-            "Trợ lý FoodBot sẽ được triển khai ở sprint tiếp theo."
-          )
-        }
-      >
-        <SmartToyOutlinedIcon />
-        <span className={foodbotLabelClassName}>Trợ lý FoodBot</span>
-      </button>
 
       <nav className={bottomNavClassName} aria-label="Điều hướng nhanh">
         <button

@@ -85,7 +85,6 @@ const navItems: { label: string; href: string; sectionId?: string }[] = [
   { label: "Khám phá", href: "/#home-hero", sectionId: "home-hero" },
   { label: "Nhà hàng", href: "/restaurants" },
   { label: "Ưu đãi", href: "/vouchers" },
-  { label: "Kênh tài xế", href: "/shipper" },
 ];
 
 function getInitials(fullName = "EatNow") {
