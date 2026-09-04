@@ -116,6 +116,7 @@
 .customer-live-map__legend b.is-shipper { background: #a04100; }
 .customer-live-map__legend b.is-restaurant { background: #e34f2f; }
 .customer-live-map__legend b.is-destination { background: #2f76d2; }
+.customer-live-map__legend b.is-route { width: 14px; height: 3px; border-radius: 999px; background: #287c59; }
 .customer-live-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .customer-live-summary > div { display: grid; gap: 3px; border-radius: 13px; padding: 12px 14px; background: #fff6ef; }
 .customer-live-summary span { color: #765b50; font-size: 12px; }

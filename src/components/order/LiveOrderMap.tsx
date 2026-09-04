@@ -17,6 +17,7 @@ type LiveOrderMapProps = {
   restaurant: OrderMapPoint | null;
   destination: OrderMapPoint | null;
   focus: "restaurant" | "destination";
+  showRoute?: boolean;
 };
 
 const DEFAULT_CENTER = { lat: 10.0452, lng: 105.7469 };
@@ -158,6 +159,68 @@ function MarkerLayer({
   return null;
 }
 
+function DirectionsLayer({
+  shipper,
+  restaurant,
+  destination,
+  focus,
+}: LiveOrderMapProps) {
+  const map = useMap();
+  const renderer = useRef<google.maps.DirectionsRenderer | null>(null);
+  const lastRequest = useRef<{ lat: number; lon: number; targetLat: number; targetLon: number; at: number } | null>(null);
+  const target = focus === "restaurant" ? restaurant : destination;
+
+  useEffect(() => {
+    if (!map) return;
+    renderer.current = new google.maps.DirectionsRenderer({
+      map,
+      suppressMarkers: true,
+      preserveViewport: false,
+      polylineOptions: {
+        strokeColor: "#287c59",
+        strokeOpacity: .9,
+        strokeWeight: 6,
+      },
+    });
+    return () => {
+      renderer.current?.setMap(null);
+      renderer.current = null;
+    };
+  }, [map]);
+
+  useEffect(() => {
+    if (!map || !isValidPoint(shipper) || !isValidPoint(target)) return;
+    const previous = lastRequest.current;
+    const moved = previous
+      ? Math.hypot(shipper.lat - previous.lat, shipper.lon - previous.lon) * 111_000
+      : Number.POSITIVE_INFINITY;
+    const sameTarget = previous?.targetLat === target.lat && previous.targetLon === target.lon;
+    if (previous && sameTarget && Date.now() - previous.at < 15_000 && moved < 80) return;
+
+    let active = true;
+    const timer = window.setTimeout(() => {
+      lastRequest.current = { lat: shipper.lat, lon: shipper.lon, targetLat: target.lat, targetLon: target.lon, at: Date.now() };
+      const service = new google.maps.DirectionsService();
+      service.route({
+        origin: { lat: shipper.lat, lng: shipper.lon },
+        destination: { lat: target.lat, lng: target.lon },
+        travelMode: google.maps.TravelMode.DRIVING,
+        provideRouteAlternatives: false,
+      }, (result, status) => {
+        if (active && status === google.maps.DirectionsStatus.OK && result) {
+          renderer.current?.setDirections(result);
+        }
+      });
+    }, 500);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [map, shipper?.lat, shipper?.lon, target?.lat, target?.lon]);
+
+  return null;
+}
+
 function normalizeApiKey(raw: string) {
   const value = raw.trim();
   const assignment = value.match(/^NEXT_PUBLIC_GOOGLE_MAPS_API_KEY\s*=\s*(.+)$/);
@@ -207,12 +270,14 @@ export default function LiveOrderMap(props: LiveOrderMapProps) {
           clickableIcons={false}
         >
           <MarkerLayer {...props} />
+          {props.showRoute && <DirectionsLayer {...props} />}
         </Map>
       </APIProvider>
       <div className="customer-live-map__legend" aria-hidden="true">
         <span><b className="is-shipper" /> Tài xế</span>
         <span><b className="is-restaurant" /> Nhà hàng</span>
         <span><b className="is-destination" /> Điểm giao</span>
+        {props.showRoute && <span><b className="is-route" /> Chỉ đường</span>}
       </div>
     </div>
   );
