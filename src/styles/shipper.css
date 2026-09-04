@@ -162,12 +162,15 @@
 .shipper-tracking-setting.is-enabled button { background: #eee9e7; color: #7b3c28; box-shadow: none; }
 .shipper-page.is-delivery-tab { width: 100%; margin: 0; }
 body.shipper-map-open { overflow: hidden; }
+body.shipper-map-open .site-footer { display: none; }
 .shipper-page.is-delivery-tab > .shipper-hero { display: none; }
 .shipper-page.is-delivery-tab > .shipper-notice { position: fixed; z-index: 190; top: 76px; right: 18px; max-width: min(420px,calc(100% - 36px)); }
-.shipper-page.is-delivery-tab .shipper-workspace { margin-top: 0; }
+.shipper-page.is-delivery-tab .shipper-workspace { position: relative; display: block; margin-top: 0; }
+.shipper-page.is-delivery-tab .shipper-tabs { position: absolute; z-index: 20; top: 16px; left: 16px; width: 220px; }
+.shipper-page.is-delivery-tab .shipper-content { display: block; }
 .shipper-delivery-screen { position: relative; height: calc(100dvh - 68px); min-height: 560px; overflow: hidden; background: #eef2ef; }
 .shipper-delivery-screen > .shipper-map-stage { position: absolute; inset: 0; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
-.shipper-delivery-screen .shipper-map-stage__heading { position: absolute; z-index: 8; top: 14px; right: 14px; left: 14px; max-width: 520px; border: 1px solid rgba(221,193,180,.72); border-radius: 14px; background: rgba(255,255,255,.94); box-shadow: 0 8px 22px rgba(53,40,35,.14); backdrop-filter: blur(12px); }
+.shipper-delivery-screen .shipper-map-stage__heading { position: absolute; z-index: 8; top: 14px; right: 14px; left: 268px; max-width: 520px; border: 1px solid rgba(221,193,180,.72); border-radius: 14px; background: rgba(255,255,255,.94); box-shadow: 0 8px 22px rgba(53,40,35,.14); backdrop-filter: blur(12px); }
 .shipper-delivery-screen .shipper-map-stage__map { height: 100%; border: 0; }
 .shipper-delivery-screen .customer-live-map__legend { top: 112px; bottom: auto; }
 .shipper-delivery-sheet { --sheet-drag: 0px; position: absolute; z-index: 12; right: 18px; bottom: 18px; width: min(560px,calc(100% - 36px)); height: min(76dvh,720px); overflow: hidden; border: 1px solid var(--shipper-line); border-radius: 22px 22px 16px 16px; background: #fff; box-shadow: 0 -10px 34px rgba(53,40,35,.2); transform: translateY(calc(100% - 128px + var(--sheet-drag))); transition: transform 220ms ease; }
@@ -193,6 +196,7 @@ body.shipper-map-open { overflow: hidden; }
   .shipper-workspace { display: block; margin-top: 12px; }
   .shipper-page.is-delivery-tab .shipper-workspace { margin-top: 0; }
   .shipper-page.is-delivery-tab .shipper-content { display: block; }
+  .shipper-page.is-delivery-tab .shipper-tabs { width: auto; }
   .shipper-tabs { position: fixed !important; z-index: 160; inset: auto 0 0 !important; width: auto; height: auto; margin: 0 !important; padding: 7px max(10px,env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left)); overflow: visible; border-width: 1px 0 0; border-radius: 18px 18px 0 0; background: rgba(255,255,255,.98); box-shadow: 0 -8px 26px rgba(53,40,35,.14); transform: none !important; }
   .shipper-tabs__items { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; min-width: 0; }
   .shipper-tabs button { display: grid; justify-items: center; align-content: center; gap: 2px; width: 100%; min-height: 52px; padding: 5px 3px; border-radius: 11px; font-size: 10px; text-align: center; white-space: normal; }
@@ -217,7 +221,7 @@ body.shipper-map-open { overflow: hidden; }
   .shipper-delivery-sheet__body { height: calc(100% - 106px); padding: 0 10px 20px; }
   .shipper-delivery-screen .shipper-map-stage__heading { top: 10px; right: 10px; left: 10px; padding: 12px 14px; }
   .shipper-delivery-screen .shipper-map-stage__heading span { display: none; }
-  .shipper-delivery-screen .customer-live-map__legend { top: 94px; }
+  .shipper-delivery-screen .customer-live-map__legend { top: 94px; bottom: auto; }
   .shipper-tracking-setting { align-items: stretch; flex-direction: column; }
   .shipper-tracking-setting button { width: 100%; }
   .shipper-active-actions { position: sticky; z-index: 20; bottom: calc(70px + env(safe-area-inset-bottom)); margin: 15px -10px -10px; padding: 10px; border-top: 1px solid var(--shipper-line); background: rgba(255,255,255,.96); box-shadow: 0 -7px 18px rgba(53,40,35,.08); }
