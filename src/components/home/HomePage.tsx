@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import type { PublicUser } from "@/types/auth";
 import CustomerFooter from "./CustomerFooter";
 import CustomerHeader from "./CustomerHeader";
+import UserRankingSection from "./UserRankingSection";
 import {
   flashSaleItems,
   homeCategories,
@@ -380,6 +381,8 @@ export default function HomePage({
             ))}
           </div>
         </section>
+
+        <UserRankingSection />
       </main>
 
       <nav className={bottomNavClassName} aria-label="Điều hướng nhanh">
