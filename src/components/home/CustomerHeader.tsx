@@ -1,5 +1,6 @@
 "use client";
 
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import ExpandMoreOutlinedIcon from "@mui/icons-material/ExpandMoreOutlined";
 import HomeWorkOutlinedIcon from "@mui/icons-material/HomeWorkOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
@@ -25,19 +26,20 @@ import {
   MenuItem,
 } from "@mui/material";
 import Link from "next/link";
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { logout } from "@/app/auth/actions";
 import type { PublicUser } from "@/types/auth";
 import { hasAnyRole, hasRole } from "@/utils/roles";
 import { useCartStore } from "@/store/cartStore";
 import { useCartSession } from "@/store/useCartSession";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
+import { signalNavigationStart } from "@/utils/navigationFeedback";
 
 type CustomerHeaderProps = {
   user: PublicUser | null;
   deliveryAddress?: string | null;
   activeSectionId?: string | null;
-  onPlaceholder: (message: string) => void;
   onSectionNavigate: (sectionId: string) => void;
 };
 
@@ -61,9 +63,13 @@ export default function CustomerHeader({
   user,
   deliveryAddress,
   activeSectionId = "home-hero",
-  onPlaceholder,
   onSectionNavigate,
 }: CustomerHeaderProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const routeSearch = pathname === "/restaurants" ? searchParams.get("q")?.trim() ?? "" : "";
+  const [search, setSearch] = useState(routeSearch);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const hasSellerAccess = hasAnyRole(user, [
     "RESTAURANT_OWNER",
@@ -79,11 +85,31 @@ export default function CustomerHeader({
   const cartReady = useCartSession(user?.id ?? null);
   const cartBadgeCount = cartReady ? totalItems : 0;
 
+  useEffect(() => setSearch(routeSearch), [routeSearch]);
+
+  const navigateToSearch = (value: string, replace = false) => {
+    const next = pathname === "/restaurants"
+      ? new URLSearchParams(searchParams.toString())
+      : new URLSearchParams();
+    const normalized = value.trim();
+    if (normalized) next.set("q", normalized);
+    else next.delete("q");
+    next.delete("page");
+    const query = next.toString();
+    signalNavigationStart();
+    const href = `/restaurants${query ? `?${query}` : ""}`;
+    if (replace) router.replace(href);
+    else router.push(href);
+  };
+
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onPlaceholder(
-      "Tính năng tìm kiếm sẽ được triển khai ở sprint tiếp theo."
-    );
+    navigateToSearch(search);
+  };
+
+  const clearSearch = () => {
+    setSearch("");
+    if (pathname === "/restaurants" && routeSearch) navigateToSearch("", true);
   };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -124,9 +150,21 @@ export default function CustomerHeader({
           </span>
           <InputBase
             className="home-search__input"
-            placeholder="Tìm kiếm món ăn, nhà hàng..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Tìm nhà hàng hoặc món ăn..."
             inputProps={{ "aria-label": "Tìm kiếm món ăn hoặc nhà hàng" }}
           />
+          {search ? (
+            <IconButton
+              type="button"
+              aria-label="Xóa từ khóa tìm kiếm"
+              className="home-search__clear"
+              onClick={clearSearch}
+            >
+              <CloseOutlinedIcon />
+            </IconButton>
+          ) : null}
           <IconButton
             type="submit"
             aria-label="Tìm kiếm"

@@ -24,8 +24,7 @@
 .restaurant-results-heading,
 .restaurant-list-card__rating,
 .restaurant-list-card__meta,
-.restaurant-list-card__status,
-.restaurant-list-search {
+.restaurant-list-card__status {
   display: flex;
   align-items: center;
 }
@@ -65,27 +64,33 @@
 
 .restaurant-list-title-row p strong { color: #a04100; }
 
-.restaurant-list-search {
-  width: min(100%, 360px);
-  min-height: 46px;
-  gap: 10px;
-  border: 1px solid #d9c9c1;
-  border-radius: 999px;
-  background: #fff;
-  color: #8e7164;
-  padding: 0 16px;
-  box-shadow: 0 6px 16px rgba(75, 48, 36, 0.06);
+.restaurant-search-summary {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid #ead6cc;
+  border-radius: 14px;
+  background: #fff5ef;
+  color: #6d554b;
+  padding: 10px 14px;
 }
 
-.restaurant-list-search input {
-  width: 100%;
-  min-width: 0;
+.restaurant-search-summary strong { color: #8f3905; }
+
+.restaurant-search-summary button {
+  flex: 0 0 auto;
   border: 0;
-  outline: 0;
   background: transparent;
-  color: #1a1c1e;
+  color: #a04100;
+  cursor: pointer;
   font: inherit;
+  font-size: 13px;
+  font-weight: 800;
 }
+
+.restaurant-search-summary button:disabled { cursor: wait; opacity: .5; }
 
 .restaurant-category-section { margin-top: 4px; }
 
@@ -466,7 +471,6 @@
 @media (max-width: 820px) {
   .restaurant-list-main { padding-inline: 18px; }
   .restaurant-list-title-row { align-items: stretch; flex-direction: column; }
-  .restaurant-list-search { width: 100%; }
   .restaurant-list-filter-panel { position: static; align-items: stretch; flex-direction: column; }
   .restaurant-sort-control { justify-content: space-between; }
   .restaurant-list-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

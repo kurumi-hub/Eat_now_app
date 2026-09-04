@@ -10,7 +10,6 @@ import RamenDiningOutlinedIcon from "@mui/icons-material/RamenDiningOutlined";
 import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
 import RiceBowlOutlinedIcon from "@mui/icons-material/RiceBowlOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
-import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import SoupKitchenOutlinedIcon from "@mui/icons-material/SoupKitchenOutlined";
 import StarOutlinedIcon from "@mui/icons-material/StarOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
@@ -99,7 +98,6 @@ export default function RestaurantsPage({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isNavigating, startNavigation] = useTransition();
-  const [search, setSearch] = useState(initialSearch);
   const [location, setLocation] = useState<ViewerLocation | null>(initialLocation);
   const [notice, setNotice] = useState("");
   const totalPages = Math.max(1, Math.ceil(data.total / data.pageSize));
@@ -124,17 +122,7 @@ export default function RestaurantsPage({
     startNavigation(() => router.replace(`/restaurants${query ? `?${query}` : ""}`, { scroll: false }));
   }, [router, searchParams]);
 
-  useEffect(() => setSearch(initialSearch), [initialSearch]);
   useEffect(() => setLocation(initialLocation), [initialLocation?.lat, initialLocation?.lon]);
-  useEffect(() => {
-    const normalized = search.trim();
-    if (normalized === initialSearch) return;
-    const timer = window.setTimeout(
-      () => updateQuery({ q: normalized || null }),
-      400
-    );
-    return () => window.clearTimeout(timer);
-  }, [initialSearch, search, updateQuery]);
   useEffect(() => {
     if (data.total > 0 && initialPage > totalPages) {
       updateQuery({ page: String(totalPages) }, false);
@@ -185,7 +173,6 @@ export default function RestaurantsPage({
   };
 
   const clearFilters = () => {
-    setSearch("");
     updateQuery({
       q: null,
       category: null,
@@ -218,16 +205,16 @@ export default function RestaurantsPage({
                 nhà hàng phù hợp
               </p>
             </div>
-            <label className="restaurant-list-search">
-              <SearchOutlinedIcon fontSize="small" />
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Tìm nhà hàng hoặc món ăn"
-              />
-            </label>
           </div>
+
+          {initialSearch ? (
+            <div className="restaurant-search-summary" role="status">
+              <span>Kết quả cho <strong>“{initialSearch}”</strong></span>
+              <button type="button" disabled={isNavigating} onClick={() => updateQuery({ q: null })}>
+                Xóa tìm kiếm
+              </button>
+            </div>
+          ) : null}
 
           {data.categories.length ? (
             <div className="restaurant-category-section">

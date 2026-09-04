@@ -68,7 +68,6 @@ export default function SiteChrome({
               ? "vouchers"
               : null
         }
-        onPlaceholder={setNotice}
         onSectionNavigate={navigateToSection}
       />
       {children}

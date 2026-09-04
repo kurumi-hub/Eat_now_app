@@ -117,9 +117,18 @@
 }
 
 .home-search__button,
+.home-search__clear,
 .home-cart-button,
 .home-notification-button {
   color: #7a3000;
+}
+
+.home-search__clear {
+  color: #8e7164;
+}
+
+.home-search__clear svg {
+  font-size: 19px;
 }
 
 .home-visually-hidden {
