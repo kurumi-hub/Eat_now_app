@@ -12,12 +12,11 @@ import {
   releaseDeliveryAction, requestPickupConfirmationAction, setShipperOnlineAction, submitDeliveryProofAction,
   submitShipperApplicationAction, updateDeliveryAction, updateShipperLocationAction,
 } from "@/app/shipper/actions";
-import { logout } from "@/app/auth/actions";
 import type { PublicUser } from "@/types/auth";
 import type { ActiveDelivery, DeliveryRouteStop, DeliveryStatus, ShipperActionResult, ShipperApplicationInput, ShipperDashboardData } from "@/types/shipper";
 import { createClient } from "@/utils/supabase/client";
 import OrderJourneyTimeline from "@/components/order/OrderJourneyTimeline";
-import LiveOrderMap from "@/components/order/LiveOrderMap";
+import LiveOrderMap, { type LiveMapLocation } from "@/components/order/LiveOrderMap";
 import { parseShipperDashboard } from "@/lib/data/shipper";
 
 const APPLICATION_STATUS: Record<string, { label: string; message: string }> = {
@@ -52,6 +51,7 @@ function routeHref(stops: DeliveryRouteStop[]) { const pending = stops.filter((s
 export default function ShipperDashboard({ user, data: initialData }: { user: PublicUser; data: ShipperDashboardData }) {
   const [data, setData] = useState(initialData); const [pending, startTransition] = useTransition();
   const [tab, setTab] = useState<ShipperTab>(initialData.activeDeliveries.length ? "deliveries" : "available");
+  const [liveLocation, setLiveLocation] = useState<LiveMapLocation | null>(initialData.profile?.lat != null && initialData.profile.lon != null ? { lat: initialData.profile.lat, lon: initialData.profile.lon } : null);
   const [realtimeState, setRealtimeState] = useState<"connecting" | "live" | "retrying">("connecting");
   const [notice, setNotice] = useState<ShipperActionResult | null>(null); const application = data.application;
   // Hồ sơ tài xế đã được tạo mới là nguồn xác nhận quyền vận hành. Không để
@@ -69,6 +69,15 @@ export default function ShipperDashboard({ user, data: initialData }: { user: Pu
   }, []);
   useEffect(() => setData(initialData), [initialData]);
   useEffect(() => { if (data.activeDeliveries.length) setTab("deliveries"); }, [data.activeDeliveries.length]);
+  useEffect(() => {
+    const lat = data.profile?.lat; const lon = data.profile?.lon;
+    if (lat == null || lon == null) return;
+    setLiveLocation((current) => current ?? { lat, lon });
+  }, [data.profile?.lat, data.profile?.lon]);
+  useEffect(() => {
+    if (tab !== "deliveries" || liveLocation || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition((position) => setLiveLocation({ lat: position.coords.latitude, lon: position.coords.longitude, heading: position.coords.heading ?? undefined }), () => undefined, { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 });
+  }, [tab, liveLocation]);
   const run = (task: () => Promise<ShipperActionResult>) => startTransition(async () => { const result = await task(); setNotice(result); if (result.ok) await syncDashboard(); });
   useEffect(() => { if (!data.offers.length) return; const nextExpiry = Math.min(...data.offers.map((offer) => new Date(offer.expiresAt).getTime())); const timer = window.setTimeout(() => void syncDashboard(), Math.max(250, nextExpiry - Date.now() + 250)); return () => window.clearTimeout(timer); }, [data.offers, syncDashboard]);
   useEffect(() => {
@@ -124,7 +133,7 @@ export default function ShipperDashboard({ user, data: initialData }: { user: Pu
       void supabase.removeChannel(orderChannel);
     };
   }, [data.profile?.id, syncDashboard]);
-  const updateLocation = () => { if (!navigator.geolocation) { setNotice({ ok: false, message: "Trình duyệt không hỗ trợ định vị." }); return; } navigator.geolocation.getCurrentPosition((position) => run(() => updateShipperLocationAction(position.coords.latitude, position.coords.longitude)), () => setNotice({ ok: false, message: "Không thể lấy vị trí. Hãy cấp quyền định vị cho trình duyệt." }), { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }); };
+  const updateLocation = () => { if (!navigator.geolocation) { setNotice({ ok: false, message: "Trình duyệt không hỗ trợ định vị." }); return; } navigator.geolocation.getCurrentPosition((position) => { setLiveLocation({ lat: position.coords.latitude, lon: position.coords.longitude, heading: position.coords.heading ?? undefined }); run(() => updateShipperLocationAction(position.coords.latitude, position.coords.longitude)); }, () => setNotice({ ok: false, message: "Không thể lấy vị trí. Hãy cấp quyền định vị cho trình duyệt." }), { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }); };
   const currentDelivery = data.activeDeliveries[0];
   const mapFocus: "restaurant" | "destination" = currentDelivery && ["assigned", "arrived_at_restaurant"].includes(currentDelivery.deliveryStatus) ? "restaurant" : "destination";
   const availableTripCount = data.activeDeliveries.length ? 0 : data.offers.length + data.available.filter((item) => !item.canBatch).length;
@@ -149,11 +158,11 @@ export default function ShipperDashboard({ user, data: initialData }: { user: Pu
       <section className="shipper-content">
         {tab === "available" && <>{!data.activeDeliveries.length && data.offers.length > 0 && <SuggestedOfferList data={data} pending={pending} run={run} />}<AvailableList data={data} pending={pending} run={run} onRefresh={() => void syncDashboard()} /></>}
         {tab === "deliveries" && <>
-          <section className="shipper-map-stage"><div className="shipper-map-stage__heading"><div><p>Điều hướng trực tiếp</p><h2>{currentDelivery ? `${currentDelivery.code} · ${DELIVERY_STATUS[currentDelivery.deliveryStatus] || currentDelivery.deliveryStatus}` : "Chưa có chuyến đang giao"}</h2><span>{currentDelivery ? "Bản đồ hiển thị vị trí tài xế, nhà hàng và điểm giao hiện tại." : "Bật online và nhận một chuyến để bắt đầu điều hướng."}</span></div>{!currentDelivery && <button type="button" onClick={() => setTab("available")}>Tìm chuyến</button>}</div><div className="shipper-map-stage__map"><LiveOrderMap shipper={data.profile.lat != null && data.profile.lon != null ? { lat: data.profile.lat, lon: data.profile.lon } : null} restaurant={currentDelivery?.restaurant.lat != null && currentDelivery.restaurant.lon != null ? { lat: currentDelivery.restaurant.lat, lon: currentDelivery.restaurant.lon } : null} destination={currentDelivery?.customer.lat != null && currentDelivery.customer.lon != null ? { lat: currentDelivery.customer.lat, lon: currentDelivery.customer.lon } : null} focus={mapFocus} /></div>{currentDelivery && <LiveTracking onNotice={setNotice} />}</section>
+          <section className="shipper-map-stage"><div className="shipper-map-stage__heading"><div><p>Điều hướng trực tiếp</p><h2>{currentDelivery ? `${currentDelivery.code} · ${DELIVERY_STATUS[currentDelivery.deliveryStatus] || currentDelivery.deliveryStatus}` : "Chưa có chuyến đang giao"}</h2><span>{currentDelivery ? "Bản đồ hiển thị vị trí tài xế, nhà hàng và điểm giao hiện tại." : "Bật online và nhận một chuyến để bắt đầu điều hướng."}</span></div>{!currentDelivery && <button type="button" onClick={() => setTab("available")}>Tìm chuyến</button>}</div><div className="shipper-map-stage__map"><LiveOrderMap shipper={liveLocation} restaurant={currentDelivery?.restaurant.lat != null && currentDelivery.restaurant.lon != null ? { lat: currentDelivery.restaurant.lat, lon: currentDelivery.restaurant.lon } : null} destination={currentDelivery?.customer.lat != null && currentDelivery.customer.lon != null ? { lat: currentDelivery.customer.lat, lon: currentDelivery.customer.lon } : null} focus={mapFocus} /></div>{currentDelivery && <LiveTracking onNotice={setNotice} onLocation={setLiveLocation} />}</section>
           {data.route.length > 0 && <RoutePlan stops={data.route} count={data.activeDeliveries.length} />}
           {data.activeDeliveries.map((delivery) => <ActiveDeliveryCard key={delivery.orderId} delivery={delivery} pending={pending} run={run} onNotice={setNotice} onRefresh={() => void syncDashboard()} />)}
         </>}
-        {tab === "profile" && <><section className="shipper-panel shipper-profile-panel"><div className="shipper-panel__heading"><div><p>Thông tin vận hành</p><h2>Hồ sơ tài xế</h2><span>Thông tin đã được EatNow xác minh để nhận chuyến.</span></div><span className="shipper-status is-approved">Đã xác minh</span></div><div className="shipper-profile-grid"><article><span>Họ và tên</span><strong>{data.profile.fullName}</strong></article><article><span>Số điện thoại</span><strong>{application?.phone || user.phone || "Chưa cập nhật"}</strong></article><article><span>Phương tiện</span><strong>{data.profile.vehicleType}</strong></article><article><span>Biển số xe</span><strong>{data.profile.plateNumber}</strong></article><article><span>Trạng thái tài khoản</span><strong>{data.profile.isActive ? "Đang hoạt động" : "Tạm khóa"}</strong></article><article><span>Vị trí cập nhật</span><strong>{data.profile.lastLocationAt ? date(data.profile.lastLocationAt) : "Chưa cập nhật"}</strong></article></div><div className="shipper-profile-actions"><button type="button" className="shipper-profile-location" disabled={pending} onClick={updateLocation}>Cập nhật vị trí hiện tại</button><form action={logout}><button type="submit" className="is-logout">Đăng xuất</button></form></div></section><ShipperWalletPlaceholder /><section className="shipper-panel"><div className="shipper-panel__heading"><div><p>20 chuyến gần nhất</p><h2>Lịch sử giao hàng</h2><span>Thu nhập và trạng thái của các chuyến đã xử lý.</span></div></div><div className="shipper-history">{data.history.length ? data.history.map((item) => <article key={item.orderId}><div><strong>{item.code}</strong><span>{item.restaurantName}</span></div><div><b>{money(item.earning)}</b><span>{DELIVERY_STATUS[item.deliveryStatus] || item.deliveryStatus} · {date(item.completedAt)}</span></div></article>) : <div className="shipper-empty">Chưa có chuyến đã hoàn thành.</div>}</div></section></>}
+        {tab === "profile" && <><section className="shipper-panel shipper-profile-panel"><div className="shipper-panel__heading"><div><p>Thông tin vận hành</p><h2>Hồ sơ tài xế</h2><span>Thông tin đã được EatNow xác minh để nhận chuyến.</span></div><span className="shipper-status is-approved">Đã xác minh</span></div><div className="shipper-profile-grid"><article><span>Họ và tên</span><strong>{data.profile.fullName}</strong></article><article><span>Số điện thoại</span><strong>{application?.phone || user.phone || "Chưa cập nhật"}</strong></article><article><span>Phương tiện</span><strong>{data.profile.vehicleType}</strong></article><article><span>Biển số xe</span><strong>{data.profile.plateNumber}</strong></article><article><span>Trạng thái tài khoản</span><strong>{data.profile.isActive ? "Đang hoạt động" : "Tạm khóa"}</strong></article><article><span>Vị trí cập nhật</span><strong>{data.profile.lastLocationAt ? date(data.profile.lastLocationAt) : "Chưa cập nhật"}</strong></article></div><div className="shipper-profile-actions"><button type="button" className="shipper-profile-location" disabled={pending} onClick={updateLocation}>Cập nhật vị trí hiện tại</button></div></section><ShipperWalletPlaceholder /><section className="shipper-panel"><div className="shipper-panel__heading"><div><p>20 chuyến gần nhất</p><h2>Lịch sử giao hàng</h2><span>Thu nhập và trạng thái của các chuyến đã xử lý.</span></div></div><div className="shipper-history">{data.history.length ? data.history.map((item) => <article key={item.orderId}><div><strong>{item.code}</strong><span>{item.restaurantName}</span></div><div><b>{money(item.earning)}</b><span>{DELIVERY_STATUS[item.deliveryStatus] || item.deliveryStatus} · {date(item.completedAt)}</span></div></article>) : <div className="shipper-empty">Chưa có chuyến đã hoàn thành.</div>}</div></section></>}
       </section>
     </div> : null}
   </main>;
@@ -167,7 +176,7 @@ function ShipperWalletPlaceholder() {
   </section>;
 }
 
-function LiveTracking({ onNotice }: { onNotice: (notice: ShipperActionResult) => void }) {
+function LiveTracking({ onNotice, onLocation }: { onNotice: (notice: ShipperActionResult) => void; onLocation: (location: LiveMapLocation) => void }) {
   const [enabled, setEnabled] = useState(false); const [sentAt, setSentAt] = useState<string>(); const lastSent = useRef(0);
   useEffect(() => {
     if (!navigator.permissions) return;
@@ -177,7 +186,7 @@ function LiveTracking({ onNotice }: { onNotice: (notice: ShipperActionResult) =>
     }).catch(() => undefined);
     return () => { active = false; };
   }, []);
-  useEffect(() => { if (!enabled || !navigator.geolocation) return; const supabase = createClient(); const watch = navigator.geolocation.watchPosition(async (position) => { if (Date.now() - lastSent.current < 8000) return; lastSent.current = Date.now(); const { error } = await supabase.rpc("api_track_shipper_location", { p_lat: position.coords.latitude, p_lon: position.coords.longitude, p_accuracy: position.coords.accuracy, p_heading: position.coords.heading, p_speed: position.coords.speed, p_device_at: new Date(position.timestamp).toISOString() }); if (error) { setEnabled(false); onNotice({ ok: false, message: error.message || "Không thể chia sẻ vị trí." }); } else setSentAt(new Date().toISOString()); }, () => { setEnabled(false); onNotice({ ok: false, message: "Không thể theo dõi vị trí. Hãy cấp quyền định vị." }); }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }); return () => navigator.geolocation.clearWatch(watch); }, [enabled, onNotice]);
+  useEffect(() => { if (!enabled || !navigator.geolocation) return; const supabase = createClient(); const watch = navigator.geolocation.watchPosition(async (position) => { onLocation({ lat: position.coords.latitude, lon: position.coords.longitude, heading: position.coords.heading ?? undefined }); if (Date.now() - lastSent.current < 8000) return; lastSent.current = Date.now(); const { error } = await supabase.rpc("api_track_shipper_location", { p_lat: position.coords.latitude, p_lon: position.coords.longitude, p_accuracy: position.coords.accuracy, p_heading: position.coords.heading, p_speed: position.coords.speed, p_device_at: new Date(position.timestamp).toISOString() }); if (error) { setEnabled(false); onNotice({ ok: false, message: error.message || "Không thể chia sẻ vị trí." }); } else setSentAt(new Date().toISOString()); }, () => { setEnabled(false); onNotice({ ok: false, message: "Không thể theo dõi vị trí. Hãy cấp quyền định vị." }); }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }); return () => navigator.geolocation.clearWatch(watch); }, [enabled, onLocation, onNotice]);
   return <section className={`shipper-tracking ${enabled ? "is-live" : ""}`}><div><strong>{enabled ? "Đang chia sẻ vị trí trực tiếp" : "Tracking đang tắt"}</strong><span>{enabled ? `Khách nhận cập nhật khoảng 8 giây/lần${sentAt ? ` · ${date(sentAt)}` : ""}.` : "Chỉ chia sẻ trong lúc có chuyến đang hoạt động."}</span></div><button onClick={() => setEnabled((value) => !value)}>{enabled ? "Dừng chia sẻ" : "Bật tracking"}</button></section>;
 }
 
