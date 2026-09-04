@@ -194,6 +194,7 @@ export default function CustomerDeliveryPanel({ initial }: { initial: CustomerDe
         restaurant={initial.restaurantLocation}
         destination={initial.destinationLocation}
         focus={focus}
+        showRoute={Boolean(location && target && initial.deliveryStatus === "delivering")}
       />
       {location && <div className="customer-live-summary">
         <div><span>Khoảng cách đến {targetLabel}</span><strong>{remainingDistance == null ? "Đang tính…" : `${remainingDistance.toFixed(1)} km`}</strong></div>
