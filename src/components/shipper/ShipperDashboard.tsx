@@ -1,11 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
-import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
-import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
-import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import TwoWheelerOutlinedIcon from "@mui/icons-material/TwoWheelerOutlined";
 
 import {
@@ -14,10 +12,12 @@ import {
   releaseDeliveryAction, requestPickupConfirmationAction, setShipperOnlineAction, submitDeliveryProofAction,
   submitShipperApplicationAction, updateDeliveryAction, updateShipperLocationAction,
 } from "@/app/shipper/actions";
+import { logout } from "@/app/auth/actions";
 import type { PublicUser } from "@/types/auth";
 import type { ActiveDelivery, DeliveryRouteStop, DeliveryStatus, ShipperActionResult, ShipperApplicationInput, ShipperDashboardData } from "@/types/shipper";
 import { createClient } from "@/utils/supabase/client";
 import OrderJourneyTimeline from "@/components/order/OrderJourneyTimeline";
+import LiveOrderMap from "@/components/order/LiveOrderMap";
 import { parseShipperDashboard } from "@/lib/data/shipper";
 
 const APPLICATION_STATUS: Record<string, { label: string; message: string }> = {
@@ -37,12 +37,10 @@ const NEXT_STEP: Partial<Record<DeliveryStatus, { status: DeliveryStatus; label:
   assigned: { status: "arrived_at_restaurant", label: "Tôi đã đến nhà hàng" },
   picked_up: { status: "delivering", label: "Bắt đầu giao cho khách" },
 };
-type ShipperTab = "overview" | "deliveries" | "history" | "wallet" | "profile";
+type ShipperTab = "available" | "deliveries" | "profile";
 const SHIPPER_TAB_ICONS: Record<ShipperTab, ReactNode> = {
-  overview: <DashboardOutlinedIcon fontSize="small" />,
+  available: <SearchOutlinedIcon fontSize="small" />,
   deliveries: <LocalShippingOutlinedIcon fontSize="small" />,
-  history: <HistoryOutlinedIcon fontSize="small" />,
-  wallet: <AccountBalanceWalletOutlinedIcon fontSize="small" />,
   profile: <BadgeOutlinedIcon fontSize="small" />,
 };
 
@@ -53,7 +51,7 @@ function routeHref(stops: DeliveryRouteStop[]) { const pending = stops.filter((s
 
 export default function ShipperDashboard({ user, data: initialData }: { user: PublicUser; data: ShipperDashboardData }) {
   const [data, setData] = useState(initialData); const [pending, startTransition] = useTransition();
-  const [tab, setTab] = useState<ShipperTab>("overview");
+  const [tab, setTab] = useState<ShipperTab>(initialData.activeDeliveries.length ? "deliveries" : "available");
   const [realtimeState, setRealtimeState] = useState<"connecting" | "live" | "retrying">("connecting");
   const [notice, setNotice] = useState<ShipperActionResult | null>(null); const application = data.application;
   // Hồ sơ tài xế đã được tạo mới là nguồn xác nhận quyền vận hành. Không để
@@ -70,6 +68,7 @@ export default function ShipperDashboard({ user, data: initialData }: { user: Pu
     setData(parseShipperDashboard(next));
   }, []);
   useEffect(() => setData(initialData), [initialData]);
+  useEffect(() => { if (data.activeDeliveries.length) setTab("deliveries"); }, [data.activeDeliveries.length]);
   const run = (task: () => Promise<ShipperActionResult>) => startTransition(async () => { const result = await task(); setNotice(result); if (result.ok) await syncDashboard(); });
   useEffect(() => { if (!data.offers.length) return; const nextExpiry = Math.min(...data.offers.map((offer) => new Date(offer.expiresAt).getTime())); const timer = window.setTimeout(() => void syncDashboard(), Math.max(250, nextExpiry - Date.now() + 250)); return () => window.clearTimeout(timer); }, [data.offers, syncDashboard]);
   useEffect(() => {
@@ -126,9 +125,12 @@ export default function ShipperDashboard({ user, data: initialData }: { user: Pu
     };
   }, [data.profile?.id, syncDashboard]);
   const updateLocation = () => { if (!navigator.geolocation) { setNotice({ ok: false, message: "Trình duyệt không hỗ trợ định vị." }); return; } navigator.geolocation.getCurrentPosition((position) => run(() => updateShipperLocationAction(position.coords.latitude, position.coords.longitude)), () => setNotice({ ok: false, message: "Không thể lấy vị trí. Hãy cấp quyền định vị cho trình duyệt." }), { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }); };
+  const currentDelivery = data.activeDeliveries[0];
+  const mapFocus: "restaurant" | "destination" = currentDelivery && ["assigned", "arrived_at_restaurant"].includes(currentDelivery.deliveryStatus) ? "restaurant" : "destination";
+  const availableTripCount = data.activeDeliveries.length ? 0 : data.offers.length + data.available.filter((item) => !item.canBatch).length;
 
   return <main className="shipper-page">
-    <header className="shipper-hero"><div><p>Kênh tài xế EatNow</p><h1>{data.profile?.fullName || user.fullName}</h1><span>Nhận đề xuất tự động, ghép tối đa 2 đơn và đi theo tuyến đã tối ưu.</span><small className={`realtime-status is-${realtimeState}`}>{realtimeState === "live" ? "Đơn mới đang cập nhật trực tiếp" : realtimeState === "retrying" ? "Đang kết nối lại Realtime" : "Đang kết nối Realtime"}</small></div>{data.profile && <div className="shipper-availability"><span className={data.profile.isActive ? data.profile.isOnline ? "is-online" : "is-offline" : "is-suspended"}>{data.profile.isActive ? data.profile.isOnline ? "Đang online" : "Đang offline" : "Đã tạm khóa"}</span>{data.profile.isActive && <button disabled={pending || data.activeDeliveries.length > 0} onClick={() => run(() => setShipperOnlineAction(!data.profile!.isOnline))}>{data.profile.isOnline ? "Chuyển offline" : "Bắt đầu nhận chuyến"}</button>}</div>}</header>
+    <header className="shipper-hero"><div><p>Kênh tài xế EatNow</p><h1>{data.profile?.fullName || user.fullName}</h1><span>Nhận chuyến, theo dõi lộ trình và cập nhật giao hàng theo thời gian thực.</span><small className={`realtime-status is-${realtimeState}`}>{realtimeState === "live" ? "Đơn mới đang cập nhật trực tiếp" : realtimeState === "retrying" ? "Đang kết nối lại Realtime" : "Đang kết nối Realtime"}</small></div>{data.profile && <div className="shipper-availability"><span className={data.profile.isActive ? data.profile.isOnline ? "is-online" : "is-offline" : "is-suspended"}>{data.profile.isActive ? data.profile.isOnline ? "Đang online" : "Đang offline" : "Đã tạm khóa"}</span>{data.profile.isActive && <button disabled={pending || data.activeDeliveries.length > 0} onClick={() => run(() => setShipperOnlineAction(!data.profile!.isOnline))}>{data.profile.isOnline ? "Chuyển offline" : "Bắt đầu nhận chuyến"}</button>}</div>}</header>
     {notice && <div className={`shipper-notice ${notice.ok ? "is-success" : "is-error"}`} role="status"><span>{notice.message}</span><button onClick={() => setNotice(null)}>×</button></div>}
     {canEditApplication ? <ApplicationForm user={user} data={application} pending={pending} onSubmit={(input) => run(() => submitShipperApplicationAction(input))} /> : null}
     {!data.profile && application && !canEditApplication && application.status !== "APPROVED" ? <section className="shipper-status-card"><span className={`shipper-status is-${application.status.toLowerCase()}`}>{APPLICATION_STATUS[application.status]?.label}</span><h2>Hồ sơ tài xế phiên bản {application.revision}</h2><p>{APPLICATION_STATUS[application.status]?.message}</p>{application.reviewNote && <blockquote>{application.reviewNote}</blockquote>}<small>Gửi lúc {date(application.submittedAt)}</small></section> : null}
@@ -138,30 +140,20 @@ export default function ShipperDashboard({ user, data: initialData }: { user: Pu
       <nav className="shipper-tabs" aria-label="Điều hướng kênh tài xế">
         <div className="shipper-tabs__brand"><TwoWheelerOutlinedIcon /><div><strong>EatNow</strong><span>Delivery Partner</span></div></div>
         <div className="shipper-tabs__items">{([
-          ["overview", "Tổng quan"],
-          ["deliveries", `Chuyến giao (${data.activeDeliveries.length + data.offers.length})`],
-          ["history", "Lịch sử"],
-          ["wallet", "Ví & thu nhập"],
+          ["available", `Nhận chuyến${availableTripCount ? ` (${availableTripCount})` : ""}`],
+          ["deliveries", `Chuyến giao${data.activeDeliveries.length ? ` (${data.activeDeliveries.length})` : ""}`],
           ["profile", "Hồ sơ tài xế"],
         ] as Array<[ShipperTab, string]>).map(([value, label]) => <button type="button" key={value} className={tab === value ? "is-active" : ""} aria-current={tab === value ? "page" : undefined} onClick={() => setTab(value)}><span className="shipper-tabs__icon">{SHIPPER_TAB_ICONS[value]}</span><span>{label}</span></button>)}</div>
         <div className="shipper-tabs__footer"><span>{data.profile.fullName.slice(0, 1).toUpperCase()}</span><div><strong>{data.profile.fullName}</strong><small>{data.profile.isOnline ? "Đang online" : "Đang offline"}</small></div></div>
       </nav>
       <section className="shipper-content">
-        {data.activeDeliveries.length > 0 && <LiveTracking onNotice={setNotice} />}
-        {tab === "overview" && <>
-          <section className="shipper-overview-heading"><div><p>Trung tâm vận hành</p><h2>Xin chào, {data.profile.fullName.split(" ").at(-1)}</h2><span>Theo dõi trạng thái, vị trí và các chuyến cần xử lý trong một nơi.</span></div><button type="button" onClick={() => setTab("deliveries")}>Mở chuyến giao</button></section>
-          <section className="shipper-summary"><article><span>Phương tiện</span><strong>{data.profile.vehicleType}</strong><small>{data.profile.plateNumber}</small></article><article><span>Chuyến đang giữ</span><strong>{data.activeDeliveries.length}/2 đơn</strong><small>{data.batch && data.activeDeliveries.length > 1 ? "Chuyến ghép đang hoạt động" : "Có thể ghép đơn tương thích"}</small></article><article><span>Đề xuất mới</span><strong>{data.offers.length}</strong><small>{data.offers.length ? "Có chuyến đang chờ phản hồi" : "Chưa có đề xuất mới"}</small></article><article><span>Vị trí gần nhất</span><strong>{data.profile.lastLocationAt ? date(data.profile.lastLocationAt) : "Chưa cập nhật"}</strong><button disabled={pending} onClick={updateLocation}>Cập nhật vị trí</button></article></section>
-          <div className="shipper-overview-grid"><section className="shipper-panel"><div className="shipper-panel__heading"><div><p>Việc cần làm</p><h2>Hoạt động chuyến giao</h2><span>Tình trạng hiện tại của tài khoản vận hành.</span></div></div><div className="shipper-overview-actions"><article><span>Đơn đang thực hiện</span><strong>{data.activeDeliveries.length}</strong></article><article><span>Chuyến có thể nhận</span><strong>{data.available.length}</strong></article><article><span>Điểm dừng còn lại</span><strong>{data.route.filter((stop) => stop.status === "pending").length}</strong></article></div><button type="button" onClick={() => setTab("deliveries")}>Xem và xử lý chuyến</button></section><section className="shipper-panel"><div className="shipper-panel__heading"><div><p>Gần đây</p><h2>Lịch sử mới nhất</h2></div><button type="button" className="is-quiet" onClick={() => setTab("history")}>Xem tất cả</button></div><div className="shipper-history is-preview">{data.history.slice(0, 4).map((item) => <article key={item.orderId}><div><strong>{item.code}</strong><span>{item.restaurantName}</span></div><div><b>{money(item.earning)}</b><span>{date(item.completedAt)}</span></div></article>)}{!data.history.length && <div className="shipper-empty">Chưa có chuyến đã hoàn thành.</div>}</div></section></div>
-        </>}
+        {tab === "available" && <>{!data.activeDeliveries.length && data.offers.length > 0 && <SuggestedOfferList data={data} pending={pending} run={run} />}<AvailableList data={data} pending={pending} run={run} onRefresh={() => void syncDashboard()} /></>}
         {tab === "deliveries" && <>
-          {data.offers.length > 0 && <OfferList data={data} pending={pending} run={run} />}
+          <section className="shipper-map-stage"><div className="shipper-map-stage__heading"><div><p>Điều hướng trực tiếp</p><h2>{currentDelivery ? `${currentDelivery.code} · ${DELIVERY_STATUS[currentDelivery.deliveryStatus] || currentDelivery.deliveryStatus}` : "Chưa có chuyến đang giao"}</h2><span>{currentDelivery ? "Bản đồ hiển thị vị trí tài xế, nhà hàng và điểm giao hiện tại." : "Bật online và nhận một chuyến để bắt đầu điều hướng."}</span></div>{!currentDelivery && <button type="button" onClick={() => setTab("available")}>Tìm chuyến</button>}</div><div className="shipper-map-stage__map"><LiveOrderMap shipper={data.profile.lat != null && data.profile.lon != null ? { lat: data.profile.lat, lon: data.profile.lon } : null} restaurant={currentDelivery?.restaurant.lat != null && currentDelivery.restaurant.lon != null ? { lat: currentDelivery.restaurant.lat, lon: currentDelivery.restaurant.lon } : null} destination={currentDelivery?.customer.lat != null && currentDelivery.customer.lon != null ? { lat: currentDelivery.customer.lat, lon: currentDelivery.customer.lon } : null} focus={mapFocus} /></div>{currentDelivery && <LiveTracking onNotice={setNotice} />}</section>
           {data.route.length > 0 && <RoutePlan stops={data.route} count={data.activeDeliveries.length} />}
           {data.activeDeliveries.map((delivery) => <ActiveDeliveryCard key={delivery.orderId} delivery={delivery} pending={pending} run={run} onNotice={setNotice} onRefresh={() => void syncDashboard()} />)}
-          {data.activeDeliveries.length < 2 && <AvailableList data={data} pending={pending} run={run} onRefresh={() => void syncDashboard()} />}
         </>}
-        {tab === "history" && <section className="shipper-panel"><div className="shipper-panel__heading"><div><p>20 chuyến gần nhất</p><h2>Lịch sử giao hàng</h2><span>Thu nhập và trạng thái của các chuyến đã xử lý.</span></div></div><div className="shipper-history">{data.history.length ? data.history.map((item) => <article key={item.orderId}><div><strong>{item.code}</strong><span>{item.restaurantName}</span></div><div><b>{money(item.earning)}</b><span>{DELIVERY_STATUS[item.deliveryStatus] || item.deliveryStatus} · {date(item.completedAt)}</span></div></article>) : <div className="shipper-empty">Chưa có chuyến đã hoàn thành.</div>}</div></section>}
-        {tab === "wallet" && <ShipperWalletPlaceholder />}
-        {tab === "profile" && <section className="shipper-panel shipper-profile-panel"><div className="shipper-panel__heading"><div><p>Thông tin vận hành</p><h2>Hồ sơ tài xế</h2><span>Thông tin đã được EatNow xác minh để nhận chuyến.</span></div><span className="shipper-status is-approved">Đã xác minh</span></div><div className="shipper-profile-grid"><article><span>Họ và tên</span><strong>{data.profile.fullName}</strong></article><article><span>Số điện thoại</span><strong>{application?.phone || user.phone || "Chưa cập nhật"}</strong></article><article><span>Phương tiện</span><strong>{data.profile.vehicleType}</strong></article><article><span>Biển số xe</span><strong>{data.profile.plateNumber}</strong></article><article><span>Trạng thái tài khoản</span><strong>{data.profile.isActive ? "Đang hoạt động" : "Tạm khóa"}</strong></article><article><span>Vị trí cập nhật</span><strong>{data.profile.lastLocationAt ? date(data.profile.lastLocationAt) : "Chưa cập nhật"}</strong></article></div></section>}
+        {tab === "profile" && <><section className="shipper-panel shipper-profile-panel"><div className="shipper-panel__heading"><div><p>Thông tin vận hành</p><h2>Hồ sơ tài xế</h2><span>Thông tin đã được EatNow xác minh để nhận chuyến.</span></div><span className="shipper-status is-approved">Đã xác minh</span></div><div className="shipper-profile-grid"><article><span>Họ và tên</span><strong>{data.profile.fullName}</strong></article><article><span>Số điện thoại</span><strong>{application?.phone || user.phone || "Chưa cập nhật"}</strong></article><article><span>Phương tiện</span><strong>{data.profile.vehicleType}</strong></article><article><span>Biển số xe</span><strong>{data.profile.plateNumber}</strong></article><article><span>Trạng thái tài khoản</span><strong>{data.profile.isActive ? "Đang hoạt động" : "Tạm khóa"}</strong></article><article><span>Vị trí cập nhật</span><strong>{data.profile.lastLocationAt ? date(data.profile.lastLocationAt) : "Chưa cập nhật"}</strong></article></div><div className="shipper-profile-actions"><button type="button" className="shipper-profile-location" disabled={pending} onClick={updateLocation}>Cập nhật vị trí hiện tại</button><form action={logout}><button type="submit" className="is-logout">Đăng xuất</button></form></div></section><ShipperWalletPlaceholder /><section className="shipper-panel"><div className="shipper-panel__heading"><div><p>20 chuyến gần nhất</p><h2>Lịch sử giao hàng</h2><span>Thu nhập và trạng thái của các chuyến đã xử lý.</span></div></div><div className="shipper-history">{data.history.length ? data.history.map((item) => <article key={item.orderId}><div><strong>{item.code}</strong><span>{item.restaurantName}</span></div><div><b>{money(item.earning)}</b><span>{DELIVERY_STATUS[item.deliveryStatus] || item.deliveryStatus} · {date(item.completedAt)}</span></div></article>) : <div className="shipper-empty">Chưa có chuyến đã hoàn thành.</div>}</div></section></>}
       </section>
     </div> : null}
   </main>;
@@ -189,13 +181,13 @@ function LiveTracking({ onNotice }: { onNotice: (notice: ShipperActionResult) =>
   return <section className={`shipper-tracking ${enabled ? "is-live" : ""}`}><div><strong>{enabled ? "Đang chia sẻ vị trí trực tiếp" : "Tracking đang tắt"}</strong><span>{enabled ? `Khách nhận cập nhật khoảng 8 giây/lần${sentAt ? ` · ${date(sentAt)}` : ""}.` : "Chỉ chia sẻ trong lúc có chuyến đang hoạt động."}</span></div><button onClick={() => setEnabled((value) => !value)}>{enabled ? "Dừng chia sẻ" : "Bật tracking"}</button></section>;
 }
 
+function SuggestedOfferList({ data, pending, run }: { data: ShipperDashboardData; pending: boolean; run: (task: () => Promise<ShipperActionResult>) => void }) {
+  return <section className="shipper-panel shipper-offers"><div className="shipper-panel__heading"><div><p>Ưu tiên cho bạn</p><h2>Chuyến vừa được đề xuất</h2><span>Phản hồi trước khi đề xuất hết thời hạn.</span></div></div><div className="shipper-job-list">{data.offers.map((item) => <article key={item.offerId}><div className="shipper-job__route"><span>Nhận tại</span><strong>{item.restaurantName}</strong><p>{item.restaurantAddress}</p><span>Giao đến</span><strong>{item.deliveryArea}</strong></div><dl><div><dt>Đến quán</dt><dd>{item.pickupDistanceKm == null ? "—" : `${item.pickupDistanceKm.toFixed(1)} km`}</dd></div><div><dt>Quãng giao</dt><dd>{item.deliveryDistanceKm == null ? "—" : `${item.deliveryDistanceKm.toFixed(1)} km`}</dd></div><div><dt>Hết hạn</dt><dd>{date(item.expiresAt)}</dd></div></dl><div className="shipper-job__actions"><strong>{money(item.earning)}</strong><button className="is-secondary" disabled={pending} onClick={() => run(() => rejectDeliveryOfferAction(item.offerId))}>Bỏ qua</button><button disabled={pending} onClick={() => run(() => acceptDeliveryOfferAction(item.offerId))}>Nhận chuyến</button></div></article>)}</div></section>;
+}
+
 function ApplicationForm({ user, data, pending, onSubmit }: { user: PublicUser; data: ShipperDashboardData["application"]; pending: boolean; onSubmit: (input: ShipperApplicationInput) => void }) {
   const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const form = new FormData(event.currentTarget); onSubmit({ fullName: String(form.get("fullName") || ""), phone: String(form.get("phone") || ""), dateOfBirth: String(form.get("dateOfBirth") || ""), identityNumber: String(form.get("identityNumber") || ""), driverLicenseNumber: String(form.get("driverLicenseNumber") || ""), vehicleType: String(form.get("vehicleType") || ""), plateNumber: String(form.get("plateNumber") || "") }); };
   return <section className="shipper-panel shipper-application"><div className="shipper-panel__heading"><div><p>{data ? "Cập nhật hồ sơ" : "Đăng ký mới"}</p><h2>Đăng ký làm tài xế</h2><span>Thông tin phải trùng khớp giấy tờ. Tài xế phải đủ 18 tuổi.</span></div></div>{data?.reviewNote && <div className="shipper-review-note"><strong>Ghi chú xét duyệt</strong><span>{data.reviewNote}</span></div>}<form onSubmit={submit} className="shipper-form"><label>Họ và tên<input name="fullName" defaultValue={data?.fullName || user.fullName} required maxLength={120} /></label><label>Số điện thoại<input name="phone" defaultValue={data?.phone || user.phone || ""} required inputMode="tel" /></label><label>Ngày sinh<input name="dateOfBirth" type="date" defaultValue={data?.dateOfBirth || ""} required /></label><label>CCCD/CMND<input name="identityNumber" defaultValue={data?.identityNumber || ""} required maxLength={20} /></label><label>Số giấy phép lái xe<input name="driverLicenseNumber" defaultValue={data?.driverLicenseNumber || ""} required maxLength={30} /></label><label>Loại phương tiện<select name="vehicleType" defaultValue={data?.vehicleType || "Xe máy"}><option>Xe máy</option><option>Xe máy điện</option><option>Xe đạp</option><option>Xe đạp điện</option></select></label><label>Biển số xe<input name="plateNumber" defaultValue={data?.plateNumber || ""} required maxLength={15} placeholder="65A1-12345" /></label><div className="shipper-form__actions"><button disabled={pending}>{pending ? "Đang gửi..." : data ? "Gửi lại hồ sơ" : "Gửi hồ sơ xét duyệt"}</button></div></form></section>;
-}
-
-function OfferList({ data, pending, run }: { data: ShipperDashboardData; pending: boolean; run: (task: () => Promise<ShipperActionResult>) => void }) {
-  return <section className="shipper-panel shipper-offers"><div className="shipper-panel__heading"><div><p>Ghép chuyến tự động</p><h2>Đề xuất dành cho bạn</h2><span>Hệ thống ưu tiên khoảng cách đến quán và độ lệch tuyến.</span></div></div><div className="shipper-job-list">{data.offers.map((item) => <article key={item.offerId}><div className="shipper-job__route"><span>Nhận tại</span><strong>{item.restaurantName}</strong><p>{item.restaurantAddress}</p><span>Giao đến</span><strong>{item.deliveryArea}</strong></div><dl><div><dt>Đến quán</dt><dd>{item.pickupDistanceKm == null ? "—" : `${item.pickupDistanceKm.toFixed(1)} km`}</dd></div><div><dt>Quãng giao</dt><dd>{item.deliveryDistanceKm == null ? "—" : `${item.deliveryDistanceKm.toFixed(1)} km`}</dd></div><div><dt>Hết hạn</dt><dd>{date(item.expiresAt)}</dd></div></dl><div className="shipper-job__actions"><strong>{money(item.earning)}</strong><button className="is-secondary" disabled={pending} onClick={() => run(() => rejectDeliveryOfferAction(item.offerId))}>Bỏ qua</button><button disabled={pending} onClick={() => run(() => acceptDeliveryOfferAction(item.offerId))}>Nhận đề xuất</button></div></article>)}</div></section>;
 }
 
 function RoutePlan({ stops, count }: { stops: DeliveryRouteStop[]; count: number }) {
@@ -203,7 +195,8 @@ function RoutePlan({ stops, count }: { stops: DeliveryRouteStop[]; count: number
 }
 
 function AvailableList({ data, pending, run, onRefresh }: { data: ShipperDashboardData; pending: boolean; run: (task: () => Promise<ShipperActionResult>) => void; onRefresh: () => void }) {
-  return <section className="shipper-panel"><div className="shipper-panel__heading"><div><p>{data.activeDeliveries.length ? "Đơn tương thích với tuyến hiện tại" : "Tự chọn chuyến dự phòng"}</p><h2>{data.activeDeliveries.length ? "Ghép thêm 1 đơn" : "Chuyến đang chờ tài xế"}</h2><span>Đơn chỉ vào danh sách sau khi không còn đề xuất tự động hiệu lực.</span></div><button disabled={pending} onClick={onRefresh}>Làm mới</button></div>{!data.profile?.isOnline ? <div className="shipper-empty"><strong>Bạn đang offline</strong><span>Bật trạng thái online để xem và nhận chuyến.</span></div> : <div className="shipper-job-list">{data.available.length ? data.available.map((item) => <article key={item.orderId}><div className="shipper-job__route"><span>Nhận tại</span><strong>{item.restaurantName}</strong><p>{item.restaurantAddress}</p><span>Giao đến</span><strong>{item.deliveryArea}</strong></div><dl><div><dt>Đến quán</dt><dd>{item.pickupDistanceKm == null ? "Chưa xác định" : `${item.pickupDistanceKm.toFixed(1)} km`}</dd></div><div><dt>Quãng giao</dt><dd>{item.deliveryDistanceKm == null ? "—" : `${item.deliveryDistanceKm.toFixed(1)} km`}</dd></div><div><dt>Thu nhập dự kiến</dt><dd>{money(item.earning)}</dd></div></dl><div className="shipper-job__actions"><small>{item.code} · {date(item.createdAt)}</small><button disabled={pending} onClick={() => run(() => acceptDeliveryAction(item.orderId))}>{item.canBatch ? "Ghép đơn" : "Nhận chuyến"}</button></div></article>) : <div className="shipper-empty"><strong>Chưa có chuyến phù hợp</strong><span>Hãy cập nhật vị trí hoặc làm mới sau ít phút.</span></div>}</div>}</section>;
+  const available = data.activeDeliveries.length ? [] : data.available.filter((item) => !item.canBatch);
+  return <section className="shipper-panel"><div className="shipper-panel__heading"><div><p>Đơn giao mới</p><h2>Chuyến đang chờ tài xế</h2><span>Mỗi tài xế chỉ nhận một chuyến tại một thời điểm.</span></div><button disabled={pending} onClick={onRefresh}>Làm mới</button></div>{data.activeDeliveries.length ? <div className="shipper-empty"><strong>Bạn đang có một chuyến</strong><span>Hoàn thành hoặc trả chuyến hiện tại trước khi nhận đơn mới.</span></div> : !data.profile?.isOnline ? <div className="shipper-empty"><strong>Bạn đang offline</strong><span>Bật trạng thái online để xem và nhận chuyến.</span></div> : <div className="shipper-job-list">{available.length ? available.map((item) => <article key={item.orderId}><div className="shipper-job__route"><span>Nhận tại</span><strong>{item.restaurantName}</strong><p>{item.restaurantAddress}</p><span>Giao đến</span><strong>{item.deliveryArea}</strong></div><dl><div><dt>Đến quán</dt><dd>{item.pickupDistanceKm == null ? "Chưa xác định" : `${item.pickupDistanceKm.toFixed(1)} km`}</dd></div><div><dt>Quãng giao</dt><dd>{item.deliveryDistanceKm == null ? "—" : `${item.deliveryDistanceKm.toFixed(1)} km`}</dd></div><div><dt>Thu nhập dự kiến</dt><dd>{money(item.earning)}</dd></div></dl><div className="shipper-job__actions"><small>{item.code} · {date(item.createdAt)}</small><button disabled={pending} onClick={() => run(() => acceptDeliveryAction(item.orderId))}>Nhận chuyến</button></div></article>) : <div className="shipper-empty"><strong>Chưa có chuyến phù hợp</strong><span>Hãy cập nhật vị trí hoặc làm mới sau ít phút.</span></div>}</div>}</section>;
 }
 
 function ActiveDeliveryCard({ delivery, pending, run, onNotice, onRefresh }: { delivery: ActiveDelivery; pending: boolean; run: (task: () => Promise<ShipperActionResult>) => void; onNotice: (notice: ShipperActionResult) => void; onRefresh: () => void }) {

@@ -42,6 +42,10 @@ export function getDefaultPostLoginPath(roles: UserRole[]) {
     return "/owner";
   }
 
+  if (roles.includes("SHIPPER")) {
+    return "/shipper";
+  }
+
   return FALLBACK_PATH;
 }
 

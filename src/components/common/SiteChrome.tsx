@@ -21,6 +21,7 @@ const CHROMELESS_PREFIXES = [
   "/reset-password",
   "/signup",
   "/auth",
+  "/shipper",
 ];
 
 export default function SiteChrome({
