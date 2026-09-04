@@ -98,7 +98,7 @@ export default function CustomerHeader({
     <header className="home-header">
       <div className="home-header__inner">
         <div className="home-header__brand-group">
-          <Link className="home-logo" href="/" aria-label="EatNow trang chủ">
+          <Link className="home-logo" href="/?home=1" aria-label="EatNow trang chủ">
             EatNow
           </Link>
           <Link

@@ -27,7 +27,7 @@ export default function SiteFooter({ onPlaceholder }: SiteFooterProps) {
           <section className="site-footer__brand-column">
             <Link
               className="site-footer__brand"
-              href="/"
+              href="/?home=1"
               aria-label="EatNow trang chủ"
             >
               <span className="site-footer__brand-mark" aria-hidden="true">
@@ -47,7 +47,7 @@ export default function SiteFooter({ onPlaceholder }: SiteFooterProps) {
 
           <nav className="site-footer__column" aria-label="Khám phá EatNow">
             <h2>Khám phá</h2>
-            <Link href="/">Trang chủ</Link>
+            <Link href="/?home=1">Trang chủ</Link>
             <Link href="/#featured-restaurants">Nhà hàng nổi bật</Link>
             <Link href="/vouchers">Ưu đãi và voucher</Link>
             <Link href="/account/seller">Trở thành đối tác</Link>

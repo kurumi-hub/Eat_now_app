@@ -43,7 +43,7 @@ export default function SiteChrome({
       return;
     }
 
-    router.push(`/#${sectionId}`);
+    router.push(`/?home=1#${sectionId}`);
   };
 
   if (hideChrome) return children;
