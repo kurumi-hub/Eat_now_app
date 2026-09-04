@@ -87,6 +87,7 @@ type RestaurantDirectoryRpc = {
     lon?: number | string | null;
     has_promotion?: boolean | null;
     has_freeship?: boolean | null;
+    matched_foods?: string[] | null;
     categories?: Array<{ id: string; name: string }> | null;
   }>;
   categories?: Array<{ id: string; name: string }>;
@@ -256,6 +257,9 @@ function mapDirectoryItem(
     lon: toFiniteNumber(restaurant.lon),
     hasPromotion: restaurant.has_promotion === true,
     hasFreeship: restaurant.has_freeship === true,
+    matchedFoods: Array.isArray(restaurant.matched_foods)
+      ? restaurant.matched_foods.filter((name): name is string => typeof name === "string")
+      : [],
   };
 }
 
@@ -295,40 +299,8 @@ const fetchRestaurantDirectory = unstable_cache(async (
     };
   }
 
-  const isMissingRpc =
-    error?.code === "PGRST202" ||
-    error?.code === "42883" ||
-    /api_list_public_restaurants/i.test(error?.message ?? "");
-  if (!isMissingRpc) {
-    throw new Error(error?.message ?? "Không thể tải danh sách nhà hàng.");
-  }
-
-  // Cho phép deploy source trước SQL 52. RPC nổi bật vẫn lấy dữ liệu thật,
-  // nhưng không hỗ trợ bộ lọc nâng cao và chỉ được dùng làm phương án tạm thời.
-  const { data: featured, error: featuredError } = await supabase.rpc(
-    "api_featured_restaurants",
-    { p_limit: 50 }
-  );
-  if (featuredError) throw new Error(featuredError.message);
-  const items = ((featured ?? []) as unknown as FeaturedRestaurantRpcRow[]).map(
-    (restaurant) => mapDirectoryItem({
-      ...restaurant,
-      address: "Địa chỉ đang được cập nhật",
-      order_state: "OPEN",
-      categories: [],
-    })
-  );
-  const offset = (page - 1) * pageSize;
-  const pageItems = items.slice(offset, offset + pageSize);
-  return {
-    items: pageItems,
-    categories: [],
-    total: items.length,
-    page,
-    pageSize,
-    hasMore: offset + pageItems.length < items.length,
-  };
-}, ["public-restaurant-directory-v2-server-filters"], {
+  throw new Error(error?.message ?? "Không thể tải danh sách nhà hàng.");
+}, ["public-restaurant-directory-v3-search-relevance"], {
   revalidate: 60,
   tags: ["catalog", "restaurants", "vouchers"],
 });
@@ -342,7 +314,14 @@ export async function getRestaurantDirectory(
     console.error("getRestaurantDirectory RPC error:", error);
     const page = Math.max(1, Math.trunc(query.page ?? 1));
     const pageSize = Math.min(48, Math.max(1, Math.trunc(query.pageSize ?? 12)));
-    return { items: [], categories: [], total: 0, page, pageSize, hasMore: false };
+    const message = error instanceof Error ? error.message : "";
+    const missingRpc = /api_list_public_restaurants|schema cache|function/i.test(message);
+    return {
+      items: [], categories: [], total: 0, page, pageSize, hasMore: false,
+      loadError: missingRpc
+        ? "RPC tìm kiếm chưa được cập nhật. Hãy chạy lại SQL 52 và SQL 53 trên Supabase."
+        : "Không thể tải danh sách nhà hàng. Vui lòng thử lại sau.",
+    };
   }
 }
 

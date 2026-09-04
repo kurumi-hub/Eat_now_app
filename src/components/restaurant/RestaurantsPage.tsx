@@ -289,7 +289,12 @@ export default function RestaurantsPage({
             <span>{data.total.toLocaleString("vi-VN")} kết quả</span>
           </div>
 
-          {data.items.length ? (
+          {data.loadError ? (
+            <div className="restaurant-list-load-error" role="alert">
+              <strong>Không thể áp dụng bộ lọc</strong>
+              <span>{data.loadError}</span>
+            </div>
+          ) : data.items.length ? (
             <>
               <div className={`restaurant-list-grid${isNavigating ? " is-loading" : ""}`} aria-busy={isNavigating}>
                 {data.items.map((restaurant, index) => (
@@ -392,6 +397,11 @@ function RestaurantCard({
             <span>({formatReviewCount(restaurant.reviewCount)})</span>
             {restaurant.categoryLabels.length ? <><span>·</span><span>{restaurant.categoryLabels.slice(0, 2).join(", ")}</span></> : null}
           </div>
+          {restaurant.matchedFoods.length ? (
+            <p className="restaurant-list-card__match">
+              Khớp món: <strong>{restaurant.matchedFoods.join(", ")}</strong>
+            </p>
+          ) : null}
           <div className="restaurant-list-card__meta">
             <span><ScheduleOutlinedIcon fontSize="inherit" />{estimatedDeliveryMinutes(distance)}</span>
             <span><LocationOnOutlinedIcon fontSize="inherit" />{distance === null ? "Chọn vị trí" : `${distance.toFixed(1)} km`}</span>

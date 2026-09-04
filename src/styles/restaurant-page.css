@@ -368,6 +368,18 @@
   font-size: 12px;
 }
 
+.restaurant-list-card__match {
+  margin: 0;
+  overflow: hidden;
+  color: #80533e;
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.restaurant-list-card__match strong { color: #a04100; }
+
 .restaurant-list-card__status { margin: 0; font-weight: 700; }
 
 .restaurant-list-card__status > span {
@@ -457,6 +469,21 @@
   text-align: center;
   padding: 28px;
 }
+
+.restaurant-list-load-error {
+  display: grid;
+  gap: 5px;
+  min-height: 150px;
+  align-content: center;
+  border: 1px solid #efb6a8;
+  border-radius: 18px;
+  background: #fff1ed;
+  color: #8f2f20;
+  padding: 26px;
+  text-align: center;
+}
+
+.restaurant-list-load-error span { font-size: 13px; line-height: 20px; }
 
 .restaurant-list-empty-state > svg { color: #a04100; font-size: 38px; }
 .restaurant-list-empty-state h3,

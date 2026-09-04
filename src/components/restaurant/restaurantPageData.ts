@@ -25,6 +25,7 @@ export type RestaurantListItem = {
   lon: number | null;
   hasPromotion: boolean;
   hasFreeship: boolean;
+  matchedFoods: string[];
 };
 
 export type RestaurantDirectory = {
@@ -34,6 +35,7 @@ export type RestaurantDirectory = {
   page: number;
   pageSize: number;
   hasMore: boolean;
+  loadError?: string;
 };
 
 export type ViewerLocation = {
