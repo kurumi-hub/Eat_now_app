@@ -117,6 +117,29 @@ export async function saveFlashSaleItemAction(input: FlashSaleItemInput): Promis
   return { ok: true, message: "Đã lưu món Flash Sale." };
 }
 
+export async function reviewFlashSaleProposalAction(proposalId: string, approve: boolean, reviewNote: string): Promise<AdminActionResult> {
+  await requirePermission("catalog.manage");
+  if (!validId(proposalId) || reviewNote.trim().length > 1000) return { ok: false, message: "Đề xuất hoặc ghi chú không hợp lệ." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("api_admin_review_flash_sale_proposal", {
+    p_proposal_id: proposalId, p_approve: approve, p_review_note: reviewNote.trim() || null,
+  });
+  if (error) return { ok: false, message: failure("Không thể duyệt đề xuất Flash Sale.", error) };
+  refreshFlashSales();
+  return { ok: true, message: approve ? "Đã duyệt và đưa món vào chiến dịch." : "Đã từ chối đề xuất." };
+}
+
+export async function maintainFlashSalesAction(): Promise<AdminActionResult> {
+  await requirePermission("catalog.manage");
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("api_admin_maintain_flash_sales");
+  if (error) return { ok: false, message: failure("Không thể chạy bảo trì Flash Sale.", error) };
+  refreshFlashSales();
+  const ended = data && typeof data === "object" && "ended" in data ? Number(data.ended) : 0;
+  const stale = data && typeof data === "object" && "stale_reservations" in data ? Number(data.stale_reservations) : 0;
+  return { ok: true, message: `Đã bảo trì: kết thúc ${ended} chiến dịch, phát hiện ${stale} lượt giữ quá hạn.` };
+}
+
 function failure(message: string, error?: { code?: string; message?: string }) {
   console.error("[admin] RPC thất bại", {
     code: error?.code,

@@ -20,7 +20,7 @@ import {
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useCartStore } from "@/store/cartStore";
 import ReviewComposer from "./ReviewComposer";
@@ -80,6 +80,14 @@ export default function FoodDetailPage({
   const clearCart = useCartStore((state) => state.clearCart);
 
   const canOrder = restaurant.isOpen && food.isAvailable;
+  const orderFood = useMemo(() => flashSale ? {
+    ...food,
+    price: flashSale.salePrice,
+    sizes: food.sizes?.map((size) => ({
+      ...size,
+      price: flashSale.salePrice + Math.max(0, size.price - flashSale.originalPrice),
+    })),
+  } : food, [flashSale, food]);
 
   const showNotice = (message: string) => setSnackbar({ open: true, message });
 
@@ -226,11 +234,11 @@ export default function FoodDetailPage({
               <span>Chọn khi thêm vào giỏ</span>
             </div>
             <div className="food-detail-option-grid">
-              {food.sizes?.length ? (
+              {orderFood.sizes?.length ? (
                 <article>
                   <h3>Kích cỡ</h3>
                   <ul>
-                    {food.sizes.map((size) => (
+                    {orderFood.sizes.map((size) => (
                       <li key={size.id} className={!size.isAvailable ? "is-unavailable" : ""}>
                         <span>{size.name}</span><strong>{formatCurrency(size.price)}</strong>
                       </li>
@@ -304,7 +312,7 @@ export default function FoodDetailPage({
 
       <FoodOptionsModal
         open={optionsOpen}
-        food={food}
+        food={orderFood}
         onClose={() => setOptionsOpen(false)}
         onConfirm={handleConfirm}
       />

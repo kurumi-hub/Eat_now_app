@@ -4,6 +4,7 @@ import { parseManagedRestaurants, parseOwnerDashboard, parseOwnerMenu, parseOwne
 import { requireAnyRole } from "@/utils/auth/guards";
 import { createClient } from "@/utils/supabase/server";
 import { EMPTY_VOUCHER_MANAGEMENT, parseVoucherManagement } from "@/lib/data/vouchers";
+import { EMPTY_OWNER_FLASH_SALES, parseOwnerFlashSales } from "@/lib/data/ownerFlashSales";
 
 type Props = { searchParams: Promise<{ restaurant?: string | string[] }> };
 
@@ -19,13 +20,14 @@ export default async function OwnerPage({ searchParams }: Props) {
   if (!selected) {
     return <RouteNotice eyebrow="Kênh người bán" title="Chưa có nhà hàng được phân công" message="Hồ sơ đã duyệt hoặc lời mời Staff được chấp nhận sẽ xuất hiện tại đây." actions={[{ href: "/account/seller", label: "Xem hồ sơ & lời mời", variant: "primary" }]} />;
   }
-  const [dashboardResult, menuResult, ordersResult, voucherResult] = await Promise.all([
+  const [dashboardResult, menuResult, ordersResult, voucherResult, flashSaleResult] = await Promise.all([
     supabase.rpc("api_get_owner_restaurant_dashboard", { p_restaurant_id: selected.id }),
     supabase.rpc("api_get_owner_menu", { p_restaurant_id: selected.id }),
     supabase.rpc("api_list_restaurant_orders", {
       p_restaurant_id: selected.id, p_status: null, p_search: null, p_limit: 100, p_offset: 0,
     }),
     supabase.rpc("api_list_owner_vouchers_v2", { p_restaurant_id: selected.id }),
+    supabase.rpc("api_owner_get_flash_sale_workspace", { p_restaurant_id: selected.id }),
   ]);
   const dashboard = parseOwnerDashboard(dashboardResult.data);
   if (!dashboard || dashboardResult.error) {
@@ -40,8 +42,10 @@ export default async function OwnerPage({ searchParams }: Props) {
 
   if (ordersResult.error) console.error("[owner] Không thể tải đơn hàng", ordersResult.error);
   if (voucherResult.error) console.error("[owner] Không thể tải voucher", voucherResult.error);
+  if (flashSaleResult.error) console.error("[owner] Không thể tải Flash Sale; hãy chạy SQL 58", flashSaleResult.error);
 
   return <OwnerDashboard key={selected.id} userId={user.id} restaurants={restaurants}
     data={dashboard} menu={menu} orders={parseOwnerOrders(ordersResult.data)}
-    vouchers={voucherResult.error ? EMPTY_VOUCHER_MANAGEMENT : parseVoucherManagement(voucherResult.data)} />;
+    vouchers={voucherResult.error ? EMPTY_VOUCHER_MANAGEMENT : parseVoucherManagement(voucherResult.data)}
+    flashSales={flashSaleResult.error ? EMPTY_OWNER_FLASH_SALES : parseOwnerFlashSales(flashSaleResult.data)} />;
 }

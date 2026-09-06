@@ -83,6 +83,7 @@ type FoodFlashSaleRpc = {
   original_price: number | string; sale_price: number | string;
   remaining_quantity: number; per_user_limit: number;
   voucher_policy: FoodFlashSale["voucherPolicy"];
+  funding_source?: FoodFlashSale["fundingSource"];
 };
 
 export async function getFoodFlashSale(
@@ -106,6 +107,7 @@ export async function getFoodFlashSale(
       originalPrice: Number(row.original_price), salePrice: Number(row.sale_price),
       remainingQuantity: Number(row.remaining_quantity), perUserLimit: Number(row.per_user_limit),
       voucherPolicy: row.voucher_policy,
+      fundingSource: row.funding_source,
     };
   } catch (error) {
     console.error("getFoodFlashSale RPC error:", error);

@@ -31,6 +31,12 @@ export type RestaurantProfileInput = {
   googlePlaceId: string; lat: number; lon: number; timezone: string;
 };
 
+export type OwnerFlashSaleProposalInput = {
+  campaignId: string; restaurantId: string; foodId: string; salePrice: number;
+  stockLimit: number; perUserLimit: number; fundingSource: "restaurant" | "shared";
+  platformFundingPercent: number; note?: string;
+};
+
 function errorMessage(error: { code?: string; message?: string } | null, fallback: string) {
   if (!error) return fallback;
   if (error.code === "42501") return "Bạn không có quyền thực hiện thao tác này.";
@@ -60,6 +66,45 @@ function refresh() {
   updateTag("catalog");
   revalidatePath("/owner"); revalidatePath("/restaurants", "layout");
   revalidatePath("/account/seller"); revalidatePath("/admin"); revalidatePath("/");
+}
+
+function refreshFlashSales() {
+  updateTag("flash-sale");
+  revalidatePath("/owner"); revalidatePath("/admin"); revalidatePath("/");
+  revalidatePath("/cart"); revalidatePath("/checkout");
+}
+
+export async function submitFlashSaleProposalAction(input: OwnerFlashSaleProposalInput): Promise<OwnerActionResult> {
+  if (![input.campaignId, input.restaurantId, input.foodId].every((value) => UUID.test(value))) {
+    return { ok: false, message: "Chiến dịch, nhà hàng hoặc món ăn không hợp lệ." };
+  }
+  const validFunding = input.fundingSource === "restaurant"
+    ? input.platformFundingPercent === 0
+    : input.fundingSource === "shared" && input.platformFundingPercent > 0 && input.platformFundingPercent < 100;
+  if (!Number.isFinite(input.salePrice) || input.salePrice <= 0 || !Number.isInteger(input.stockLimit) || input.stockLimit <= 0 ||
+      !Number.isInteger(input.perUserLimit) || input.perUserLimit < 1 || input.perUserLimit > 20 || !validFunding) {
+    return { ok: false, message: "Giá sale, số suất, quota hoặc tỷ lệ tài trợ không hợp lệ." };
+  }
+  const supabase = await authorized();
+  const { error } = await supabase.rpc("api_owner_submit_flash_sale_proposal", {
+    p_campaign_id: input.campaignId, p_restaurant_id: input.restaurantId, p_food_id: input.foodId,
+    p_sale_price: input.salePrice, p_stock_limit: input.stockLimit, p_per_user_limit: input.perUserLimit,
+    p_funding_source: input.fundingSource, p_platform_funding_percent: input.platformFundingPercent,
+    p_note: input.note?.trim() || null,
+  });
+  if (error) return { ok: false, message: errorMessage(error, "Không thể gửi đề xuất Flash Sale.") };
+  refreshFlashSales();
+  return { ok: true, message: "Đã gửi đề xuất. Món sẽ lên Flash Sale sau khi Admin duyệt." };
+}
+
+export async function cancelFlashSaleProposalAction(proposalId: string): Promise<OwnerActionResult> {
+  if (!UUID.test(proposalId)) return { ok: false, message: "Đề xuất không hợp lệ." };
+  const supabase = await authorized();
+  const { data, error } = await supabase.rpc("api_owner_cancel_flash_sale_proposal", { p_proposal_id: proposalId });
+  if (error) return { ok: false, message: errorMessage(error, "Không thể hủy đề xuất Flash Sale.") };
+  if (!data) return { ok: false, message: "Đề xuất đã được xử lý nên không thể hủy." };
+  refreshFlashSales();
+  return { ok: true, message: "Đã hủy đề xuất Flash Sale." };
 }
 
 export async function updateRestaurantProfileAction(input: RestaurantProfileInput): Promise<OwnerActionResult> {

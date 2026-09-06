@@ -10,6 +10,7 @@ import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
+import LocalFireDepartmentOutlinedIcon from "@mui/icons-material/LocalFireDepartmentOutlined";
 
 import {
   applyRestaurantMediaAction, createRestaurantMediaUploadTicketAction,
@@ -29,6 +30,8 @@ import OwnerOrderConsole from "@/components/owner/OwnerOrderConsole";
 import VoucherManagementPanel from "@/components/voucher/VoucherManagementPanel";
 import type { OwnerOrderList } from "@/types/owner";
 import type { VoucherManagementData } from "@/types/voucher";
+import OwnerFlashSalePanel from "@/components/owner/OwnerFlashSalePanel";
+import type { OwnerFlashSaleWorkspace } from "@/types/flashSale";
 
 const DAYS = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
 const STATE: Record<string, string> = {
@@ -49,12 +52,13 @@ const STATE_HELP: Record<string, string> = {
   SUSPENDED: "Nhà hàng đang bị tạm ngưng và không thể nhận đơn mới.",
   UNPUBLISHED: "Nhà hàng chưa được xuất bản công khai.",
 };
-type Tab = "overview" | "orders" | "menu" | "vouchers" | "settings" | "wallet";
-const VALID_TABS: Tab[] = ["overview", "orders", "menu", "vouchers", "settings", "wallet"];
+type Tab = "overview" | "orders" | "menu" | "flash_sales" | "vouchers" | "settings" | "wallet";
+const VALID_TABS: Tab[] = ["overview", "orders", "menu", "flash_sales", "vouchers", "settings", "wallet"];
 const TAB_ICONS: Record<Tab, ReactNode> = {
   overview: <DashboardOutlinedIcon fontSize="small" />,
   orders: <ReceiptLongOutlinedIcon fontSize="small" />,
   menu: <RestaurantMenuOutlinedIcon fontSize="small" />,
+  flash_sales: <LocalFireDepartmentOutlinedIcon fontSize="small" />,
   vouchers: <ConfirmationNumberOutlinedIcon fontSize="small" />,
   settings: <SettingsOutlinedIcon fontSize="small" />,
   wallet: <AccountBalanceWalletOutlinedIcon fontSize="small" />,
@@ -68,8 +72,8 @@ function dayRows(hours: RestaurantHour[]) {
 }
 
 export default function OwnerDashboard({
-  userId, restaurants, data, menu, orders, vouchers,
-}: { userId: string; restaurants: ManagedRestaurantSummary[]; data: OwnerDashboardData; menu: OwnerMenuData; orders: OwnerOrderList; vouchers: VoucherManagementData }) {
+  userId, restaurants, data, menu, orders, vouchers, flashSales,
+}: { userId: string; restaurants: ManagedRestaurantSummary[]; data: OwnerDashboardData; menu: OwnerMenuData; orders: OwnerOrderList; vouchers: VoucherManagementData; flashSales: OwnerFlashSaleWorkspace }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedTab = searchParams.get("tab") as Tab | null;
@@ -89,7 +93,7 @@ export default function OwnerDashboard({
   const openOrderCount = orders.items.filter((item) => !["completed", "cancelled"].includes(item.status)).length;
   const tabs: Array<[Tab, string, boolean]> = [
     ["overview", "Tổng quan", true], ["orders", `Đơn hàng (${openOrderCount})`, permissions.has("restaurant.orders.manage")],
-    ["menu", "Thực đơn", canMenu], ["vouchers", "Voucher", canVouchers], ["settings", "Cài đặt", canSettings],
+    ["menu", "Thực đơn", canMenu], ["flash_sales", "Flash Sale", canMenu], ["vouchers", "Voucher", canVouchers], ["settings", "Cài đặt", canSettings],
     ["wallet", "Tài chính", permissions.has("restaurant.finance.view")],
   ];
 
@@ -117,6 +121,7 @@ export default function OwnerDashboard({
         {tab === "overview" && <Overview data={data} menu={menu} orders={orders} pending={pending} canOrders={canOrders} canManageOrders={permissions.has("restaurant.orders.manage")} canMenu={canMenu} canProfile={canProfile} run={run} onOpenOrders={() => setTab("orders")} onOpenMenu={() => setTab("menu")} />}
         {tab === "orders" && permissions.has("restaurant.orders.manage") && <OwnerOrderConsole restaurantId={data.restaurant.id} data={orders} menu={menu} canReject={permissions.has("restaurant.orders.reject")} />}
         {tab === "menu" && canMenu && <OwnerMenuManager restaurantId={data.restaurant.id} data={menu} />}
+        {tab === "flash_sales" && canMenu && <OwnerFlashSalePanel restaurantId={data.restaurant.id} data={flashSales} />}
         {tab === "vouchers" && canVouchers && <VoucherManagementPanel mode="owner" restaurantId={data.restaurant.id} data={vouchers} />}
         {tab === "settings" && canSettings && <Settings userId={userId} data={data} pending={pending} canProfile={canProfile} canHours={canHours} canMedia={canMedia} canStaff={canStaff} canTransfer={canTransfer} run={run} />}
         {tab === "wallet" && permissions.has("restaurant.finance.view") && <OwnerWalletPlaceholder />}
