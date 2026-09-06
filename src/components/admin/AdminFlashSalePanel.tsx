@@ -10,6 +10,7 @@ import type { AdminFlashSaleCampaign, AdminFlashSaleData, FlashSaleProposal } fr
 const money = (value: number) => `${Math.round(value).toLocaleString("vi-VN")}đ`;
 const CAMPAIGN_STATUS: Record<AdminFlashSaleCampaign["status"], string> = { draft: "Bản nháp", active: "Đang chạy", paused: "Tạm dừng", ended: "Đã kết thúc" };
 const PROPOSAL_STATUS: Record<FlashSaleProposal["status"], string> = { pending: "Chờ duyệt", approved: "Đã duyệt", rejected: "Đã từ chối", cancelled: "Owner đã hủy" };
+type FlashSaleTab = "campaigns" | "pending" | "approved" | "history";
 
 function FundingText({ proposal }: { proposal: FlashSaleProposal }) {
   return <>{proposal.fundingSource === "restaurant" ? "Nhà hàng tài trợ 100%" : `EatNow ${proposal.platformFundingPercent}% · Nhà hàng ${100 - proposal.platformFundingPercent}%`}</>;
@@ -20,6 +21,7 @@ export default function AdminFlashSalePanel({ data }: { data: AdminFlashSaleData
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [workingKey, setWorkingKey] = useState<string | null>(null);
+  const [tab, setTab] = useState<FlashSaleTab>(data.proposals.some((proposal) => proposal.status === "pending") ? "pending" : "campaigns");
   const [pending, startTransition] = useTransition();
   const selected = data.campaigns.find((campaign) => campaign.id === campaignId);
   const campaignItems = data.items.filter((item) => item.campaignId === campaignId);
@@ -77,7 +79,14 @@ export default function AdminFlashSalePanel({ data }: { data: AdminFlashSaleData
       <article><span>Nhà hàng tài trợ</span><strong>{money(data.finance.restaurantFunded)}</strong></article>
     </div>
 
-    <section className="admin-flash-section admin-flash-section--pending">
+    <nav className="admin-flash-tabs" aria-label="Quản lý Flash Sale">
+      <button type="button" className={tab === "campaigns" ? "is-active" : ""} aria-current={tab === "campaigns" ? "page" : undefined} onClick={() => setTab("campaigns")}><span>Chiến dịch</span><b>{data.campaigns.length}</b></button>
+      <button type="button" className={tab === "pending" ? "is-active" : ""} aria-current={tab === "pending" ? "page" : undefined} onClick={() => setTab("pending")}><span>Chờ duyệt</span><b className={pendingProposals.length ? "has-pending" : ""}>{pendingProposals.length}</b></button>
+      <button type="button" className={tab === "approved" ? "is-active" : ""} aria-current={tab === "approved" ? "page" : undefined} onClick={() => setTab("approved")}><span>Món đã duyệt</span><b>{data.items.length}</b></button>
+      <button type="button" className={tab === "history" ? "is-active" : ""} aria-current={tab === "history" ? "page" : undefined} onClick={() => setTab("history")}><span>Lịch sử duyệt</span><b>{proposalHistory.length}</b></button>
+    </nav>
+
+    {tab === "pending" && <section className="admin-flash-section admin-flash-section--pending admin-flash-tab-panel">
       <div className="admin-flash-section__heading"><div><p>Cần xử lý</p><h3>Hàng chờ duyệt</h3></div><span>{pendingProposals.length} đề xuất</span></div>
       {pendingProposals.length === 0 ? <div className="admin-flash-empty"><strong>Đã xử lý hết đề xuất</strong><span>Đề xuất mới từ nhà hàng sẽ xuất hiện tại đây.</span></div> : <div className="admin-flash-review-grid">
         {pendingProposals.map((proposal) => <article className="admin-flash-review-card" key={proposal.id}>
@@ -89,9 +98,9 @@ export default function AdminFlashSalePanel({ data }: { data: AdminFlashSaleData
           <footer><button className="is-reject" type="button" disabled={pending} onClick={() => review(proposal, false)}>Từ chối</button><button className="is-approve" type="button" disabled={pending} onClick={() => review(proposal, true)}>{workingKey === `proposal-${proposal.id}` ? <CircularProgress size={16} color="inherit" /> : "Duyệt món"}</button></footer>
         </article>)}
       </div>}
-    </section>
+    </section>}
 
-    <div className="admin-flash-management">
+    {tab === "campaigns" && <div className="admin-flash-management admin-flash-tab-panel">
       <form className="admin-flash-card admin-flash-campaign-form" onSubmit={saveCampaign}>
         <div className="admin-flash-card__heading"><div><p>Thiết lập</p><h3>Tạo chiến dịch</h3></div></div>
         <label>Tên chiến dịch<input name="name" required maxLength={120} placeholder="Ví dụ: Deal trưa đồng giá" /></label>
@@ -108,16 +117,16 @@ export default function AdminFlashSalePanel({ data }: { data: AdminFlashSaleData
           <footer>{campaign.status !== "active" && campaign.status !== "ended" ? <button type="button" onClick={() => changeStatus(campaign, "active")}>Kích hoạt</button> : null}{campaign.status === "active" ? <button type="button" onClick={() => changeStatus(campaign, "paused")}>Tạm dừng</button> : null}{campaign.status !== "ended" ? <button type="button" onClick={() => changeStatus(campaign, "ended")}>Kết thúc</button> : null}</footer>
         </article>)}
       </section>
-    </div>
+    </div>}
 
-    <section className="admin-flash-section">
-      <div className="admin-flash-section__heading"><div><p>{selected?.name ?? "Chiến dịch"}</p><h3>Món đã được duyệt</h3></div><span>{campaignItems.length} món</span></div>
+    {tab === "approved" && <section className="admin-flash-section admin-flash-tab-panel">
+      <div className="admin-flash-section__heading"><div><p>Theo chiến dịch</p><h3>Món đã được duyệt</h3></div><div className="admin-flash-approved-filter"><select aria-label="Lọc món theo chiến dịch" value={campaignId} onChange={(event) => setCampaignId(event.target.value)}>{data.campaigns.map((campaign) => <option value={campaign.id} key={campaign.id}>{campaign.name}</option>)}</select><span>{campaignItems.length} món</span></div></div>
       {!selected || campaignItems.length === 0 ? <div className="admin-flash-empty"><strong>Chưa có món được duyệt</strong><span>Chọn chiến dịch và duyệt đề xuất của nhà hàng để thêm món.</span></div> : <div className="admin-flash-approved-grid">{campaignItems.map((item) => <article key={item.id}><div><span>{item.restaurantName}</span><strong>{item.foodName}</strong></div><p><b>{money(item.salePrice)}</b><del>{money(item.originalPrice)}</del></p><small>Đã bán {item.soldQuantity} · Đang giữ {item.reservedQuantity} · Còn {item.stockLimit - item.soldQuantity - item.reservedQuantity}</small><em>{item.fundingSource === "platform" ? "EatNow 100%" : item.fundingSource === "restaurant" ? "Nhà hàng 100%" : `EatNow ${item.platformFundingPercent}% · Nhà hàng ${100 - item.platformFundingPercent}%`}</em></article>)}</div>}
-    </section>
+    </section>}
 
-    <section className="admin-flash-section admin-flash-section--history">
+    {tab === "history" && <section className="admin-flash-section admin-flash-section--history admin-flash-tab-panel">
       <div className="admin-flash-section__heading"><div><p>Đã xử lý</p><h3>Lịch sử duyệt</h3></div><span>{proposalHistory.length} đề xuất</span></div>
       {proposalHistory.length === 0 ? <div className="admin-flash-empty"><strong>Chưa có lịch sử</strong></div> : <div className="admin-flash-history-list">{proposalHistory.map((proposal) => <article key={proposal.id}><div><strong>{proposal.foodName}</strong><span>{proposal.restaurantName} · {proposal.campaignName}</span></div><div><b>{money(proposal.proposedSalePrice)} · {proposal.proposedStockLimit} suất</b><small><FundingText proposal={proposal} /></small></div><em className={`is-${proposal.status}`}>{PROPOSAL_STATUS[proposal.status]}</em>{proposal.reviewNote && <p>{proposal.reviewNote}</p>}</article>)}</div>}
-    </section>
+    </section>}
   </section>;
 }
