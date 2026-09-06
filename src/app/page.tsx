@@ -2,6 +2,7 @@ import HomePage from "@/components/home/HomePage";
 import { getHomeCategories } from "@/lib/data/catalog";
 import { getFeaturedRestaurants } from "@/lib/data/restaurants";
 import { getSiteMedia } from "@/lib/data/siteMedia";
+import { getHomeFlashSale } from "@/lib/data/flashSales";
 import { getCurrentPublicUser } from "@/utils/auth/guards";
 import { hasRole } from "@/utils/roles";
 import { redirect } from "next/navigation";
@@ -15,10 +16,11 @@ export default async function Home({ searchParams }: HomeProps) {
   const explicitHome = Array.isArray(params.home) ? params.home[0] : params.home;
   if (user && hasRole(user, "SHIPPER") && explicitHome !== "1") redirect("/shipper");
 
-  const [categories, featuredRestaurants, siteMedia] = await Promise.all([
+  const [categories, featuredRestaurants, siteMedia, flashSale] = await Promise.all([
     getHomeCategories(),
     getFeaturedRestaurants(),
     getSiteMedia(),
+    getHomeFlashSale(),
   ]);
 
   return (
@@ -27,6 +29,7 @@ export default async function Home({ searchParams }: HomeProps) {
       categories={categories}
       featuredRestaurants={featuredRestaurants}
       heroImage={siteMedia.home_hero}
+      flashSale={flashSale}
     />
   );
 }

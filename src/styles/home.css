@@ -378,6 +378,210 @@
   transform: translateY(-2px);
 }
 
+.home-flash-sale {
+  overflow: hidden;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #7a3000 0%, #b93618 55%, #d94720 100%);
+  box-shadow: 0 16px 36px rgba(122, 48, 0, 0.2);
+  padding: 24px;
+}
+
+.home-flash-sale__heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.home-flash-sale__heading > div:first-child {
+  min-width: 0;
+}
+
+.home-flash-sale__heading p {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 4px;
+  color: #ffd3c6;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.home-flash-sale__heading p svg {
+  font-size: 20px;
+}
+
+.home-flash-sale.home-section h2 {
+  color: #fff;
+}
+
+.home-flash-sale__heading > div:first-child > span {
+  display: block;
+  margin-top: 4px;
+  color: #ffe9e1;
+  font-size: 13px;
+}
+
+.home-flash-sale__countdown {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.home-flash-sale__countdown > svg {
+  margin-right: 2px;
+}
+
+.home-flash-sale__countdown span {
+  display: grid;
+  min-width: 36px;
+  min-height: 36px;
+  place-items: center;
+  border-radius: 9px;
+  background: #fff;
+  color: #7a3000;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.home-flash-sale__countdown i {
+  color: #fff;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.home-flash-sale__track {
+  display: grid;
+  grid-auto-columns: minmax(210px, 1fr);
+  grid-auto-flow: column;
+  gap: 14px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  padding: 2px 2px 8px;
+  scroll-snap-type: inline mandatory;
+  scrollbar-width: thin;
+}
+
+.home-flash-sale-card {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+  scroll-snap-align: start;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.home-flash-sale-card:hover {
+  box-shadow: 0 14px 28px rgba(73, 21, 8, 0.25);
+  transform: translateY(-2px);
+}
+
+.home-flash-sale-card__media {
+  position: relative;
+  display: grid;
+  height: 142px;
+  place-items: center;
+  overflow: hidden;
+  background: #ffe9e1;
+  color: #b93618;
+  font-weight: 800;
+}
+
+.home-flash-sale-card__media img {
+  object-fit: cover;
+  transition: transform 220ms ease;
+}
+
+.home-flash-sale-card:hover .home-flash-sale-card__media img {
+  transform: scale(1.04);
+}
+
+.home-flash-sale-card__media strong {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  border-radius: 999px;
+  background: #d94720;
+  color: #fff;
+  font-size: 12px;
+  padding: 5px 9px;
+}
+
+.home-flash-sale-card__body {
+  padding: 13px 14px 15px;
+}
+
+.home-flash-sale-card__body > small {
+  display: block;
+  overflow: hidden;
+  color: #70645d;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-flash-sale-card h3 {
+  min-height: 42px;
+  margin: 4px 0 8px;
+  overflow: hidden;
+  color: #251d18;
+  display: -webkit-box;
+  font-size: 15px;
+  line-height: 21px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.home-flash-sale-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.home-flash-sale-card__price b {
+  color: #d94720;
+  font-size: 17px;
+}
+
+.home-flash-sale-card__price del {
+  color: #9a8c84;
+  font-size: 11px;
+}
+
+.home-flash-sale-card__stock {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.home-flash-sale-card__stock > span {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f0dfd7;
+}
+
+.home-flash-sale-card__stock i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffb84d, #d94720);
+}
+
+.home-flash-sale-card__stock small {
+  color: #7a594f;
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .home-category-card__icon {
   display: grid;
   width: 64px;
@@ -878,6 +1082,22 @@
 
   .site-footer__inner {
     padding: 40px 20px 22px;
+  }
+
+  .home-flash-sale {
+    margin-inline: -16px;
+    border-radius: 0;
+    padding: 20px 16px;
+  }
+
+  .home-flash-sale__heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .home-flash-sale__track {
+    grid-auto-columns: minmax(210px, 72vw);
   }
 
   .site-footer__grid {

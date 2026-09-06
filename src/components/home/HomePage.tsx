@@ -11,6 +11,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { PublicUser } from "@/types/auth";
 import type { SiteMediaItem } from "@/types/siteMedia";
+import type { HomeFlashSale as HomeFlashSaleData } from "@/types/flashSale";
+import HomeFlashSale from "./HomeFlashSale";
 import { nearbyFoods } from "./homeData";
 import type { HomeCategory, HomeRestaurant } from "./homeData";
 
@@ -19,6 +21,7 @@ type HomePageProps = {
   categories: HomeCategory[];
   featuredRestaurants: HomeRestaurant[];
   heroImage: SiteMediaItem;
+  flashSale: HomeFlashSaleData | null;
 };
 
 type SnackbarState = {
@@ -30,6 +33,7 @@ export default function HomePage({
   categories,
   featuredRestaurants,
   heroImage,
+  flashSale,
 }: HomePageProps) {
   const router = useRouter();
   const [snackbar, setSnackbar] = useState<SnackbarState>({
@@ -78,6 +82,8 @@ export default function HomePage({
             </Button>
           </div>
         </section>
+
+        {flashSale ? <HomeFlashSale campaign={flashSale} /> : null}
 
         <section id="featured-categories" className="home-section">
           <h2>Danh Mục Nổi Bật</h2>
