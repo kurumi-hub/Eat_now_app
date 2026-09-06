@@ -37,6 +37,7 @@ import {
 import { requirePermission } from "@/utils/auth/guards";
 import { normalizeRoles } from "@/utils/roles";
 import { createClient } from "@/utils/supabase/server";
+import { EMPTY_ADMIN_FLASH_SALES, parseAdminFlashSales } from "@/lib/data/adminFlashSales";
 
 type AdminPageProps = {
   searchParams: Promise<{
@@ -61,6 +62,7 @@ const ADMIN_TABS: AdminTab[] = [
   "restaurants",
   "refunds",
   "vouchers",
+  "flash_sales",
   "catalog",
   "finance",
   "media",
@@ -331,6 +333,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   if (tab === "catalog" && !user.permissions.includes("catalog.manage")) {
     tab = "overview";
   }
+  if (tab === "flash_sales" && !user.permissions.includes("catalog.manage")) tab = "overview";
   if (tab === "finance" && !user.permissions.includes("finance.settings.manage")) {
     tab = "overview";
   }
@@ -407,6 +410,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         p_status: status || null, p_search: search || null, p_limit: limit, p_offset: offset,
       });
     }
+    if (tab === "flash_sales") return supabase.rpc("api_admin_get_flash_sales");
     if (tab === "catalog") {
       const rpc = catalogKind === "tags"
         ? "api_list_admin_tags"
@@ -457,6 +461,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       restaurants={tab === "restaurants" && managementView === "list" ? parseRestaurants(contentResult.data) : EMPTY_RESTAURANTS}
       refunds={tab === "refunds" ? parseRefunds(contentResult.data) : EMPTY_REFUNDS}
       vouchers={tab === "vouchers" ? parseVoucherManagement(contentResult.data) : EMPTY_VOUCHER_MANAGEMENT}
+      flashSales={tab === "flash_sales" ? parseAdminFlashSales(contentResult.data) : EMPTY_ADMIN_FLASH_SALES}
       catalogKind={catalogKind}
       categories={
         tab === "catalog" && catalogKind === "categories"

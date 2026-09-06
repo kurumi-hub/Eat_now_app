@@ -17,6 +17,7 @@ function cartItems(lines: CartLine[]) {
       .map((topping) => topping.id)
       .filter((id): id is string => Boolean(id)),
     note: line.note ?? null,
+    flash_sale_item_id: line.flashSaleItemId ?? null,
   }));
 }
 
@@ -269,7 +270,8 @@ export async function placeOrder(
   paymentMethod: "cod" | "vnpay",
   note?: string,
   voucherCodes: VoucherSelection = {},
-  idempotencyKey?: string
+  idempotencyKey?: string,
+  expectedTotal?: number
 ): Promise<PlaceOrderResult> {
   await requireCurrentUser();
   if (!idempotencyKey || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey)) {
@@ -277,10 +279,14 @@ export async function placeOrder(
   }
   const supabase = await createClient();
 
-  const { data, error } = await supabase.rpc("api_place_order_idempotent_v3", {
+  if (!Number.isFinite(expectedTotal) || (expectedTotal ?? -1) < 0) {
+    return { ok: false, error: "Giá xác nhận không hợp lệ. Vui lòng tải lại đơn hàng." };
+  }
+  const { data, error } = await supabase.rpc("api_place_order_idempotent_v4", {
     p_idempotency_key: idempotencyKey,
     p_cart_id: cartId,
     p_address_id: addressId,
+    p_expected_total: expectedTotal,
     p_payment_method: paymentMethod,
     p_note: note || null,
     p_restaurant_voucher_code: voucherCodes.restaurant || null,

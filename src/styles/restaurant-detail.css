@@ -604,6 +604,9 @@
 }
 .food-detail-description { margin: 0; color: #6b5146; font-size: 15px; line-height: 24px; }
 .food-detail-price { color: #a04100; font-size: 29px; }
+.food-detail-flash-price { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.food-detail-flash-price del { color: #8b8178; font-size: 16px; }
+.food-detail-flash-price small { flex-basis: 100%; color: #a04100; font-weight: 700; }
 .food-detail-restaurant {
   display: flex;
   align-items: center;

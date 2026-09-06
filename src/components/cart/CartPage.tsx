@@ -112,8 +112,9 @@ export default function CartPage({ user }: CartPageProps) {
                       <div className="cart-item-row__top">
                         <div>
                           <h3>{line.foodName}</h3>
+                          {line.flashSaleItemId ? <span className="cart-flash-badge">Flash Sale</span> : null}
                           {lineDescription(line) && <p>{lineDescription(line)}</p>}
-                          <small>{formatCurrency(line.unitPrice)} / phần</small>
+                          <small>{formatCurrency(line.unitPrice)} / phần{line.flashSaleEndsAt ? ` · hết hạn ${new Date(line.flashSaleEndsAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}` : ""}</small>
                         </div>
                         <strong>{formatCurrency(line.unitPrice * line.quantity)}</strong>
                       </div>

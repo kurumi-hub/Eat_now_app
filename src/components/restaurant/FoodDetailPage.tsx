@@ -26,6 +26,7 @@ import { useCartStore } from "@/store/cartStore";
 import ReviewComposer from "./ReviewComposer";
 import type { FoodReviewData, ReviewEligibleOrder } from "./reviewData";
 import type { RestaurantDetail, RestaurantMenuItem } from "./restaurantDetailData";
+import type { FoodFlashSale } from "@/types/flashSale";
 
 const FoodOptionsModal = dynamic(
   () => import("@/components/cart/FoodOptionsModal"),
@@ -46,6 +47,7 @@ type FoodDetailPageProps = {
   reviewData: FoodReviewData;
   reviewOrders: ReviewEligibleOrder[];
   isAuthenticated: boolean;
+  flashSale: FoodFlashSale | null;
 };
 
 function formatCurrency(value: number) {
@@ -68,6 +70,7 @@ export default function FoodDetailPage({
   reviewData,
   reviewOrders,
   isAuthenticated,
+  flashSale,
 }: FoodDetailPageProps) {
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [pendingSelection, setPendingSelection] = useState<CartSelection | null>(null);
@@ -99,11 +102,15 @@ export default function FoodDetailPage({
       foodId: food.id,
       foodName: food.name,
       foodImage: food.image,
-      basePrice: food.price,
+      basePrice: flashSale?.salePrice ?? food.price,
+      originalBasePrice: flashSale?.originalPrice,
+      flashSaleItemId: flashSale?.id,
+      flashSaleEndsAt: flashSale?.endsAt,
+      flashSalePerUserLimit: flashSale?.perUserLimit,
       size: selection.size,
       toppings: selection.toppings,
       note: selection.note,
-      quantity: selection.quantity,
+      quantity: Math.min(selection.quantity, flashSale?.perUserLimit ?? selection.quantity),
     });
     setOptionsOpen(false);
     showNotice(`Đã thêm ${food.name} vào giỏ hàng.`);
@@ -171,7 +178,14 @@ export default function FoodDetailPage({
             <p className="food-detail-description">
               {food.description || "Nhà hàng đang cập nhật mô tả cho món ăn này."}
             </p>
-            <strong className="food-detail-price">{formatCurrency(food.price)}</strong>
+            {flashSale ? (
+              <div className="food-detail-flash-price">
+                <Chip size="small" color="error" label={flashSale.campaignName} />
+                <strong className="food-detail-price">{formatCurrency(flashSale.salePrice)}</strong>
+                <del>{formatCurrency(flashSale.originalPrice)}</del>
+                <small>Còn {flashSale.remainingQuantity} suất · tối đa {flashSale.perUserLimit} suất/khách</small>
+              </div>
+            ) : <strong className="food-detail-price">{formatCurrency(food.price)}</strong>}
 
             <div className="food-detail-restaurant">
               <div>

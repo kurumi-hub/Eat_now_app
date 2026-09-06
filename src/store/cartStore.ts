@@ -27,6 +27,10 @@ export type CartLine = {
   unitPrice: number;
   quantity: number;
   note?: string;
+  flashSaleItemId?: string;
+  flashSaleEndsAt?: string;
+  originalBasePrice?: number;
+  flashSalePerUserLimit?: number;
 };
 
 export type AddToCartInput = {
@@ -40,6 +44,10 @@ export type AddToCartInput = {
   toppings?: CartToppingSelection[];
   note?: string;
   quantity?: number;
+  flashSaleItemId?: string;
+  flashSaleEndsAt?: string;
+  originalBasePrice?: number;
+  flashSalePerUserLimit?: number;
 };
 
 type CartState = {
@@ -75,12 +83,13 @@ function buildSignature(
   foodId: string,
   sizeId: string | undefined,
   toppingIds: string[],
-  note: string | undefined
+  note: string | undefined,
+  flashSaleItemId?: string
 ) {
   const sortedToppingIds = [...toppingIds].sort();
   return `${foodId}|${sizeId ?? ""}|${sortedToppingIds.join(",")}|${
     note?.trim() ?? ""
-  }`;
+  }|${flashSaleItemId ?? ""}`;
 }
 
 function lineSignature(line: CartLine) {
@@ -88,7 +97,8 @@ function lineSignature(line: CartLine) {
     line.foodId,
     line.size?.id,
     line.toppings.map((t) => t.id),
-    line.note
+    line.note,
+    line.flashSaleItemId
   );
 }
 
@@ -158,6 +168,10 @@ export const useCartStore = create<CartState>()(
           toppings = [],
           note,
           quantity = 1,
+          flashSaleItemId,
+          flashSaleEndsAt,
+          originalBasePrice,
+          flashSalePerUserLimit,
         } = input;
 
         const state = get();
@@ -179,7 +193,8 @@ export const useCartStore = create<CartState>()(
           foodId,
           size?.id,
           toppings.map((t) => t.id),
-          note
+          note,
+          flashSaleItemId
         );
 
         const existingLine = state.lines.find(
@@ -209,6 +224,10 @@ export const useCartStore = create<CartState>()(
           unitPrice,
           quantity,
           note,
+          flashSaleItemId,
+          flashSaleEndsAt,
+          originalBasePrice,
+          flashSalePerUserLimit,
         };
 
         set({
@@ -223,9 +242,13 @@ export const useCartStore = create<CartState>()(
           get().removeLine(lineId);
           return;
         }
+        const target = get().lines.find((line) => line.lineId === lineId);
+        const nextQuantity = target?.flashSalePerUserLimit
+          ? Math.min(quantity, target.flashSalePerUserLimit)
+          : quantity;
         set({
           lines: get().lines.map((line) =>
-            line.lineId === lineId ? { ...line, quantity } : line
+            line.lineId === lineId ? { ...line, quantity: nextQuantity } : line
           ),
         });
       },
@@ -280,7 +303,7 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "eatnow-cart", // localStorage key
-      version: 1,
+      version: 2,
       migrate: (persistedState, version) => {
         if (version < 1) {
           // Bản cũ không có ownerId nên không thể xác định dữ liệu thuộc ai.

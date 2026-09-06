@@ -4,18 +4,21 @@ import FoodDetailPage from "@/components/restaurant/FoodDetailPage";
 import { getRestaurantDetailBySlug } from "@/lib/data/restaurants";
 import { getFoodReviewData, getReviewEligibleOrders } from "@/lib/data/reviews";
 import { getCurrentPublicUser } from "@/utils/auth/guards";
+import { getFoodFlashSale } from "@/lib/data/flashSales";
 
 type FoodDetailRouteProps = {
   params: Promise<{
     restaurantId: string;
     foodId: string;
   }>;
+  searchParams: Promise<{ sale?: string | string[] }>;
 };
 
-export default async function FoodDetailRoute({ params }: FoodDetailRouteProps) {
-  const [{ restaurantId, foodId }, user] = await Promise.all([
+export default async function FoodDetailRoute({ params, searchParams }: FoodDetailRouteProps) {
+  const [{ restaurantId, foodId }, user, query] = await Promise.all([
     params,
     getCurrentPublicUser(),
+    searchParams,
   ]);
   const restaurant = await getRestaurantDetailBySlug(restaurantId);
 
@@ -28,9 +31,11 @@ export default async function FoodDetailRoute({ params }: FoodDetailRouteProps) 
 
   if (!food || !category) notFound();
 
-  const [reviewData, reviewOrders] = await Promise.all([
+  const requestedSale = Array.isArray(query.sale) ? query.sale[0] : query.sale;
+  const [reviewData, reviewOrders, flashSale] = await Promise.all([
     getFoodReviewData(restaurant.slug, food.id),
     user ? getReviewEligibleOrders(restaurant.id, food.id) : Promise.resolve([]),
+    getFoodFlashSale(food.id, requestedSale),
   ]);
 
   return (
@@ -41,6 +46,7 @@ export default async function FoodDetailRoute({ params }: FoodDetailRouteProps) 
       reviewData={reviewData}
       reviewOrders={reviewOrders}
       isAuthenticated={Boolean(user)}
+      flashSale={flashSale}
     />
   );
 }

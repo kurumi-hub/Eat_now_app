@@ -55,6 +55,8 @@ type PreviewState = {
   tax_amount?: number;
   tax_added_amount?: number;
   customer_fee_amount?: number;
+  original_subtotal?: number;
+  flash_sale_discount_amount?: number;
   restaurant_discount_amount?: number;
   platform_discount_amount?: number;
   shipping_discount_amount?: number;
@@ -134,7 +136,6 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
     return () => { cancelled = true; };
   }, [cartReady, foodIdsKey, updateFoodImages]);
 
-  useEffect(() => { if (!addressId && defaultAddress) setAddressId(defaultAddress.id); }, [addressId, defaultAddress]);
   const handleAddressCreated = useCallback((newAddressId: string) => setAddressId(newAddressId), []);
   const handleCloseAddressDialog = useCallback(() => setAddressDialogOpen(false), []);
 
@@ -159,7 +160,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   }, [cartReady]);
 
   useEffect(() => {
-    if (!cartId || !addressId) { setPreview(null); return; }
+    if (!cartId || !addressId) return;
     if (skipNextPreviewRef.current) { skipNextPreviewRef.current = false; return; }
     let cancelled = false;
     (async () => {
@@ -170,7 +171,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
       setPreview(result.preview as PreviewState);
     })();
     return () => { cancelled = true; };
-  }, [cartId, addressId, paymentMethod, voucherCodes.restaurant, voucherCodes.platform, voucherCodes.shipping]);
+  }, [cartId, addressId, paymentMethod, voucherCodes]);
 
   useEffect(() => {
     checkoutAttemptRef.current = "";
@@ -187,7 +188,8 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
         paymentMethod,
         note || undefined,
         voucherCodes,
-        checkoutAttemptRef.current
+        checkoutAttemptRef.current,
+        preview?.total_price
       );
       if (!result.ok) { setError(result.error); return; }
       if (paymentMethod === "vnpay") {
@@ -281,7 +283,7 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
                       <span className="order-summary-item__image-placeholder"><RestaurantMenuOutlinedIcon /></span>
                     )}
                   </div>
-                  <div><h3>{line.quantity} × {line.foodName}</h3>{lineDescription(line) && <span>{lineDescription(line)}</span>}</div>
+                  <div><h3>{line.quantity} × {line.foodName}</h3>{line.flashSaleItemId ? <span>Flash Sale · suất được chốt khi đặt hàng</span> : lineDescription(line) && <span>{lineDescription(line)}</span>}</div>
                   <strong>{formatCurrency(line.unitPrice * line.quantity)}</strong>
                 </div>
               ))}
@@ -372,7 +374,7 @@ function PaymentOption({ value, selected, title, description, icon, onSelect }: 
 }
 
 function OrderPricing({ preview }: { preview: NonNullable<PreviewState> }) {
-  return <><div className="order-summary-rows"><PriceRow label="Tạm tính" value={formatCurrency(preview.subtotal)} /><PriceRow label="Phí giao hàng" value={formatCurrency(preview.shipping_fee)} />{(preview.restaurant_discount_amount ?? 0) > 0 && <PriceRow label="Voucher nhà hàng" value={`-${formatCurrency(preview.restaurant_discount_amount ?? 0)}`} discount />}{(preview.platform_discount_amount ?? 0) > 0 && <PriceRow label="Voucher EatNow" value={`-${formatCurrency(preview.platform_discount_amount ?? 0)}`} discount />}{(preview.shipping_discount_amount ?? 0) > 0 && <PriceRow label="Voucher vận chuyển" value={`-${formatCurrency(preview.shipping_discount_amount ?? 0)}`} discount />}{preview.discount_amount > 0 && preview.restaurant_discount_amount === undefined && <PriceRow label="Giảm giá" value={`-${formatCurrency(preview.discount_amount)}`} discount />}{(preview.customer_fee_amount ?? 0) > 0 && <PriceRow label="Phí dịch vụ và phụ phí" value={formatCurrency(preview.customer_fee_amount ?? 0)} />}{(preview.tax_amount ?? 0) > 0 && <PriceRow label={(preview.tax_added_amount ?? 0) > 0 ? "Thuế" : "Thuế đã bao gồm"} value={formatCurrency(preview.tax_amount ?? 0)} />}</div><div className="order-summary-total"><span>Tổng cộng</span><strong>{formatCurrency(preview.total_price)}</strong></div></>;
+  return <><div className="order-summary-rows">{(preview.flash_sale_discount_amount ?? 0) > 0 && <PriceRow label="Giá gốc món" value={formatCurrency(preview.original_subtotal ?? preview.subtotal)} />}<PriceRow label="Tạm tính sau Flash Sale" value={formatCurrency(preview.subtotal)} />{(preview.flash_sale_discount_amount ?? 0) > 0 && <PriceRow label="Bạn tiết kiệm từ Flash Sale" value={`-${formatCurrency(preview.flash_sale_discount_amount ?? 0)}`} discount />}<PriceRow label="Phí giao hàng" value={formatCurrency(preview.shipping_fee)} />{(preview.restaurant_discount_amount ?? 0) > 0 && <PriceRow label="Voucher nhà hàng" value={`-${formatCurrency(preview.restaurant_discount_amount ?? 0)}`} discount />}{(preview.platform_discount_amount ?? 0) > 0 && <PriceRow label="Voucher EatNow" value={`-${formatCurrency(preview.platform_discount_amount ?? 0)}`} discount />}{(preview.shipping_discount_amount ?? 0) > 0 && <PriceRow label="Voucher vận chuyển" value={`-${formatCurrency(preview.shipping_discount_amount ?? 0)}`} discount />}{preview.discount_amount > 0 && preview.restaurant_discount_amount === undefined && <PriceRow label="Giảm giá" value={`-${formatCurrency(preview.discount_amount)}`} discount />}{(preview.customer_fee_amount ?? 0) > 0 && <PriceRow label="Phí dịch vụ và phụ phí" value={formatCurrency(preview.customer_fee_amount ?? 0)} />}{(preview.tax_amount ?? 0) > 0 && <PriceRow label={(preview.tax_added_amount ?? 0) > 0 ? "Thuế" : "Thuế đã bao gồm"} value={formatCurrency(preview.tax_amount ?? 0)} />}</div><div className="order-summary-total"><span>Tổng cộng</span><strong>{formatCurrency(preview.total_price)}</strong></div></>;
 }
 
 function PriceRow({ label, value, discount }: { label: string; value: string; discount?: boolean }) {

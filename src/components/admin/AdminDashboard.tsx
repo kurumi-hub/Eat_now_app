@@ -17,6 +17,7 @@ import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
+import LocalFireDepartmentOutlinedIcon from "@mui/icons-material/LocalFireDepartmentOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import {
   Alert,
@@ -53,6 +54,7 @@ import AdminShippersPanel from "@/components/admin/AdminShippersPanel";
 import AdminShipperFinancePanel from "@/components/admin/AdminShipperFinancePanel";
 import AdminOrderConsole from "@/components/admin/AdminOrderConsole";
 import VoucherManagementPanel from "@/components/voucher/VoucherManagementPanel";
+import AdminFlashSalePanel from "@/components/admin/AdminFlashSalePanel";
 import type {
   AdminActionResult,
   AdminAuditList,
@@ -76,6 +78,7 @@ import type { PublicUser } from "@/types/auth";
 import type { SiteMediaSlot } from "@/types/siteMedia";
 import type { AdminShipperApplicationList, AdminShipperFinanceData, AdminShipperList } from "@/types/shipper";
 import type { VoucherManagementData } from "@/types/voucher";
+import type { AdminFlashSaleData } from "@/types/flashSale";
 import { formatRole, hasRole } from "@/utils/roles";
 import { signalNavigationStart } from "@/utils/navigationFeedback";
 import { createClient as createBrowserClient } from "@/utils/supabase/client";
@@ -105,6 +108,7 @@ type AdminDashboardProps = {
   restaurants: AdminRestaurantList;
   refunds: AdminRefundList;
   vouchers: VoucherManagementData;
+  flashSales: AdminFlashSaleData;
   catalogKind: AdminCatalogKind;
   categories: AdminCategoryList;
   tags: AdminTagList;
@@ -138,6 +142,7 @@ const TABS: Array<{
   { value: "restaurants", label: "Nhà hàng", icon: StorefrontOutlinedIcon },
   { value: "refunds", label: "Hoàn tiền", icon: CurrencyExchangeOutlinedIcon },
   { value: "vouchers", label: "Voucher", icon: LocalOfferOutlinedIcon },
+  { value: "flash_sales", label: "Flash Sale", icon: LocalFireDepartmentOutlinedIcon },
   { value: "catalog", label: "Catalog", icon: CategoryOutlinedIcon },
   { value: "finance", label: "Tài chính", icon: AccountBalanceOutlinedIcon },
   { value: "media", label: "Hình ảnh", icon: PhotoLibraryOutlinedIcon },
@@ -270,6 +275,7 @@ export default function AdminDashboard({
   restaurants,
   refunds,
   vouchers,
+  flashSales,
   catalogKind,
   categories,
   tags,
@@ -295,6 +301,7 @@ export default function AdminDashboard({
     (item) =>
       (item.value !== "media" || canManageMedia) &&
       (item.value !== "catalog" || canManageCatalog) &&
+      (item.value !== "flash_sales" || canManageCatalog) &&
       (item.value !== "finance" || canManageFinance) &&
       (item.value !== "vouchers" || canManageVouchers) &&
       (item.value !== "shippers" || canVerifyShippers || canManageShipperFinance)
@@ -779,6 +786,8 @@ export default function AdminDashboard({
               <VoucherManagementPanel mode="admin" data={vouchers} />
             </section>
           ) : null}
+
+          {tab === "flash_sales" && canManageCatalog ? <AdminFlashSalePanel data={flashSales} /> : null}
 
           {tab === "audit" ? (
             <section className="admin-panel">

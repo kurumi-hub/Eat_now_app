@@ -21,6 +21,16 @@ import { createClient } from "@/utils/supabase/server";
 import { voucherPayload } from "@/lib/voucherInput";
 import type { VoucherActionResult, VoucherSaveInput, VoucherStoredStatus } from "@/types/voucher";
 
+export type FlashSaleCampaignInput = {
+  id?: string; name: string; subtitle?: string; startsAt: string; endsAt: string;
+  status: "draft" | "active" | "paused" | "ended";
+  voucherPolicy: "none" | "shipping_only"; fundingSource: "platform";
+};
+export type FlashSaleItemInput = {
+  campaignId: string; foodId: string; salePrice: number; stockLimit: number;
+  perUserLimit: number; displayOrder: number; isActive: boolean;
+};
+
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -61,6 +71,50 @@ function refreshCatalog() {
   revalidatePath("/");
   revalidatePath("/restaurants", "layout");
   revalidatePath("/admin");
+}
+
+function refreshFlashSales() {
+  updateTag("flash-sale");
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/cart");
+  revalidatePath("/checkout");
+}
+
+export async function saveFlashSaleCampaignAction(input: FlashSaleCampaignInput): Promise<AdminActionResult> {
+  await requirePermission("catalog.manage");
+  const name = input.name.trim();
+  if (!name || name.length > 120) return { ok: false, message: "Tên chiến dịch phải dài từ 1 đến 120 ký tự." };
+  if (!Number.isFinite(Date.parse(input.startsAt)) || !Number.isFinite(Date.parse(input.endsAt)) || Date.parse(input.endsAt) <= Date.parse(input.startsAt)) {
+    return { ok: false, message: "Khoảng thời gian Flash Sale không hợp lệ." };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("api_admin_save_flash_sale_campaign", {
+    p_name: name, p_starts_at: input.startsAt, p_ends_at: input.endsAt,
+    p_subtitle: input.subtitle?.trim() || null, p_status: input.status,
+    p_voucher_policy: input.voucherPolicy, p_funding_source: "platform",
+    p_id: input.id && validId(input.id) ? input.id : null,
+  });
+  if (error) return { ok: false, message: failure("Không thể lưu chiến dịch Flash Sale.", error) };
+  refreshFlashSales();
+  return { ok: true, message: "Đã lưu chiến dịch Flash Sale." };
+}
+
+export async function saveFlashSaleItemAction(input: FlashSaleItemInput): Promise<AdminActionResult> {
+  await requirePermission("catalog.manage");
+  if (!validId(input.campaignId) || !validId(input.foodId)) return { ok: false, message: "Chiến dịch hoặc món ăn không hợp lệ." };
+  if (!Number.isFinite(input.salePrice) || input.salePrice <= 0 || !Number.isInteger(input.stockLimit) || input.stockLimit <= 0) {
+    return { ok: false, message: "Giá sale và số suất phải lớn hơn 0." };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("api_admin_save_flash_sale_item", {
+    p_campaign_id: input.campaignId, p_food_id: input.foodId, p_sale_price: input.salePrice,
+    p_stock_limit: input.stockLimit, p_per_user_limit: input.perUserLimit,
+    p_display_order: input.displayOrder, p_is_active: input.isActive,
+  });
+  if (error) return { ok: false, message: failure("Không thể lưu món Flash Sale.", error) };
+  refreshFlashSales();
+  return { ok: true, message: "Đã lưu món Flash Sale." };
 }
 
 function failure(message: string, error?: { code?: string; message?: string }) {

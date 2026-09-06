@@ -68,7 +68,7 @@ export default function HomeFlashSale({ campaign }: HomeFlashSaleProps) {
         {campaign.items.map((item) => {
           const discountPercent = Math.max(1, Math.round((1 - item.salePrice / item.originalPrice) * 100));
           const soldPercent = Math.min(100, Math.round((item.soldQuantity / item.stockLimit) * 100));
-          const href = `/restaurants/${item.restaurantSlug}/foods/${item.foodId}`;
+          const href = `/restaurants/${item.restaurantSlug}/foods/${item.foodId}?sale=${item.id}`;
           return (
             <Link className="home-flash-sale-card" href={href} key={item.id}>
               <div className="home-flash-sale-card__media">

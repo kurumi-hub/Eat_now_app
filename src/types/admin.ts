@@ -11,6 +11,7 @@ export type AdminTab =
   | "restaurants"
   | "refunds"
   | "vouchers"
+  | "flash_sales"
   | "catalog"
   | "finance"
   | "media"
