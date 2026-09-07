@@ -98,6 +98,85 @@ export async function discardAvatarUploadAction(objectPath: string) {
   await removeAvatarObject(user.id, objectPath);
 }
 
+export async function updateAvatarAction(
+  formData: FormData
+): Promise<ProfileActionState> {
+  const supabase = await createClient();
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
+  if (!currentUser) {
+    return {
+      status: "error",
+      error: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+    };
+  }
+
+  const avatarObjectPath = formString(formData, "avatarObjectPath").trim();
+  const removeAvatar = formString(formData, "removeAvatar") === "true";
+  if (
+    (!avatarObjectPath && !removeAvatar) ||
+    (avatarObjectPath && removeAvatar) ||
+    (avatarObjectPath && !isOwnedAvatarPath(currentUser.id, avatarObjectPath))
+  ) {
+    return { status: "error", error: "Thông tin ảnh đại diện không hợp lệ." };
+  }
+
+  const { data: oldProfile, error: readError } = await supabase
+    .from("profiles")
+    .select("avatar_url")
+    .eq("id", currentUser.id)
+    .single();
+  if (readError || !oldProfile) {
+    return { status: "error", error: "Không thể đọc ảnh đại diện hiện tại." };
+  }
+
+  const nextAvatarUrl = avatarObjectPath
+    ? supabase.storage.from(AVATAR_BUCKET).getPublicUrl(avatarObjectPath).data.publicUrl
+    : "";
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ avatar_url: nextAvatarUrl })
+    .eq("id", currentUser.id);
+  if (profileError) {
+    console.error("[profile] Không thể cập nhật avatar_url", profileError);
+    return { status: "error", error: "Không thể lưu ảnh đại diện lúc này." };
+  }
+
+  const currentMetadata = readMetadata(currentUser.user_metadata);
+  const { data, error: authError } = await supabase.auth.updateUser({
+    data: {
+      ...currentMetadata,
+      avatarUrl: nextAvatarUrl,
+      avatar_url: nextAvatarUrl,
+    },
+  });
+  if (authError || !data.user) {
+    await supabase
+      .from("profiles")
+      .update({ avatar_url: oldProfile.avatar_url })
+      .eq("id", currentUser.id);
+    return {
+      status: "error",
+      error: "Không thể đồng bộ ảnh đại diện. Vui lòng thử lại.",
+    };
+  }
+
+  const oldObjectPath = readOwnedAvatarPath(currentUser.id, oldProfile.avatar_url);
+  if (oldObjectPath && oldObjectPath !== avatarObjectPath) {
+    await removeAvatarObject(currentUser.id, oldObjectPath);
+  }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/account/profile");
+
+  return {
+    status: "success",
+    message: avatarObjectPath
+      ? "Đã cập nhật ảnh đại diện."
+      : "Đã xóa ảnh đại diện.",
+    user: toPublicUser(data.user),
+  };
+}
+
 export async function updateProfileAction(
   _prevState: ProfileActionState,
   formData: FormData

@@ -33,6 +33,7 @@ import {
 import {
   createAvatarUploadTicketAction,
   discardAvatarUploadAction,
+  updateAvatarAction,
   updateProfileAction,
   type ProfileActionState,
 } from "@/app/account/profile/actions";
@@ -109,6 +110,7 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
   const [actionState, setActionState] =
     useState<ProfileActionState>(initialActionState);
   const [isTransitionPending, startTransition] = useTransition();
+  const [isAvatarTransitionPending, startAvatarTransition] = useTransition();
   const [isEditing, setIsEditing] = useState(false);
   const [values, setValues] = useState<ProfileFormValues>(() =>
     getInitialValues(user)
@@ -119,9 +121,11 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const isSaving = isTransitionPending;
+  const isAvatarSaving = isAvatarTransitionPending;
   const roles = useMemo(() => getUserRoles(user).map(formatRole), [user]);
-  const avatarSource = values.avatarUrl || "";
   const displayUser = actionState.user || user;
+  const [avatarSource, setAvatarSource] = useState(user.avatarUrl || "");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -151,7 +155,7 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
   };
 
   const handleAvatarClick = () => {
-    if (!isEditing || isSaving) {
+    if (isAvatarSaving) {
       return;
     }
 
@@ -186,11 +190,8 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
     try {
       const previewUrl = await readFileAsDataUrl(file);
 
-      setValues((currentValues) => ({
-        ...currentValues,
-        avatarUrl: previewUrl,
-        avatarFile: file,
-      }));
+      setAvatarSource(previewUrl);
+      setAvatarFile(file);
       setFeedback(null);
     } catch {
       setFeedback({
@@ -202,13 +203,84 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
     }
   };
 
+  const handleSaveAvatar = () => {
+    if (!avatarFile || isAvatarSaving) return;
+
+    startAvatarTransition(async () => {
+      const ticket = await createAvatarUploadTicketAction(avatarFile.type);
+      if (!ticket.ok) {
+        setFeedback({ severity: "error", message: ticket.message });
+        return;
+      }
+
+      const supabase = createClient();
+      const { error: uploadError } = await supabase.storage
+        .from("user-avatars")
+        .upload(ticket.objectPath, avatarFile, {
+          cacheControl: "3600",
+          contentType: avatarFile.type,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        await discardAvatarUploadAction(ticket.objectPath);
+        setFeedback({
+          severity: "error",
+          message: "Không thể tải ảnh đại diện lên. Vui lòng thử lại.",
+        });
+        return;
+      }
+
+      const formData = new FormData();
+      formData.set("avatarObjectPath", ticket.objectPath);
+      const result = await updateAvatarAction(formData);
+
+      if (result.status !== "success") {
+        await discardAvatarUploadAction(ticket.objectPath);
+        setFeedback({
+          severity: "error",
+          message: result.error || "Không thể cập nhật ảnh đại diện.",
+        });
+        return;
+      }
+
+      setActionState(result);
+      setAvatarFile(null);
+      setAvatarSource(result.user?.avatarUrl || "");
+      setFeedback({
+        severity: "success",
+        message: result.message || "Đã cập nhật ảnh đại diện.",
+      });
+      router.refresh();
+    });
+  };
+
   const handleDeleteAvatar = () => {
-    setValues((currentValues) => ({
-      ...currentValues,
-      avatarUrl: "",
-      avatarFile: null,
-    }));
-    setIsDeleteDialogOpen(false);
+    if (isAvatarSaving) return;
+
+    startAvatarTransition(async () => {
+      const formData = new FormData();
+      formData.set("removeAvatar", "true");
+      const result = await updateAvatarAction(formData);
+      setIsDeleteDialogOpen(false);
+
+      if (result.status !== "success") {
+        setFeedback({
+          severity: "error",
+          message: result.error || "Không thể xóa ảnh đại diện.",
+        });
+        return;
+      }
+
+      setActionState(result);
+      setAvatarFile(null);
+      setAvatarSource("");
+      setFeedback({
+        severity: "success",
+        message: result.message || "Đã xóa ảnh đại diện.",
+      });
+      router.refresh();
+    });
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -232,48 +304,8 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
     const formData = new FormData();
     formData.set("fullName", validation.normalized.fullName);
     formData.set("phone", validation.normalized.phone);
-    const shouldRemoveAvatar =
-      !values.avatarFile && !values.avatarUrl && Boolean(displayUser.avatarUrl);
-    const avatarFile = values.avatarFile;
 
     startTransition(async () => {
-      let uploadedObjectPath = "";
-
-      if (avatarFile) {
-        const ticket = await createAvatarUploadTicketAction(avatarFile.type);
-        if (!ticket.ok) {
-          setFeedback({ severity: "error", message: ticket.message });
-          return;
-        }
-
-        uploadedObjectPath = ticket.objectPath;
-        const supabase = createClient();
-        const { error: uploadError } = await supabase.storage
-          .from("user-avatars")
-          .upload(
-            ticket.objectPath,
-            avatarFile,
-            {
-              cacheControl: "3600",
-              contentType: avatarFile.type,
-              upsert: false,
-            }
-          );
-
-        if (uploadError) {
-          await discardAvatarUploadAction(ticket.objectPath);
-          setFeedback({
-            severity: "error",
-            message: "Không thể tải ảnh đại diện lên. Vui lòng thử lại.",
-          });
-          return;
-        }
-
-        formData.set("avatarObjectPath", ticket.objectPath);
-      } else if (shouldRemoveAvatar) {
-        formData.set("removeAvatar", "true");
-      }
-
       const result = await updateProfileAction(actionState, formData);
 
       setActionState(result);
@@ -290,10 +322,6 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
         router.refresh();
 
         return;
-      }
-
-      if (uploadedObjectPath) {
-        await discardAvatarUploadAction(uploadedObjectPath);
       }
 
       setFieldErrors(result.fieldErrors || {});
@@ -343,16 +371,31 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
               variant="contained"
               startIcon={<CameraAltOutlinedIcon />}
               onClick={handleAvatarClick}
-              disabled={!isEditing || isSaving}
+              disabled={isAvatarSaving}
             >
-              Thay đổi ảnh
+              Chọn ảnh
+            </Button>
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={
+                isAvatarSaving ? (
+                  <CircularProgress color="inherit" size={18} />
+                ) : (
+                  <SaveOutlinedIcon />
+                )
+              }
+              onClick={handleSaveAvatar}
+              disabled={!avatarFile || isAvatarSaving}
+            >
+              {isAvatarSaving ? "Đang lưu..." : "Lưu ảnh"}
             </Button>
             <Button
               variant="outlined"
               color="secondary"
               startIcon={<DeleteOutlineOutlinedIcon />}
               onClick={() => setIsDeleteDialogOpen(true)}
-              disabled={!isEditing || isSaving || !avatarSource}
+              disabled={isAvatarSaving || !displayUser.avatarUrl}
               aria-label="Xóa ảnh đại diện"
             >
               Xóa ảnh
@@ -472,17 +515,22 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
       >
         <DialogTitle id="delete-avatar-title">Xóa ảnh đại diện?</DialogTitle>
         <DialogContent>
-          Ảnh đại diện sẽ bị xóa khỏi hồ sơ và Storage sau khi bạn bấm
-          “Lưu thay đổi”.
+          Ảnh đại diện sẽ được xóa ngay khỏi hồ sơ và Storage.
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsDeleteDialogOpen(false)}>Hủy</Button>
+          <Button
+            onClick={() => setIsDeleteDialogOpen(false)}
+            disabled={isAvatarSaving}
+          >
+            Hủy
+          </Button>
           <Button
             color="error"
             variant="contained"
             onClick={handleDeleteAvatar}
+            disabled={isAvatarSaving}
           >
-            Xóa ảnh
+            {isAvatarSaving ? "Đang xóa..." : "Xóa ảnh"}
           </Button>
         </DialogActions>
       </Dialog>
