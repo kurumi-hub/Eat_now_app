@@ -115,8 +115,9 @@ export async function maintainFlashSalesAction(): Promise<AdminActionResult> {
   if (error) return { ok: false, message: failure("Không thể chạy bảo trì Flash Sale.", error) };
   refreshFlashSales();
   const ended = data && typeof data === "object" && "ended" in data ? Number(data.ended) : 0;
+  const expired = data && typeof data === "object" && "expired_proposals" in data ? Number(data.expired_proposals) : 0;
   const stale = data && typeof data === "object" && "stale_reservations" in data ? Number(data.stale_reservations) : 0;
-  return { ok: true, message: `Đã bảo trì: kết thúc ${ended} chiến dịch, phát hiện ${stale} lượt giữ quá hạn.` };
+  return { ok: true, message: `Đã bảo trì: kết thúc ${ended} chiến dịch, đóng ${expired} đề xuất quá hạn, phát hiện ${stale} lượt giữ quá hạn.` };
 }
 
 function failure(message: string, error?: { code?: string; message?: string }) {

@@ -81,8 +81,9 @@ export type FlashSaleProposal = {
   campaignName: string; restaurantName: string; foodName: string;
   proposedSalePrice: number; proposedStockLimit: number; proposedPerUserLimit: number;
   fundingSource: "restaurant" | "shared"; platformFundingPercent: number;
-  note: string | null; status: "pending" | "approved" | "rejected" | "cancelled";
+  note: string | null; status: "pending" | "approved" | "rejected" | "cancelled" | "expired";
   reviewNote: string | null; flashSaleItemId: string | null; createdAt: string;
+  campaignStartsAt: string; campaignEndsAt: string;
 };
 
 export type OwnerFlashSaleWorkspace = {

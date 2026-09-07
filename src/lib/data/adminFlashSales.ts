@@ -50,6 +50,7 @@ export function parseProposal(row: Row): AdminFlashSaleData["proposals"][number]
     reviewNote: row.review_note ? String(row.review_note) : null,
     flashSaleItemId: row.flash_sale_item_id ? String(row.flash_sale_item_id) : null,
     createdAt: String(row.created_at),
+    campaignStartsAt: String(row.campaign_starts_at ?? ""), campaignEndsAt: String(row.campaign_ends_at ?? ""),
   };
 }
 
