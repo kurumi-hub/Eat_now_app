@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 import type { ProfileFormValues } from "@/types/account";
 import type { PublicUser } from "@/types/auth";
@@ -15,6 +16,22 @@ const AVATAR_EXTENSIONS: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
+
+function createAuthenticatedStorageClient(accessToken: string) {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      global: {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
+  );
+}
 
 export type ProfileActionState = {
   status: "idle" | "success" | "error";
@@ -87,8 +104,17 @@ export async function createAvatarUploadTicketAction(
     return { ok: false, message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." };
   }
 
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session || session.user.id !== user.id) {
+    return {
+      ok: false,
+      message: "Không tìm thấy access token hợp lệ. Vui lòng đăng xuất rồi đăng nhập lại.",
+    };
+  }
+
   const objectPath = `users/${user.id}/${crypto.randomUUID()}.${extension}`;
-  const { data, error } = await supabase.storage
+  const storageClient = createAuthenticatedStorageClient(session.access_token);
+  const { data, error } = await storageClient.storage
     .from(AVATAR_BUCKET)
     .createSignedUploadUrl(objectPath);
   if (error || !data?.token) {
