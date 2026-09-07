@@ -5,7 +5,7 @@ import LocalFireDepartmentOutlinedIcon from "@mui/icons-material/LocalFireDepart
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { HomeFlashSale } from "@/types/flashSale";
 
@@ -27,7 +27,10 @@ function formatRemaining(milliseconds: number) {
 
 export default function HomeFlashSale({ campaign }: HomeFlashSaleProps) {
   const router = useRouter();
+  const trackRef = useRef<HTMLDivElement>(null);
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
+  const [pageSize, setPageSize] = useState(4);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     const serverOffset = Date.parse(campaign.serverTime) - Date.now();
@@ -49,6 +52,30 @@ export default function HomeFlashSale({ campaign }: HomeFlashSaleProps) {
     () => remainingMs === null ? ["--", "--", "--"] : formatRemaining(remainingMs),
     [remainingMs]
   );
+  const totalPages = Math.max(1, Math.ceil(campaign.items.length / pageSize));
+  const currentPage = Math.min(page, totalPages - 1);
+  const visibleItems = campaign.items.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const updatePageSize = () => {
+      const nextPageSize = window.matchMedia("(max-width: 760px)").matches
+        ? 1
+        : Math.max(1, Math.min(4, Math.floor((track.clientWidth + 14) / 294)));
+      setPageSize(nextPageSize);
+      setPage((current) => Math.min(current, Math.max(0, Math.ceil(campaign.items.length / nextPageSize) - 1)));
+    };
+    const frame = window.requestAnimationFrame(updatePageSize);
+    const observer = new ResizeObserver(updatePageSize);
+    observer.observe(track);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [campaign.items.length]);
 
   return (
     <section id="flash-sale" className="home-section home-flash-sale" aria-labelledby="flash-sale-title">
@@ -64,8 +91,13 @@ export default function HomeFlashSale({ campaign }: HomeFlashSaleProps) {
         </div>
       </div>
 
-      <div className="home-flash-sale__track" data-item-count={campaign.items.length}>
-        {campaign.items.map((item) => {
+      <div
+        ref={trackRef}
+        className="home-flash-sale__track"
+        data-item-count={visibleItems.length}
+        data-page-size={pageSize}
+      >
+        {visibleItems.map((item) => {
           const discountPercent = Math.max(1, Math.round((1 - item.salePrice / item.originalPrice) * 100));
           const soldPercent = Math.min(100, Math.round((item.soldQuantity / item.stockLimit) * 100));
           const href = `/restaurants/${item.restaurantSlug}/foods/${item.foodId}?sale=${item.id}`;
@@ -105,6 +137,28 @@ export default function HomeFlashSale({ campaign }: HomeFlashSaleProps) {
           );
         })}
       </div>
+
+      {totalPages > 1 ? (
+        <nav className="home-flash-sale__pagination" aria-label="Phân trang món Flash Sale">
+          <button
+            type="button"
+            onClick={() => setPage((current) => Math.max(0, current - 1))}
+            disabled={currentPage === 0}
+            aria-label="Trang Flash Sale trước"
+          >
+            ‹
+          </button>
+          <span aria-live="polite">{currentPage + 1} / {totalPages}</span>
+          <button
+            type="button"
+            onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
+            disabled={currentPage === totalPages - 1}
+            aria-label="Trang Flash Sale sau"
+          >
+            ›
+          </button>
+        </nav>
+      ) : null}
     </section>
   );
 }
