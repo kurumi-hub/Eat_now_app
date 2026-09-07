@@ -49,6 +49,34 @@ function formString(formData: FormData, name: string) {
   return String(formData.get(name) || "");
 }
 
+function errorDetails(error: unknown) {
+  if (!error || typeof error !== "object") return "Không có chi tiết từ Supabase.";
+  const value = error as Record<string, unknown>;
+  const message = typeof value.message === "string" ? value.message.trim() : "";
+  const code = [value.statusCode, value.status, value.code]
+    .find((item) => typeof item === "string" || typeof item === "number");
+  return `${message || "Lỗi không xác định từ Supabase."}${code ? ` (mã ${String(code)})` : ""}`;
+}
+
+function avatarTicketError(error: unknown) {
+  const details = errorDetails(error);
+  const message = error && typeof error === "object" &&
+    typeof (error as Record<string, unknown>).message === "string"
+    ? String((error as Record<string, unknown>).message)
+    : "";
+
+  if (/row-level security|rls/i.test(message)) {
+    return `Supabase Storage từ chối policy INSERT (RLS) cho đường dẫn users/{userId}/.... Chi tiết: ${details}`;
+  }
+  if (/unauthorized|jwt|authentication/i.test(message)) {
+    return `Supabase Storage không chấp nhận phiên đăng nhập. Chi tiết: ${details}`;
+  }
+  if (/bucket.*not found|not found.*bucket/i.test(message)) {
+    return `Không tìm thấy bucket user-avatars trên project Supabase hiện tại. Chi tiết: ${details}`;
+  }
+  return `Không thể tạo quyền tải ảnh trên Supabase Storage. Chi tiết: ${details}`;
+}
+
 function firstFieldError(fieldErrors: ValidationErrors<ProfileField>) {
   return Object.values(fieldErrors).find(Boolean) || "";
 }
@@ -119,14 +147,9 @@ export async function createAvatarUploadTicketAction(
     .createSignedUploadUrl(objectPath);
   if (error || !data?.token) {
     console.error("[profile] Không thể tạo vé upload avatar", error);
-    const permissionError = /row-level security|permission|unauthorized/i.test(
-      error?.message || ""
-    );
     return {
       ok: false,
-      message: permissionError
-        ? "Tài khoản chưa được cấp quyền tải ảnh. Hãy kiểm tra policy của bucket user-avatars."
-        : `Không thể khởi tạo tải ảnh${error?.message ? `: ${error.message}` : "."}`,
+      message: avatarTicketError(error),
     };
   }
   return { ok: true, objectPath, token: data.token };
@@ -167,7 +190,10 @@ export async function updateAvatarAction(
     .eq("id", currentUser.id)
     .single();
   if (readError || !oldProfile) {
-    return { status: "error", error: "Không thể đọc ảnh đại diện hiện tại." };
+    return {
+      status: "error",
+      error: `Không thể đọc ảnh đại diện hiện tại. Chi tiết: ${errorDetails(readError)}`,
+    };
   }
 
   const nextAvatarUrl = avatarObjectPath
@@ -179,7 +205,10 @@ export async function updateAvatarAction(
     .eq("id", currentUser.id);
   if (profileError) {
     console.error("[profile] Không thể cập nhật avatar_url", profileError);
-    return { status: "error", error: "Không thể lưu ảnh đại diện lúc này." };
+    return {
+      status: "error",
+      error: `Ảnh đã tải lên nhưng không thể lưu URL vào hồ sơ. Chi tiết: ${errorDetails(profileError)}`,
+    };
   }
 
   const currentMetadata = readMetadata(currentUser.user_metadata);
@@ -197,7 +226,7 @@ export async function updateAvatarAction(
       .eq("id", currentUser.id);
     return {
       status: "error",
-      error: "Không thể đồng bộ ảnh đại diện. Vui lòng thử lại.",
+      error: `Đã lưu URL vào hồ sơ nhưng không thể đồng bộ Supabase Auth. Chi tiết: ${errorDetails(authError)}`,
     };
   }
 

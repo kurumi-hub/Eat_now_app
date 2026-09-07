@@ -95,6 +95,19 @@ function readFileAsDataUrl(file: File) {
   });
 }
 
+function storageUploadError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return "Không có chi tiết từ Supabase.";
+  }
+  const value = error as Record<string, unknown>;
+  const message = typeof value.message === "string" && value.message.trim()
+    ? value.message.trim()
+    : "Lỗi không xác định từ Supabase.";
+  const code = [value.statusCode, value.status, value.code]
+    .find((item) => typeof item === "string" || typeof item === "number");
+  return `${message}${code ? ` (mã ${String(code)})` : ""}`;
+}
+
 type FeedbackState = {
   severity: "success" | "error";
   message: string;
@@ -231,7 +244,7 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
         await discardAvatarUploadAction(ticket.objectPath);
         setFeedback({
           severity: "error",
-          message: `Không thể tải ảnh đại diện lên${uploadError.message ? `: ${uploadError.message}` : "."}`,
+          message: `Đã tạo vé upload nhưng không thể gửi file lên Storage. Chi tiết: ${storageUploadError(uploadError)}`,
         });
         return;
       }
