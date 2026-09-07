@@ -184,32 +184,21 @@ export async function updateAvatarAction(
     return { status: "error", error: "Thông tin ảnh đại diện không hợp lệ." };
   }
 
-  const { data: oldProfile, error: readError } = await supabase
-    .from("profiles")
-    .select("avatar_url")
-    .eq("id", currentUser.id)
-    .single();
-  if (readError || !oldProfile) {
-    return {
-      status: "error",
-      error: `Không thể đọc ảnh đại diện hiện tại. Chi tiết: ${errorDetails(readError)}`,
-    };
-  }
-
   const nextAvatarUrl = avatarObjectPath
     ? supabase.storage.from(AVATAR_BUCKET).getPublicUrl(avatarObjectPath).data.publicUrl
     : "";
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .update({ avatar_url: nextAvatarUrl })
-    .eq("id", currentUser.id);
+  const { data: oldAvatar, error: profileError } = await supabase.rpc(
+    "api_set_my_avatar_url",
+    { p_avatar_url: nextAvatarUrl }
+  );
   if (profileError) {
     console.error("[profile] Không thể cập nhật avatar_url", profileError);
     return {
       status: "error",
-      error: `Ảnh đã tải lên nhưng không thể lưu URL vào hồ sơ. Chi tiết: ${errorDetails(profileError)}`,
+      error: `Ảnh đã tải lên nhưng không thể lưu URL vào hồ sơ qua RPC. Chi tiết: ${errorDetails(profileError)}`,
     };
   }
+  const oldAvatarUrl = typeof oldAvatar === "string" ? oldAvatar : "";
 
   const currentMetadata = readMetadata(currentUser.user_metadata);
   const { data, error: authError } = await supabase.auth.updateUser({
@@ -220,17 +209,14 @@ export async function updateAvatarAction(
     },
   });
   if (authError || !data.user) {
-    await supabase
-      .from("profiles")
-      .update({ avatar_url: oldProfile.avatar_url })
-      .eq("id", currentUser.id);
+    await supabase.rpc("api_set_my_avatar_url", { p_avatar_url: oldAvatarUrl });
     return {
       status: "error",
       error: `Đã lưu URL vào hồ sơ nhưng không thể đồng bộ Supabase Auth. Chi tiết: ${errorDetails(authError)}`,
     };
   }
 
-  const oldObjectPath = readOwnedAvatarPath(currentUser.id, oldProfile.avatar_url);
+  const oldObjectPath = readOwnedAvatarPath(currentUser.id, oldAvatarUrl);
   if (oldObjectPath && oldObjectPath !== avatarObjectPath) {
     await removeAvatarObject(currentUser.id, oldObjectPath);
   }
@@ -274,47 +260,19 @@ export async function updateProfileAction(
     };
   }
 
-  const avatarObjectPath = formString(formData, "avatarObjectPath").trim();
-  const removeAvatar = formString(formData, "removeAvatar") === "true";
-  if (
-    (avatarObjectPath && removeAvatar) ||
-    (avatarObjectPath && !isOwnedAvatarPath(currentUser.id, avatarObjectPath))
-  ) {
-    return { status: "error", error: "Thông tin ảnh đại diện không hợp lệ." };
-  }
-
-  const { data: oldProfile, error: readError } = await supabase
-    .from("profiles")
-    .select("full_name, phone, avatar_url")
-    .eq("id", currentUser.id)
-    .single();
-  if (readError || !oldProfile) {
-    return { status: "error", error: "Không thể đọc hồ sơ hiện tại." };
-  }
-
-  let nextAvatarUrl: string | undefined;
-  if (avatarObjectPath) {
-    nextAvatarUrl = supabase.storage
-      .from(AVATAR_BUCKET)
-      .getPublicUrl(avatarObjectPath).data.publicUrl;
-  } else if (removeAvatar) {
-    // Chuỗi rỗng là lựa chọn xóa có chủ đích, tránh fallback về ảnh OAuth cũ.
-    nextAvatarUrl = "";
-  }
-
-  const profilePatch: Record<string, string> = {
-    full_name: validation.normalized.fullName,
-    phone: validation.normalized.phone,
-  };
-  if (nextAvatarUrl !== undefined) profilePatch.avatar_url = nextAvatarUrl;
-
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .update(profilePatch)
-    .eq("id", currentUser.id);
+  const { data: oldProfile, error: profileError } = await supabase.rpc(
+    "api_update_my_profile",
+    {
+      p_full_name: validation.normalized.fullName,
+      p_phone: validation.normalized.phone,
+    }
+  );
   if (profileError) {
     console.error("[profile] Không thể cập nhật profiles", profileError);
-    return { status: "error", error: "Không thể cập nhật hồ sơ lúc này." };
+    return {
+      status: "error",
+      error: `Không thể cập nhật hồ sơ. Chi tiết: ${errorDetails(profileError)}`,
+    };
   }
 
   const currentMetadata = readMetadata(currentUser.user_metadata);
@@ -326,27 +284,20 @@ export async function updateProfileAction(
     phone: validation.normalized.phone,
     phone_number: validation.normalized.phone,
   };
-  if (nextAvatarUrl !== undefined) {
-    nextMetadata.avatarUrl = nextAvatarUrl;
-    nextMetadata.avatar_url = nextAvatarUrl;
-  }
 
   const { data, error } = await supabase.auth.updateUser({ data: nextMetadata });
   if (error || !data.user) {
-    await supabase.from("profiles").update({
-      full_name: oldProfile.full_name,
-      phone: oldProfile.phone,
-      avatar_url: oldProfile.avatar_url,
-    }).eq("id", currentUser.id);
+    if (oldProfile && typeof oldProfile === "object") {
+      const previous = oldProfile as Record<string, unknown>;
+      await supabase.rpc("api_update_my_profile", {
+        p_full_name: String(previous.full_name || ""),
+        p_phone: String(previous.phone || ""),
+      });
+    }
     return {
       status: "error",
-      error: "Không thể cập nhật hồ sơ lúc này. Vui lòng thử lại sau.",
+      error: `Đã cập nhật hồ sơ nhưng không thể đồng bộ Supabase Auth. Chi tiết: ${errorDetails(error)}`,
     };
-  }
-
-  const oldObjectPath = readOwnedAvatarPath(currentUser.id, oldProfile.avatar_url);
-  if (oldObjectPath && oldObjectPath !== avatarObjectPath) {
-    await removeAvatarObject(currentUser.id, oldObjectPath);
   }
 
   revalidatePath("/", "layout");
@@ -354,11 +305,7 @@ export async function updateProfileAction(
 
   return {
     status: "success",
-    message: avatarObjectPath
-      ? "Đã tải lên và cập nhật ảnh đại diện."
-      : removeAvatar
-        ? "Đã xóa ảnh đại diện."
-        : "Cập nhật hồ sơ thành công.",
+    message: "Cập nhật hồ sơ thành công.",
     user: toPublicUser(data.user),
   };
 }
