@@ -250,11 +250,14 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
         const supabase = createClient();
         const { error: uploadError } = await supabase.storage
           .from("user-avatars")
-          .uploadToSignedUrl(
+          .upload(
             ticket.objectPath,
-            ticket.token,
             avatarFile,
-            { contentType: avatarFile.type, upsert: false }
+            {
+              cacheControl: "3600",
+              contentType: avatarFile.type,
+              upsert: false,
+            }
           );
 
         if (uploadError) {

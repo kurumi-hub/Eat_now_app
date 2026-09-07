@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import type { ProfileFormValues } from "@/types/account";
 import type { PublicUser } from "@/types/auth";
 import { toPublicUser } from "@/utils/auth/publicUser";
-import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import type { ProfileField, ValidationErrors } from "@/utils/validation";
 import { validateProfileValues } from "@/utils/validation";
@@ -26,7 +25,7 @@ export type ProfileActionState = {
 };
 
 export type AvatarUploadTicketResult =
-  | { ok: true; objectPath: string; token: string }
+  | { ok: true; objectPath: string }
   | { ok: false; message: string };
 
 function formString(formData: FormData, name: string) {
@@ -65,15 +64,12 @@ function readOwnedAvatarPath(userId: string, value: unknown) {
 
 async function removeAvatarObject(userId: string, objectPath: string) {
   if (!isOwnedAvatarPath(userId, objectPath)) return;
-  try {
-    const { error } = await createAdminClient().storage
-      .from(AVATAR_BUCKET)
-      .remove([objectPath]);
-    if (error) {
-      console.error("[profile] Không thể xóa ảnh đại diện khỏi Storage", error);
-    }
-  } catch (error) {
-    console.error("[profile] Không thể khởi tạo Storage admin", error);
+  const supabase = await createClient();
+  const { error } = await supabase.storage
+    .from(AVATAR_BUCKET)
+    .remove([objectPath]);
+  if (error) {
+    console.error("[profile] Không thể xóa ảnh đại diện khỏi Storage", error);
   }
 }
 
@@ -92,22 +88,7 @@ export async function createAvatarUploadTicketAction(
   }
 
   const objectPath = `users/${user.id}/${crypto.randomUUID()}.${extension}`;
-  try {
-    const { data, error } = await createAdminClient().storage
-      .from(AVATAR_BUCKET)
-      .createSignedUploadUrl(objectPath);
-    if (error || !data?.token) {
-      console.error("[profile] Không thể tạo vé upload avatar", error);
-      return { ok: false, message: "Không thể khởi tạo phiên tải ảnh đại diện." };
-    }
-    return { ok: true, objectPath, token: data.token };
-  } catch (error) {
-    console.error("[profile] Không thể khởi tạo Storage admin", error);
-    return {
-      ok: false,
-      message: "Máy chủ chưa cấu hình dịch vụ tải ảnh đại diện.",
-    };
-  }
+  return { ok: true, objectPath };
 }
 
 export async function discardAvatarUploadAction(objectPath: string) {
