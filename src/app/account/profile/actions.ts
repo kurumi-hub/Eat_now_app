@@ -25,7 +25,7 @@ export type ProfileActionState = {
 };
 
 export type AvatarUploadTicketResult =
-  | { ok: true; objectPath: string }
+  | { ok: true; objectPath: string; token: string }
   | { ok: false; message: string };
 
 function formString(formData: FormData, name: string) {
@@ -88,7 +88,22 @@ export async function createAvatarUploadTicketAction(
   }
 
   const objectPath = `users/${user.id}/${crypto.randomUUID()}.${extension}`;
-  return { ok: true, objectPath };
+  const { data, error } = await supabase.storage
+    .from(AVATAR_BUCKET)
+    .createSignedUploadUrl(objectPath);
+  if (error || !data?.token) {
+    console.error("[profile] Không thể tạo vé upload avatar", error);
+    const permissionError = /row-level security|permission|unauthorized/i.test(
+      error?.message || ""
+    );
+    return {
+      ok: false,
+      message: permissionError
+        ? "Tài khoản chưa được cấp quyền tải ảnh. Hãy kiểm tra policy của bucket user-avatars."
+        : `Không thể khởi tạo tải ảnh${error?.message ? `: ${error.message}` : "."}`,
+    };
+  }
+  return { ok: true, objectPath, token: data.token };
 }
 
 export async function discardAvatarUploadAction(objectPath: string) {

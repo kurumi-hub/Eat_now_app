@@ -216,17 +216,22 @@ export default function ProfileEditor({ user }: ProfileEditorProps) {
       const supabase = createClient();
       const { error: uploadError } = await supabase.storage
         .from("user-avatars")
-        .upload(ticket.objectPath, avatarFile, {
-          cacheControl: "3600",
-          contentType: avatarFile.type,
-          upsert: false,
-        });
+        .uploadToSignedUrl(
+          ticket.objectPath,
+          ticket.token,
+          avatarFile,
+          {
+            cacheControl: "3600",
+            contentType: avatarFile.type,
+            upsert: false,
+          }
+        );
 
       if (uploadError) {
         await discardAvatarUploadAction(ticket.objectPath);
         setFeedback({
           severity: "error",
-          message: "Không thể tải ảnh đại diện lên. Vui lòng thử lại.",
+          message: `Không thể tải ảnh đại diện lên${uploadError.message ? `: ${uploadError.message}` : "."}`,
         });
         return;
       }
