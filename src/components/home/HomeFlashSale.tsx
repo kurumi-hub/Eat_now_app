@@ -86,16 +86,20 @@ export default function HomeFlashSale({ campaign }: HomeFlashSaleProps) {
                 <strong>-{discountPercent}%</strong>
               </div>
               <div className="home-flash-sale-card__body">
-                <small>{item.restaurantName}</small>
                 <h3>{item.foodName}</h3>
+                <p className="home-flash-sale-card__restaurant">{item.restaurantName}</p>
                 <div className="home-flash-sale-card__price">
                   <b>{formatPrice(item.salePrice)}</b>
                   <del>{formatPrice(item.originalPrice)}</del>
                 </div>
                 <div className="home-flash-sale-card__stock">
+                  <div className="home-flash-sale-card__stock-labels">
+                    <span>Đã bán {item.soldQuantity}/{item.stockLimit}</span>
+                    <span>Còn lại {item.remainingQuantity}</span>
+                  </div>
                   <span><i style={{ width: `${soldPercent}%` }} /></span>
-                  <small>{item.remainingQuantity <= 5 ? `Chỉ còn ${item.remainingQuantity}` : `Đã bán ${item.soldQuantity}`}</small>
                 </div>
+                <span className="home-flash-sale-card__buy">Mua ngay</span>
               </div>
             </Link>
           );
