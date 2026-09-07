@@ -64,7 +64,7 @@ export default function HomeFlashSale({ campaign }: HomeFlashSaleProps) {
         </div>
       </div>
 
-      <div className="home-flash-sale__track">
+      <div className="home-flash-sale__track" data-item-count={campaign.items.length}>
         {campaign.items.map((item) => {
           const discountPercent = Math.max(1, Math.round((1 - item.salePrice / item.originalPrice) * 100));
           const soldPercent = Math.min(100, Math.round((item.soldQuantity / item.stockLimit) * 100));

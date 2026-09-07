@@ -457,9 +457,10 @@
 
 .home-flash-sale__track {
   display: grid;
-  grid-auto-columns: minmax(210px, 1fr);
+  grid-auto-columns: 280px;
   grid-auto-flow: column;
   gap: 14px;
+  justify-content: start;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   padding: 2px 2px 8px;
@@ -486,7 +487,8 @@
 .home-flash-sale-card__media {
   position: relative;
   display: grid;
-  height: 136px;
+  width: 100%;
+  aspect-ratio: 16 / 9;
   place-items: center;
   overflow: hidden;
   background: #ffe9e1;
@@ -1131,7 +1133,11 @@
   }
 
   .home-flash-sale__track {
-    grid-auto-columns: minmax(210px, 72vw);
+    grid-auto-columns: minmax(240px, 82vw);
+  }
+
+  .home-flash-sale__track[data-item-count="1"] {
+    grid-auto-columns: 100%;
   }
 
   .site-footer__grid {
