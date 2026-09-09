@@ -2,14 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { requireCurrentUser } from "@/utils/auth/guards";
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function toggleFavoriteRestaurantAction(restaurantId: string, shouldFavorite: boolean) {
   const user = await requireCurrentUser();
   if (!UUID.test(restaurantId)) return { ok: false, message: "Nhà hàng không hợp lệ." };
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const result = shouldFavorite
     ? await supabase.from("restaurant_follows").upsert(
         { user_id: user.id, restaurant_id: restaurantId },

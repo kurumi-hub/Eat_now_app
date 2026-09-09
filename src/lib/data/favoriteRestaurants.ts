@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 export type FavoriteRestaurant = {
   id: string;
@@ -30,11 +30,12 @@ type FavoriteRow = {
   }>;
 };
 
-export async function getFavoriteRestaurants(supabase: SupabaseClient): Promise<FavoriteRestaurant[]> {
-  const { data, error } = await supabase
+export async function getFavoriteRestaurants(userId: string): Promise<FavoriteRestaurant[]> {
+  const { data, error } = await createAdminClient()
     .from("restaurant_follows")
     .select("restaurant_id, created_at, restaurants!inner(id, slug, name, rating_average, rating_count, restaurant_images(img_url, is_primary, display_order))")
     .order("created_at", { ascending: false })
+    .eq("user_id", userId)
     .limit(8);
   if (error) {
     console.error("[favorites] Không thể tải nhà hàng yêu thích", error.message);
@@ -57,10 +58,11 @@ export async function getFavoriteRestaurants(supabase: SupabaseClient): Promise<
   });
 }
 
-export async function getIsFavoriteRestaurant(supabase: SupabaseClient, restaurantId: string) {
-  const { data, error } = await supabase
+export async function getIsFavoriteRestaurant(userId: string, restaurantId: string) {
+  const { data, error } = await createAdminClient()
     .from("restaurant_follows")
     .select("restaurant_id")
+    .eq("user_id", userId)
     .eq("restaurant_id", restaurantId)
     .maybeSingle();
   if (error) console.error("[favorites] Không thể đọc trạng thái yêu thích", error.message);

@@ -30,7 +30,7 @@ export default async function Home({ searchParams }: HomeProps) {
       const [ordersResult, vouchersResult, favorites] = await Promise.all([
         supabase.rpc("api_list_customer_orders", { p_status: null, p_search: null, p_limit: 20, p_offset: 0 }),
         supabase.rpc("api_list_customer_vouchers"),
-        getFavoriteRestaurants(supabase),
+        getFavoriteRestaurants(user.id),
       ]);
       if (ordersResult.error) console.error("[home] Không thể tải đơn cá nhân", ordersResult.error.message);
       if (vouchersResult.error) console.error("[home] Không thể tải ưu đãi cá nhân", vouchersResult.error.message);
