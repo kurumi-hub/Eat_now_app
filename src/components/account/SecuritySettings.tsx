@@ -9,6 +9,7 @@ import { useState, type FormEvent } from "react";
 import PasswordField from "@/components/auth/PasswordField";
 
 export default function SecuritySettings() {
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [passwordNotice, setPasswordNotice] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -32,6 +33,7 @@ export default function SecuritySettings() {
 
     setPasswordError("");
     setPasswordNotice("Biểu mẫu đã hợp lệ và sẵn sàng kết nối API đổi mật khẩu.");
+    setPasswordDialogOpen(false);
   };
 
   return (
@@ -39,18 +41,10 @@ export default function SecuritySettings() {
       <section className="settings-card" aria-labelledby="change-password-title">
         <div className="settings-card__heading">
           <span className="settings-card__icon"><KeyOutlinedIcon /></span>
-          <div><h2 id="change-password-title">Đổi mật khẩu</h2><p>Dùng mật khẩu mạnh và không trùng với mật khẩu ở dịch vụ khác.</p></div>
+          <div><h2 id="change-password-title">Đặt lại mật khẩu</h2><p>Dùng mật khẩu mạnh và không trùng với mật khẩu ở dịch vụ khác.</p></div>
         </div>
-        <form className="security-password-form" onSubmit={handlePasswordSubmit}>
-          {passwordNotice ? <Alert severity="success">{passwordNotice}</Alert> : null}
-          {passwordError ? <Alert severity="error">{passwordError}</Alert> : null}
-          <PasswordField name="currentPassword" label="Mật khẩu hiện tại" autoComplete="current-password" required />
-          <div className="settings-form-grid">
-            <PasswordField name="newPassword" label="Mật khẩu mới" autoComplete="new-password" required helperText="Tối thiểu 8 ký tự" />
-            <PasswordField name="confirmPassword" label="Xác nhận mật khẩu mới" autoComplete="new-password" required />
-          </div>
-          <div className="settings-actions"><Button type="submit" variant="contained">Cập nhật mật khẩu</Button></div>
-        </form>
+        {passwordNotice ? <Alert severity="success" className="settings-section-notice">{passwordNotice}</Alert> : null}
+        <div className="settings-actions"><Button variant="contained" onClick={() => setPasswordDialogOpen(true)}>Đặt lại mật khẩu</Button></div>
       </section>
 
       <section className="settings-card settings-card--danger" aria-labelledby="delete-account-title">
@@ -71,6 +65,23 @@ export default function SecuritySettings() {
           <Button onClick={() => setDeleteDialogOpen(false)}>Hủy</Button>
           <Button color="error" variant="contained" disabled={deleteConfirmation.trim().toUpperCase() !== "XÓA"}>Xác nhận xóa</Button>
         </DialogActions>
+      </Dialog>
+
+      <Dialog open={passwordDialogOpen} onClose={() => setPasswordDialogOpen(false)} fullWidth maxWidth="sm">
+        <form onSubmit={handlePasswordSubmit}>
+          <DialogTitle>Đặt lại mật khẩu</DialogTitle>
+          <DialogContent className="security-password-dialog">
+            <p className="settings-dialog-copy">Nhập mật khẩu hiện tại trước khi tạo mật khẩu mới.</p>
+            {passwordError ? <Alert severity="error">{passwordError}</Alert> : null}
+            <PasswordField name="currentPassword" label="Mật khẩu hiện tại" autoComplete="current-password" required />
+            <PasswordField name="newPassword" label="Mật khẩu mới" autoComplete="new-password" required helperText="Tối thiểu 8 ký tự" />
+            <PasswordField name="confirmPassword" label="Xác nhận mật khẩu mới" autoComplete="new-password" required />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => { setPasswordDialogOpen(false); setPasswordError(""); }}>Hủy</Button>
+            <Button type="submit" variant="contained">Cập nhật mật khẩu</Button>
+          </DialogActions>
+        </form>
       </Dialog>
     </div>
   );

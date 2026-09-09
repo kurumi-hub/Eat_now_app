@@ -7,7 +7,7 @@ export default async function AccountPreferencesPage() {
 
   return (
     <>
-      <AccountHeader title="Cài đặt" description="Điều chỉnh trải nghiệm, thông báo và cách chatbot cá nhân hóa gợi ý." />
+      <AccountHeader title="Cài đặt chung" description="Điều chỉnh trải nghiệm, thông báo và cách chatbot cá nhân hóa gợi ý." />
       <PreferenceSettings />
     </>
   );

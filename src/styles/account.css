@@ -357,6 +357,8 @@
 .settings-card__icon--danger { color: #d63a3a; background: #fff0f0; }
 .settings-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .security-password-form { display: grid; gap: 18px; }
+.security-password-dialog { display: grid; gap: 16px; padding-top: 8px !important; }
+.settings-section-notice { margin-bottom: 18px; }
 .settings-actions { display: flex; justify-content: flex-end; }
 .settings-chip-group { display: grid; gap: 10px; margin-top: 20px; }
 .settings-chip-group > div { display: flex; flex-wrap: wrap; gap: 9px; }

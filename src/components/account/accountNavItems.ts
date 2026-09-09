@@ -1,6 +1,7 @@
 import HomeWorkOutlinedIcon from "@mui/icons-material/HomeWorkOutlined";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
@@ -29,8 +30,14 @@ export const accountNavItems: AccountNavItem[] = [
   },
   {
     href: "/account/preferences",
-    label: "Cài đặt",
+    label: "Cài đặt chung",
     icon: NotificationsOutlinedIcon,
+  },
+  {
+    href: "/orders",
+    label: "Lịch sử đơn hàng",
+    icon: ReceiptLongOutlinedIcon,
+    allowedRoles: ["CUSTOMER"],
   },
   {
     href: "/account/addresses",
@@ -59,8 +66,12 @@ export const accountPageCopy: Record<
     description: "Đổi mật khẩu và quản lý phiên đăng nhập hiện tại.",
   },
   "/account/preferences": {
-    title: "Cài đặt",
+    title: "Cài đặt chung",
     description: "Điều chỉnh thông báo và trải nghiệm hiển thị trong ứng dụng.",
+  },
+  "/orders": {
+    title: "Lịch sử đơn hàng",
+    description: "Theo dõi đơn đang xử lý và xem lại các đơn đã đặt.",
   },
   "/account/addresses": {
     title: "Địa chỉ giao hàng",
