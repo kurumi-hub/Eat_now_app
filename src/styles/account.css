@@ -346,6 +346,35 @@
   line-height: 22px;
 }
 
+.settings-stack { display: grid; gap: 20px; }
+.settings-card { padding: 28px 32px; border: 1px solid rgba(221, 193, 180, .42); border-radius: 24px; background: #fff; box-shadow: 0 12px 24px rgba(119, 87, 77, .08); }
+.settings-card--danger { border-color: rgba(214, 58, 58, .25); }
+.settings-card--chatbot { background: linear-gradient(145deg, #fff, #fff8f3); }
+.settings-card__heading { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 24px; }
+.settings-card__heading h2 { margin: 0 0 5px; color: #1a1c1e; font-size: 20px; line-height: 28px; }
+.settings-card__heading p { margin: 0; color: #70645d; font-size: 14px; line-height: 22px; }
+.settings-card__icon { width: 44px; height: 44px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 14px; color: #d94720; background: #fff0eb; }
+.settings-card__icon--danger { color: #d63a3a; background: #fff0f0; }
+.settings-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.security-password-form { display: grid; gap: 18px; }
+.settings-actions { display: flex; justify-content: flex-end; }
+.settings-chip-group { display: grid; gap: 10px; margin-top: 20px; }
+.settings-chip-group > div { display: flex; flex-wrap: wrap; gap: 9px; }
+.settings-field-label { color: #3b2016; font-size: 13px; line-height: 18px; font-weight: 700; }
+.settings-helper { margin: 18px 0 0; padding: 12px 14px; border-radius: 12px; color: #805416; background: #fff7e6; font-size: 13px; line-height: 20px; }
+.settings-switch-list { display: grid; }
+.settings-switch-row { min-height: 68px; padding: 10px 0; display: flex; align-items: center; justify-content: space-between; gap: 18px; border-bottom: 1px solid #f0e6e1; cursor: pointer; }
+.settings-switch-row:first-child { padding-top: 0; }
+.settings-switch-row:last-child { padding-bottom: 0; border-bottom: 0; }
+.settings-switch-row > span { display: grid; gap: 3px; }
+.settings-switch-row strong, .settings-inline-action strong { color: #2d2521; font-size: 14px; line-height: 21px; }
+.settings-switch-row small, .settings-inline-action span { color: #70645d; font-size: 13px; line-height: 20px; }
+.settings-inline-action { margin-top: 18px; padding-top: 18px; display: flex; align-items: center; justify-content: space-between; gap: 18px; border-top: 1px solid #f0e6e1; }
+.settings-inline-action > div { display: grid; gap: 3px; }
+.settings-save-bar { position: sticky; bottom: 16px; z-index: 5; padding: 14px 16px 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border: 1px solid rgba(217, 71, 32, .2); border-radius: 18px; color: #70645d; background: rgba(255, 255, 255, .96); box-shadow: 0 12px 30px rgba(73, 45, 34, .14); backdrop-filter: blur(10px); font-size: 13px; }
+.settings-dialog-title { display: flex; align-items: center; gap: 10px; }
+.settings-dialog-copy { margin: 0 0 18px; color: #70645d; line-height: 1.6; }
+
 @media (max-width: 1024px) {
   .account-layout-grid {
     grid-template-columns: 250px minmax(0, 1fr);
@@ -471,4 +500,15 @@
   .seller-form .full { grid-column: auto; }
   .seller-section-heading, .seller-invitation, .seller-managed-list a, .seller-application-cta { align-items: stretch; flex-direction: column; }
   .seller-primary-link { align-self: stretch; text-align: center; }
+}
+
+@media (max-width: 640px) {
+  .settings-card { padding: 22px 18px; }
+  .settings-form-grid { grid-template-columns: 1fr; }
+  .settings-card__heading { gap: 12px; }
+  .settings-inline-action,
+  .settings-save-bar { align-items: stretch; flex-direction: column; }
+  .settings-inline-action .MuiButton-root,
+  .settings-save-bar .MuiButton-root { width: 100%; }
+  .settings-save-bar { bottom: 8px; }
 }
