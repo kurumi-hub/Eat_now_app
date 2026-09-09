@@ -11,38 +11,41 @@ export type FavoriteRestaurant = {
   deliveryTime: string;
 };
 
-type FavoriteRow = {
-  restaurant_id: string;
-  restaurants: {
-    id: string;
-    slug: string;
-    name: string;
-    rating_average: number | string;
-    rating_count: number;
-    restaurant_images: Array<{ img_url: string; is_primary: boolean; display_order: number }>;
-  } | Array<{
-    id: string;
-    slug: string;
-    name: string;
-    rating_average: number | string;
-    rating_count: number;
-    restaurant_images: Array<{ img_url: string; is_primary: boolean; display_order: number }>;
-  }>;
+type RestaurantRow = {
+  id: string;
+  slug: string;
+  name: string;
+  rating_average: number | string;
+  rating_count: number;
+  restaurant_images: Array<{ img_url: string; is_primary: boolean; display_order: number }>;
 };
 
 export async function getFavoriteRestaurants(userId: string): Promise<FavoriteRestaurant[]> {
-  const { data, error } = await createAdminClient()
+  const admin = createAdminClient();
+  const { data: followRows, error: followError } = await admin
     .from("restaurant_follows")
-    .select("restaurant_id, created_at, restaurants!inner(id, slug, name, rating_average, rating_count, restaurant_images(img_url, is_primary, display_order))")
+    .select("restaurant_id, created_at")
     .order("created_at", { ascending: false })
     .eq("user_id", userId)
     .limit(8);
-  if (error) {
-    console.error("[favorites] Không thể tải nhà hàng yêu thích", error.message);
+  if (followError) {
+    console.error("[favorites] Không thể tải danh sách follow", followError);
     return [];
   }
-  return ((data ?? []) as unknown as FavoriteRow[]).flatMap((row) => {
-    const restaurant = Array.isArray(row.restaurants) ? row.restaurants[0] : row.restaurants;
+  const restaurantIds = (followRows ?? []).map((row) => String(row.restaurant_id));
+  if (!restaurantIds.length) return [];
+
+  const { data: restaurantRows, error: restaurantError } = await admin
+    .from("restaurants")
+    .select("id, slug, name, rating_average, rating_count, restaurant_images(img_url, is_primary, display_order)")
+    .in("id", restaurantIds);
+  if (restaurantError) {
+    console.error("[favorites] Có follow nhưng không thể tải thông tin nhà hàng", restaurantError);
+    return [];
+  }
+  const byId = new Map(((restaurantRows ?? []) as unknown as RestaurantRow[]).map((row) => [row.id, row]));
+  return restaurantIds.flatMap((id) => {
+    const restaurant = byId.get(id);
     if (!restaurant?.slug) return [];
     const images = [...(restaurant.restaurant_images ?? [])].sort((a, b) =>
       Number(b.is_primary) - Number(a.is_primary) || a.display_order - b.display_order
