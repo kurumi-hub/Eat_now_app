@@ -103,6 +103,10 @@
   line-height: 1.12;
 }
 
+.restaurant-hero__title-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.restaurant-favorite-button { flex: 0 0 auto; border: 1px solid #ddc1b4 !important; background: #fff !important; color: #7a3000 !important; }
+.restaurant-favorite-button.is-favorite { border-color: #d94720 !important; background: #fff0eb !important; color: #d94720 !important; }
+
 .restaurant-rating-line { gap: 5px; color: #6d554b; font-size: 14px; }
 .restaurant-rating-line svg { color: #a04100; }
 .restaurant-rating-line strong { color: #23150f; }

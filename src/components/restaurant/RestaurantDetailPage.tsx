@@ -8,6 +8,8 @@ import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import StarOutlinedIcon from "@mui/icons-material/StarOutlined";
+import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
+import FavoriteOutlinedIcon from "@mui/icons-material/FavoriteOutlined";
 import {
   Alert,
   Button,
@@ -24,13 +26,14 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 import { claimVoucherAction } from "@/app/vouchers/actions";
 import { useCartStore } from "@/store/cartStore";
 import ReviewComposer from "./ReviewComposer";
 import type { ReviewEligibleOrder } from "./reviewData";
 import type { RestaurantDetail, RestaurantMenuItem } from "./restaurantDetailData";
+import { isFavoriteRestaurant, rememberRestaurant, toggleFavoriteRestaurant } from "@/utils/restaurantHistory";
 
 const FoodOptionsModal = dynamic(
   () => import("@/components/cart/FoodOptionsModal"),
@@ -89,6 +92,13 @@ export default function RestaurantDetailPage({
     food: RestaurantMenuItem;
     selection: CartSelection;
   } | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  useEffect(() => {
+    const item = { slug: restaurant.slug, name: restaurant.name, image: restaurant.image, rating: restaurant.rating, deliveryTime: restaurant.deliveryTime };
+    rememberRestaurant(item);
+    setIsFavorite(isFavoriteRestaurant(restaurant.slug));
+  }, [restaurant.deliveryTime, restaurant.image, restaurant.name, restaurant.rating, restaurant.slug]);
 
   const addItem = useCartStore((state) => state.addItem);
   const hasConflictingRestaurant = useCartStore((state) => state.hasConflictingRestaurant);
@@ -257,7 +267,12 @@ export default function RestaurantDetailPage({
                   : restaurant.availabilityMessage}
               </span>
             </div>
-            <h1 id="restaurant-title">{restaurant.name}</h1>
+            <div className="restaurant-hero__title-row">
+              <h1 id="restaurant-title">{restaurant.name}</h1>
+              <IconButton type="button" className={`restaurant-favorite-button${isFavorite ? " is-favorite" : ""}`} aria-label={isFavorite ? "Bỏ khỏi nhà hàng yêu thích" : "Thêm vào nhà hàng yêu thích"} onClick={() => setIsFavorite(toggleFavoriteRestaurant({ slug: restaurant.slug, name: restaurant.name, image: restaurant.image, rating: restaurant.rating, deliveryTime: restaurant.deliveryTime }))}>
+                {isFavorite ? <FavoriteOutlinedIcon /> : <FavoriteBorderOutlinedIcon />}
+              </IconButton>
+            </div>
             <div className="restaurant-rating-line">
               <StarOutlinedIcon fontSize="small" />
               <strong>{restaurant.rating}</strong>

@@ -13,8 +13,11 @@ import type { PublicUser } from "@/types/auth";
 import type { SiteMediaItem } from "@/types/siteMedia";
 import type { HomeFlashSale as HomeFlashSaleData } from "@/types/flashSale";
 import HomeFlashSale from "./HomeFlashSale";
+import HomePersonalizedSections from "./HomePersonalizedSections";
 import { nearbyFoods } from "./homeData";
 import type { HomeCategory, HomeRestaurant } from "./homeData";
+import type { CustomerOrderSummary } from "@/types/customerOrders";
+import type { PublicVoucher } from "@/types/voucher";
 
 type HomePageProps = {
   user: PublicUser | null;
@@ -22,6 +25,8 @@ type HomePageProps = {
   featuredRestaurants: HomeRestaurant[];
   heroImage: SiteMediaItem;
   flashSale: HomeFlashSaleData | null;
+  orders: CustomerOrderSummary[];
+  vouchers: PublicVoucher[];
 };
 
 type SnackbarState = {
@@ -30,10 +35,13 @@ type SnackbarState = {
 };
 
 export default function HomePage({
+  user,
   categories,
   featuredRestaurants,
   heroImage,
   flashSale,
+  orders,
+  vouchers,
 }: HomePageProps) {
   const router = useRouter();
   const [snackbar, setSnackbar] = useState<SnackbarState>({
@@ -82,6 +90,12 @@ export default function HomePage({
             </Button>
           </div>
         </section>
+
+        <HomePersonalizedSections
+          isAuthenticated={Boolean(user)}
+          orders={orders}
+          vouchers={vouchers}
+        />
 
         {flashSale ? <HomeFlashSale campaign={flashSale} /> : null}
 
