@@ -5,6 +5,7 @@ import { getRestaurantDetailBySlug } from "@/lib/data/restaurants";
 import { getReviewEligibleOrders } from "@/lib/data/reviews";
 import { getCurrentPublicUser } from "@/utils/auth/guards";
 import { getIsFavoriteRestaurant } from "@/lib/data/favoriteRestaurants";
+import { createClient } from "@/utils/supabase/server";
 
 type RestaurantDetailRouteProps = {
   params: Promise<{
@@ -29,7 +30,7 @@ export default async function RestaurantDetailRoute({
     ? await getReviewEligibleOrders(restaurant.id)
     : [];
   const isFavorite = user
-    ? await getIsFavoriteRestaurant(user.id, restaurant.id)
+    ? await getIsFavoriteRestaurant(await createClient(), restaurant.id)
     : false;
 
   return (

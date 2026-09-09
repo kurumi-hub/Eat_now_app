@@ -94,6 +94,22 @@ export default function HomePage({
           </div>
         </section>
 
+        <section id="featured-categories" className="home-section">
+          <h2>Danh Mục Nổi Bật</h2>
+          <div className="home-category-grid">
+            {categories.length === 0 ? (
+              <p className="home-category-empty">Danh mục món ăn đang được cập nhật.</p>
+            ) : categories.map((category) => (
+              <button key={category.id} className="home-category-card" type="button" onClick={() => router.push(`/restaurants?category=${encodeURIComponent(category.id)}`)}>
+                <span className="home-category-card__icon">
+                  {category.imageUrl ? <Image src={category.imageUrl} alt={category.altText} width={64} height={64} unoptimized /> : <RestaurantMenuOutlinedIcon />}
+                </span>
+                <span>{category.label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
         <HomePersonalizedSections
           isAuthenticated={Boolean(user)}
           orders={orders}
@@ -102,37 +118,6 @@ export default function HomePage({
         />
 
         {flashSale ? <HomeFlashSale campaign={flashSale} /> : null}
-
-        <section id="featured-categories" className="home-section">
-          <h2>Danh Mục Nổi Bật</h2>
-          <div className="home-category-grid">
-            {categories.length === 0 ? (
-              <p className="home-category-empty">Danh mục món ăn đang được cập nhật.</p>
-            ) : categories.map((category) => (
-                <button
-                  key={category.id}
-                  className="home-category-card"
-                  type="button"
-                  onClick={() => router.push(`/restaurants?category=${encodeURIComponent(category.id)}`)}
-                >
-                  <span className="home-category-card__icon">
-                    {category.imageUrl ? (
-                      <Image
-                        src={category.imageUrl}
-                        alt={category.altText}
-                        width={64}
-                        height={64}
-                        unoptimized
-                      />
-                    ) : (
-                      <RestaurantMenuOutlinedIcon />
-                    )}
-                  </span>
-                  <span>{category.label}</span>
-                </button>
-              ))}
-          </div>
-        </section>
 
         <section id="featured-restaurants" className="home-section">
           <div className="home-section__heading">
