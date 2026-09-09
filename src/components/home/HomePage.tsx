@@ -18,6 +18,7 @@ import { nearbyFoods } from "./homeData";
 import type { HomeCategory, HomeRestaurant } from "./homeData";
 import type { CustomerOrderSummary } from "@/types/customerOrders";
 import type { PublicVoucher } from "@/types/voucher";
+import type { FavoriteRestaurant } from "@/lib/data/favoriteRestaurants";
 
 type HomePageProps = {
   user: PublicUser | null;
@@ -27,6 +28,7 @@ type HomePageProps = {
   flashSale: HomeFlashSaleData | null;
   orders: CustomerOrderSummary[];
   vouchers: PublicVoucher[];
+  favorites: FavoriteRestaurant[];
 };
 
 type SnackbarState = {
@@ -42,6 +44,7 @@ export default function HomePage({
   flashSale,
   orders,
   vouchers,
+  favorites,
 }: HomePageProps) {
   const router = useRouter();
   const [snackbar, setSnackbar] = useState<SnackbarState>({
@@ -95,6 +98,7 @@ export default function HomePage({
           isAuthenticated={Boolean(user)}
           orders={orders}
           vouchers={vouchers}
+          favorites={favorites}
         />
 
         {flashSale ? <HomeFlashSale campaign={flashSale} /> : null}

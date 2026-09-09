@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { parseCustomerOrders } from "@/lib/data/customerOrders";
 import { getPublicVouchers, parseCustomerVouchers } from "@/lib/data/vouchers";
+import { getFavoriteRestaurants } from "@/lib/data/favoriteRestaurants";
 
 type HomeProps = {
   searchParams: Promise<{ home?: string | string[] }>;
@@ -26,9 +27,10 @@ export default async function Home({ searchParams }: HomeProps) {
     getHomeFlashSale(),
     user ? (async () => {
       const supabase = await createClient();
-      const [ordersResult, vouchersResult] = await Promise.all([
+      const [ordersResult, vouchersResult, favorites] = await Promise.all([
         supabase.rpc("api_list_customer_orders", { p_status: null, p_search: null, p_limit: 20, p_offset: 0 }),
         supabase.rpc("api_list_customer_vouchers"),
+        getFavoriteRestaurants(supabase),
       ]);
       if (ordersResult.error) console.error("[home] Không thể tải đơn cá nhân", ordersResult.error.message);
       if (vouchersResult.error) console.error("[home] Không thể tải ưu đãi cá nhân", vouchersResult.error.message);
@@ -41,8 +43,9 @@ export default async function Home({ searchParams }: HomeProps) {
           ...availableWallet,
           ...voucherData.discover.filter((item) => !walletVoucherIds.has(item.id)),
         ].slice(0, 3),
+        favorites,
       };
-    })() : getPublicVouchers().then((vouchers) => ({ orders: [], vouchers: vouchers.slice(0, 3) })),
+    })() : getPublicVouchers().then((vouchers) => ({ orders: [], vouchers: vouchers.slice(0, 3), favorites: [] })),
   ]);
 
   return (
@@ -54,6 +57,7 @@ export default async function Home({ searchParams }: HomeProps) {
       flashSale={flashSale}
       orders={personal.orders}
       vouchers={personal.vouchers}
+      favorites={personal.favorites}
     />
   );
 }

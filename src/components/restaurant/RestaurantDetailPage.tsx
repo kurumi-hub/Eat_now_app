@@ -33,7 +33,8 @@ import { useCartStore } from "@/store/cartStore";
 import ReviewComposer from "./ReviewComposer";
 import type { ReviewEligibleOrder } from "./reviewData";
 import type { RestaurantDetail, RestaurantMenuItem } from "./restaurantDetailData";
-import { isFavoriteRestaurant, rememberRestaurant, toggleFavoriteRestaurant } from "@/utils/restaurantHistory";
+import { rememberRestaurant } from "@/utils/restaurantHistory";
+import { toggleFavoriteRestaurantAction } from "@/app/restaurants/favorite-actions";
 
 const FoodOptionsModal = dynamic(
   () => import("@/components/cart/FoodOptionsModal"),
@@ -43,6 +44,7 @@ const FoodOptionsModal = dynamic(
 type RestaurantDetailPageProps = {
   restaurant: RestaurantDetail;
   isAuthenticated: boolean;
+  initialIsFavorite: boolean;
   reviewOrders: ReviewEligibleOrder[];
 };
 type SnackbarState = { open: boolean; message: string; error: boolean };
@@ -71,6 +73,7 @@ function formatReviewDate(value: string) {
 export default function RestaurantDetailPage({
   restaurant,
   isAuthenticated,
+  initialIsFavorite,
   reviewOrders,
 }: RestaurantDetailPageProps) {
   const router = useRouter();
@@ -92,12 +95,12 @@ export default function RestaurantDetailPage({
     food: RestaurantMenuItem;
     selection: CartSelection;
   } | null>(null);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
+  const [isFavoritePending, startFavoriteTransition] = useTransition();
 
   useEffect(() => {
     const item = { slug: restaurant.slug, name: restaurant.name, image: restaurant.image, rating: restaurant.rating, deliveryTime: restaurant.deliveryTime };
     rememberRestaurant(item);
-    setIsFavorite(isFavoriteRestaurant(restaurant.slug));
   }, [restaurant.deliveryTime, restaurant.image, restaurant.name, restaurant.rating, restaurant.slug]);
 
   const addItem = useCartStore((state) => state.addItem);
@@ -135,6 +138,21 @@ export default function RestaurantDetailPage({
 
   const showNotice = (message: string, error = false) => {
     setSnackbar({ open: true, message, error });
+  };
+
+  const handleFavorite = () => {
+    if (!isAuthenticated) {
+      router.push(`/login?next=${encodeURIComponent(`/restaurants/${restaurant.slug}`)}`);
+      return;
+    }
+    const next = !isFavorite;
+    setIsFavorite(next);
+    startFavoriteTransition(async () => {
+      const result = await toggleFavoriteRestaurantAction(restaurant.id, next);
+      if (!result.ok) setIsFavorite(!next);
+      showNotice(result.message, !result.ok);
+      if (result.ok) router.refresh();
+    });
   };
 
   const handleCategoryClick = (categoryId: string) => {
@@ -269,7 +287,7 @@ export default function RestaurantDetailPage({
             </div>
             <div className="restaurant-hero__title-row">
               <h1 id="restaurant-title">{restaurant.name}</h1>
-              <IconButton type="button" className={`restaurant-favorite-button${isFavorite ? " is-favorite" : ""}`} aria-label={isFavorite ? "Bỏ khỏi nhà hàng yêu thích" : "Thêm vào nhà hàng yêu thích"} onClick={() => setIsFavorite(toggleFavoriteRestaurant({ slug: restaurant.slug, name: restaurant.name, image: restaurant.image, rating: restaurant.rating, deliveryTime: restaurant.deliveryTime }))}>
+              <IconButton type="button" className={`restaurant-favorite-button${isFavorite ? " is-favorite" : ""}`} aria-label={isFavorite ? "Bỏ khỏi nhà hàng yêu thích" : "Thêm vào nhà hàng yêu thích"} onClick={handleFavorite} disabled={isFavoritePending}>
                 {isFavorite ? <FavoriteOutlinedIcon /> : <FavoriteBorderOutlinedIcon />}
               </IconButton>
             </div>

@@ -11,9 +11,10 @@ import { useEffect, useMemo, useState } from "react";
 import { customerOrderStatus } from "@/lib/data/customerOrders";
 import type { CustomerOrderSummary } from "@/types/customerOrders";
 import type { PublicVoucher } from "@/types/voucher";
-import { getFavoriteRestaurants, getRecentRestaurants, type RememberedRestaurant } from "@/utils/restaurantHistory";
+import { getRecentRestaurants, type RememberedRestaurant } from "@/utils/restaurantHistory";
+import type { FavoriteRestaurant } from "@/lib/data/favoriteRestaurants";
 
-type Props = { isAuthenticated: boolean; orders: CustomerOrderSummary[]; vouchers: PublicVoucher[] };
+type Props = { isAuthenticated: boolean; orders: CustomerOrderSummary[]; vouchers: PublicVoucher[]; favorites: FavoriteRestaurant[] };
 const money = (value: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(value);
 function benefit(voucher: PublicVoucher) {
   if (voucher.benefitScope === "shipping") return "Ưu đãi phí giao hàng";
@@ -21,11 +22,10 @@ function benefit(voucher: PublicVoucher) {
   return `Giảm ${money(voucher.discountValue)}`;
 }
 
-export default function HomePersonalizedSections({ isAuthenticated, orders, vouchers }: Props) {
+export default function HomePersonalizedSections({ isAuthenticated, orders, vouchers, favorites }: Props) {
   const [recent, setRecent] = useState<RememberedRestaurant[]>([]);
-  const [favorites, setFavorites] = useState<RememberedRestaurant[]>([]);
   useEffect(() => {
-    const refresh = () => { setRecent(getRecentRestaurants()); setFavorites(getFavoriteRestaurants()); };
+    const refresh = () => setRecent(getRecentRestaurants());
     refresh();
     window.addEventListener("storage", refresh);
     window.addEventListener("eatnow-restaurant-memory", refresh);
