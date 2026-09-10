@@ -1,6 +1,7 @@
 "use client";
 
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
@@ -22,6 +23,7 @@ const allergyOptions = ["Đậu phộng", "Hải sản", "Sữa", "Trứng", "Gl
 export default function PreferenceSettings() {
   const [preferences, setPreferences] = useState(initialPreferences);
   const [saved, setSaved] = useState(false);
+  const [displayNotice, setDisplayNotice] = useState("");
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -30,6 +32,19 @@ export default function PreferenceSettings() {
   }, []);
 
   const update = <K extends keyof Preferences>(key: K, value: Preferences[K]) => { setSaved(false); setPreferences((current) => ({ ...current, [key]: value })); };
+  const updateDisplayPreference = <K extends "language" | "theme">(
+    key: K,
+    value: Preferences[K]
+  ) => {
+    setPreferences((current) => ({ ...current, [key]: value }));
+    const stored = readStoredAccountPreferences();
+    saveAccountPreferences({ ...stored, [key]: value });
+    setDisplayNotice(
+      key === "language"
+        ? "Đã áp dụng ngôn ngữ."
+        : "Đã áp dụng giao diện."
+    );
+  };
   const toggleListValue = (key: "diet" | "allergies", value: string) => { const values = preferences[key]; update(key, values.includes(value) ? values.filter((item) => item !== value) : [...values, value]); };
   const savePreferences = () => { saveAccountPreferences(preferences); setSaved(true); };
   const clearChatHistory = () => { window.localStorage.removeItem("eatnow-chat-history"); setClearDialogOpen(false); };
@@ -37,12 +52,16 @@ export default function PreferenceSettings() {
   return (
     <div className="settings-stack">
       {saved ? <Alert severity="success" onClose={() => setSaved(false)}>Đã lưu cài đặt trên thiết bị này.</Alert> : null}
-      <section className="settings-card" aria-labelledby="display-settings-title">
-        <SettingsHeading icon={<LanguageOutlinedIcon />} title="Ngôn ngữ và giao diện" description="Chọn ngôn ngữ và cách EatNow hiển thị trên thiết bị này." id="display-settings-title" />
-        <div className="settings-form-grid">
-          <FormControl fullWidth size="small"><InputLabel id="language-label">Ngôn ngữ</InputLabel><Select labelId="language-label" label="Ngôn ngữ" value={preferences.language} onChange={(event) => update("language", event.target.value as Preferences["language"])}><MenuItem value="vi">Tiếng Việt</MenuItem><MenuItem value="en">English</MenuItem></Select></FormControl>
-          <FormControl fullWidth size="small"><InputLabel id="theme-label">Giao diện</InputLabel><Select labelId="theme-label" label="Giao diện" value={preferences.theme} onChange={(event) => update("theme", event.target.value as Preferences["theme"])}><MenuItem value="system">Theo hệ thống</MenuItem><MenuItem value="light">Sáng</MenuItem><MenuItem value="dark">Tối</MenuItem></Select></FormControl>
-        </div>
+      {displayNotice ? <Alert severity="success" onClose={() => setDisplayNotice("")}>{displayNotice}</Alert> : null}
+      <section className="settings-card" aria-labelledby="language-settings-title">
+        <SettingsHeading icon={<LanguageOutlinedIcon />} title="Ngôn ngữ" description="Chọn ngôn ngữ sử dụng trên EatNow." id="language-settings-title" />
+        <FormControl fullWidth size="small"><InputLabel id="language-label">Ngôn ngữ</InputLabel><Select labelId="language-label" label="Ngôn ngữ" value={preferences.language} onChange={(event) => updateDisplayPreference("language", event.target.value as Preferences["language"])}><MenuItem value="vi">Tiếng Việt</MenuItem><MenuItem value="en">English</MenuItem></Select></FormControl>
+        <p className="settings-immediate-note">Thay đổi được áp dụng ngay, không cần bấm lưu.</p>
+      </section>
+      <section className="settings-card" aria-labelledby="appearance-settings-title">
+        <SettingsHeading icon={<DarkModeOutlinedIcon />} title="Giao diện" description="Chọn cách EatNow hiển thị trên thiết bị này." id="appearance-settings-title" />
+        <FormControl fullWidth size="small"><InputLabel id="theme-label">Giao diện</InputLabel><Select labelId="theme-label" label="Giao diện" value={preferences.theme} onChange={(event) => updateDisplayPreference("theme", event.target.value as Preferences["theme"])}><MenuItem value="system">Theo hệ thống</MenuItem><MenuItem value="light">Sáng</MenuItem><MenuItem value="dark">Tối</MenuItem></Select></FormControl>
+        <p className="settings-immediate-note">Thay đổi được áp dụng ngay, không cần bấm lưu.</p>
       </section>
       <section className="settings-card" aria-labelledby="food-settings-title">
         <SettingsHeading icon={<RestaurantMenuOutlinedIcon />} title="Tùy chọn ăn uống và dị ứng" description="Giúp EatNow lọc và gợi ý món phù hợp hơn với bạn." id="food-settings-title" />
@@ -66,7 +85,7 @@ export default function PreferenceSettings() {
         </div>
         <div className="settings-inline-action"><div><strong>Xóa lịch sử trò chuyện</strong><span>Xóa các cuộc hội thoại đã lưu trên thiết bị.</span></div><Button color="error" variant="text" startIcon={<DeleteSweepOutlinedIcon />} onClick={() => setClearDialogOpen(true)}>Xóa lịch sử</Button></div>
       </section>
-      <div className="settings-save-bar"><span>Các thay đổi chỉ được áp dụng sau khi lưu.</span><Button variant="contained" onClick={savePreferences}>Lưu cài đặt</Button></div>
+      <div className="settings-save-bar"><span>Lưu các tùy chọn ăn uống, thông báo và chatbot.</span><Button variant="contained" onClick={savePreferences}>Lưu cài đặt</Button></div>
       <Dialog open={clearDialogOpen} onClose={() => setClearDialogOpen(false)} fullWidth maxWidth="xs"><DialogTitle>Xóa lịch sử trò chuyện?</DialogTitle><DialogContent>Lịch sử trò chuyện đã lưu trên thiết bị này sẽ bị xóa và không thể khôi phục.</DialogContent><DialogActions><Button onClick={() => setClearDialogOpen(false)}>Hủy</Button><Button color="error" variant="contained" onClick={clearChatHistory}>Xóa lịch sử</Button></DialogActions></Dialog>
     </div>
   );

@@ -362,7 +362,8 @@
 .settings-actions { display: flex; justify-content: flex-end; }
 .settings-chip-group { display: grid; gap: 10px; margin-top: 20px; }
 .settings-chip-group > div { display: flex; flex-wrap: wrap; gap: 9px; }
-.settings-field-label { color: #3b2016; font-size: 13px; line-height: 18px; font-weight: 700; }
+.settings-field-label { color: #2d2521; font-size: 14px; line-height: 21px; font-weight: 700; }
+.settings-immediate-note { margin: 10px 2px 0; color: #70645d; font-size: 12px; line-height: 18px; }
 .settings-helper { margin: 18px 0 0; padding: 12px 14px; border-radius: 12px; color: #805416; background: #fff7e6; font-size: 13px; line-height: 20px; }
 .settings-switch-list { display: grid; }
 .settings-switch-row { min-height: 68px; padding: 10px 0; display: flex; align-items: center; justify-content: space-between; gap: 18px; border-bottom: 1px solid #f0e6e1; cursor: pointer; }
@@ -381,11 +382,13 @@ html[data-theme="dark"] .account-page { background: var(--eatnow-background); co
 html[data-theme="dark"] .account-header__title,
 html[data-theme="dark"] .settings-card__heading h2,
 html[data-theme="dark"] .settings-switch-row strong,
-html[data-theme="dark"] .settings-inline-action strong { color: var(--eatnow-text-primary); }
+html[data-theme="dark"] .settings-inline-action strong,
+html[data-theme="dark"] .settings-field-label { color: var(--eatnow-text-primary); }
 html[data-theme="dark"] .account-header__description,
 html[data-theme="dark"] .settings-card__heading p,
 html[data-theme="dark"] .settings-switch-row small,
 html[data-theme="dark"] .settings-inline-action span,
+html[data-theme="dark"] .settings-immediate-note,
 html[data-theme="dark"] .settings-save-bar,
 html[data-theme="dark"] .settings-dialog-copy { color: var(--eatnow-text-secondary); }
 html[data-theme="dark"] .account-sidebar-summary,
