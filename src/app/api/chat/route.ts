@@ -39,16 +39,50 @@ function normalizeMessages(value: unknown) {
   return messages;
 }
 
+function geminiErrorDetails(error: unknown) {
+  const status = typeof error === "object" && error !== null && "status" in error
+    && typeof error.status === "number"
+    ? error.status
+    : null;
+  const rawMessage = error instanceof Error ? error.message : String(error);
+  const message = rawMessage
+    .replace(/([?&](?:key|api_key)=)[^&\s]+/gi, "$1[REDACTED]")
+    .replace(/AIza[\w-]{20,}/g, "[REDACTED_API_KEY]")
+    .slice(0, 400);
+
+  return { status, message };
+}
+
 function friendlyGeminiError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
+  const { status, message } = geminiErrorDetails(error);
+  let friendlyMessage: string;
 
   if (/429|quota|resource_exhausted/i.test(message)) {
-    return "EatNow Assistant đang nhận quá nhiều câu hỏi. Bạn vui lòng đợi một chút rồi thử lại nhé.";
+    friendlyMessage = "EatNow Assistant đang nhận quá nhiều câu hỏi. Bạn vui lòng đợi một chút rồi thử lại nhé.";
+  } else if (/api.?key|permission|401|403/i.test(message)) {
+    friendlyMessage = "EatNow Assistant chưa được cấu hình đúng. Vui lòng liên hệ quản trị viên.";
+  } else {
+    friendlyMessage = "EatNow Assistant đang tạm gián đoạn. Bạn vui lòng thử lại sau nhé.";
   }
-  if (/api.?key|permission|401|403/i.test(message)) {
-    return "EatNow Assistant chưa được cấu hình đúng. Vui lòng liên hệ quản trị viên.";
-  }
-  return "EatNow Assistant đang tạm gián đoạn. Bạn vui lòng thử lại sau nhé.";
+
+  const statusText = status ? `${status}` : "không xác định";
+  const showDetailedErrors =
+    process.env.NODE_ENV !== "production" ||
+    process.env.CHAT_DEBUG_ERRORS?.toLowerCase() === "true";
+  const safeDetail = showDetailedErrors
+    ? `Gemini API ${statusText}: ${message}`
+    : `Gemini API ${statusText}`;
+
+  return `${friendlyMessage}\n\nChi tiết kỹ thuật: ${safeDetail}`;
+}
+
+function logGeminiError(error: unknown, model: string) {
+  const { status, message } = geminiErrorDetails(error);
+  console.error("[EatNow Assistant] Gemini request failed", {
+    model,
+    status,
+    message,
+  });
 }
 
 export async function POST(request: Request) {
@@ -118,6 +152,7 @@ export async function POST(request: Request) {
             controller.enqueue(encoder.encode("Mình chưa thể trả lời câu hỏi này. Bạn thử diễn đạt theo cách khác nhé."));
           }
         } catch (error) {
+          logGeminiError(error, model);
           controller.enqueue(encoder.encode(friendlyGeminiError(error)));
         } finally {
           controller.close();
@@ -133,6 +168,7 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    logGeminiError(error, model);
     return NextResponse.json({ error: friendlyGeminiError(error) }, { status: 502 });
   }
 }
