@@ -4,36 +4,29 @@ import DeleteForeverOutlinedIcon from "@mui/icons-material/DeleteForeverOutlined
 import KeyOutlinedIcon from "@mui/icons-material/KeyOutlined";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from "@mui/material";
-import { useState, type FormEvent } from "react";
+import { useState, useTransition } from "react";
 
+import {
+  changePasswordAction,
+  type SecurityPasswordActionState,
+} from "@/app/account/security/actions";
 import PasswordField from "@/components/auth/PasswordField";
+
+const initialPasswordState: SecurityPasswordActionState = { status: "idle" };
 
 export default function SecuritySettings() {
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [passwordNotice, setPasswordNotice] = useState("");
-  const [passwordError, setPasswordError] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [passwordState, setPasswordState] = useState(initialPasswordState);
+  const [passwordPending, startPasswordTransition] = useTransition();
 
-  const handlePasswordSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const nextPassword = String(form.get("newPassword") || "");
-    const confirmation = String(form.get("confirmPassword") || "");
-    setPasswordNotice("");
-
-    if (nextPassword.length < 8) {
-      setPasswordError("Mật khẩu mới cần có ít nhất 8 ký tự.");
-      return;
-    }
-    if (nextPassword !== confirmation) {
-      setPasswordError("Mật khẩu xác nhận chưa trùng khớp.");
-      return;
-    }
-
-    setPasswordError("");
-    setPasswordNotice("Biểu mẫu đã hợp lệ và sẵn sàng kết nối API đổi mật khẩu.");
-    setPasswordDialogOpen(false);
+  const passwordFormAction = (formData: FormData) => {
+    startPasswordTransition(async () => {
+      const result = await changePasswordAction(initialPasswordState, formData);
+      setPasswordState(result);
+      if (result.status === "success") setPasswordDialogOpen(false);
+    });
   };
 
   return (
@@ -43,7 +36,7 @@ export default function SecuritySettings() {
           <span className="settings-card__icon"><KeyOutlinedIcon /></span>
           <div><h2 id="change-password-title">Đặt lại mật khẩu</h2><p>Dùng mật khẩu mạnh và không trùng với mật khẩu ở dịch vụ khác.</p></div>
         </div>
-        {passwordNotice ? <Alert severity="success" className="settings-section-notice">{passwordNotice}</Alert> : null}
+        {passwordState.status === "success" && passwordState.message ? <Alert severity="success" className="settings-section-notice">{passwordState.message}</Alert> : null}
         <div className="settings-actions"><Button variant="contained" onClick={() => setPasswordDialogOpen(true)}>Đặt lại mật khẩu</Button></div>
       </section>
 
@@ -68,18 +61,18 @@ export default function SecuritySettings() {
       </Dialog>
 
       <Dialog open={passwordDialogOpen} onClose={() => setPasswordDialogOpen(false)} fullWidth maxWidth="sm">
-        <form onSubmit={handlePasswordSubmit}>
+        <form action={passwordFormAction}>
           <DialogTitle>Đặt lại mật khẩu</DialogTitle>
           <DialogContent className="security-password-dialog">
             <p className="settings-dialog-copy">Nhập mật khẩu hiện tại trước khi tạo mật khẩu mới.</p>
-            {passwordError ? <Alert severity="error">{passwordError}</Alert> : null}
-            <PasswordField name="currentPassword" label="Mật khẩu hiện tại" autoComplete="current-password" required />
-            <PasswordField name="newPassword" label="Mật khẩu mới" autoComplete="new-password" required helperText="Tối thiểu 8 ký tự" />
-            <PasswordField name="confirmPassword" label="Xác nhận mật khẩu mới" autoComplete="new-password" required />
+            {passwordState.status === "error" && passwordState.error ? <Alert severity="error">{passwordState.error}</Alert> : null}
+            <PasswordField name="currentPassword" label="Mật khẩu hiện tại" autoComplete="current-password" required disabled={passwordPending} errorMessage={passwordState.fieldErrors?.currentPassword} />
+            <PasswordField name="newPassword" label="Mật khẩu mới" autoComplete="new-password" required disabled={passwordPending} helperText="Tối thiểu 8 ký tự" errorMessage={passwordState.fieldErrors?.newPassword} />
+            <PasswordField name="confirmNewPassword" label="Xác nhận mật khẩu mới" autoComplete="new-password" required disabled={passwordPending} errorMessage={passwordState.fieldErrors?.confirmNewPassword} />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => { setPasswordDialogOpen(false); setPasswordError(""); }}>Hủy</Button>
-            <Button type="submit" variant="contained">Cập nhật mật khẩu</Button>
+            <Button onClick={() => setPasswordDialogOpen(false)} disabled={passwordPending}>Hủy</Button>
+            <Button type="submit" variant="contained" disabled={passwordPending}>{passwordPending ? "Đang cập nhật..." : "Cập nhật mật khẩu"}</Button>
           </DialogActions>
         </form>
       </Dialog>
