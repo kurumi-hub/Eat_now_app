@@ -2,7 +2,7 @@
 
 import { createTheme } from "@mui/material/styles";
 
-const colors = {
+const lightColors = {
   primary: "#D94720",
   primaryDark: "#B93618",
   secondary: "#70645D",
@@ -18,11 +18,26 @@ const colors = {
   info: "#005F9D",
 };
 
-const focusRing = `0 0 0 3px ${colors.accent}55`;
+const darkColors = {
+  ...lightColors,
+  primary: "#FF8A5B",
+  primaryDark: "#FF7043",
+  secondary: "#C8B8AF",
+  background: "#171310",
+  surface: "#241E1A",
+  textPrimary: "#FFF8F4",
+  textSecondary: "#C8B8AF",
+  border: "#493C35",
+};
 
-const theme = createTheme({
+export function createAppTheme(mode: "light" | "dark") {
+  const colors = mode === "dark" ? darkColors : lightColors;
+  const focusRing = `0 0 0 3px ${colors.accent}55`;
+
+  return createTheme({
   cssVariables: true,
   palette: {
+    mode,
     primary: {
       main: colors.primary,
       dark: colors.primaryDark,
@@ -128,7 +143,7 @@ const theme = createTheme({
         root: {
           minHeight: 44,
           borderRadius: 12,
-          backgroundColor: "#FFFDFC",
+          backgroundColor: mode === "dark" ? "#2C241F" : "#FFFDFC",
           "&:hover .MuiOutlinedInput-notchedOutline": {
             borderColor: "#B99180",
           },
@@ -141,7 +156,7 @@ const theme = createTheme({
           },
         },
         notchedOutline: {
-          borderColor: "#D9C9C0",
+          borderColor: mode === "dark" ? "#5A4940" : "#D9C9C0",
         },
       },
     },
@@ -217,6 +232,7 @@ const theme = createTheme({
       },
     },
   },
-});
+  });
+}
 
-export default theme;
+export default createAppTheme("light");

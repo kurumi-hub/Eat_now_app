@@ -48,10 +48,16 @@ export default async function RootLayout({
   return (
     <html
       lang="vi"
+      suppressHydrationWarning
       data-scroll-behavior="smooth"
       className={`${baloo.variable} ${beVietnamPro.variable}`}
     >
       <body className="eatnow-body">
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var p=JSON.parse(localStorage.getItem('eatnow-account-preferences')||'{}');var t=p.theme||'system';var r=t==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;document.documentElement.dataset.theme=r;document.documentElement.style.colorScheme=r;document.documentElement.lang=p.language==='en'?'en':'vi'}catch(e){}})();`,
+          }}
+        />
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
           <AppThemeProvider>
             <Suspense fallback={children}>

@@ -8,9 +8,14 @@ import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlin
 import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, Switch } from "@mui/material";
 import { useEffect, useState, type ReactNode } from "react";
 
-type Preferences = { language: string; theme: string; diet: string[]; allergies: string[]; orderNotifications: boolean; promotionNotifications: boolean; recommendationNotifications: boolean; chatbotPersonalization: boolean; saveChatHistory: boolean };
-const STORAGE_KEY = "eatnow-account-preferences";
-const initialPreferences: Preferences = { language: "vi", theme: "system", diet: [], allergies: [], orderNotifications: true, promotionNotifications: true, recommendationNotifications: true, chatbotPersonalization: true, saveChatHistory: true };
+import {
+  DEFAULT_ACCOUNT_PREFERENCES,
+  readStoredAccountPreferences,
+  saveAccountPreferences,
+  type StoredAccountPreferences as Preferences,
+} from "@/utils/accountPreferences";
+
+const initialPreferences = DEFAULT_ACCOUNT_PREFERENCES;
 const dietOptions = ["Ăn chay", "Thuần chay", "Ăn kiêng", "Halal"];
 const allergyOptions = ["Đậu phộng", "Hải sản", "Sữa", "Trứng", "Gluten"];
 
@@ -20,20 +25,13 @@ export default function PreferenceSettings() {
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (!stored) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-      const parsed = JSON.parse(stored);
-      timer = setTimeout(() => setPreferences({ ...initialPreferences, ...parsed }), 0);
-    }
-    catch { window.localStorage.removeItem(STORAGE_KEY); }
+    const timer = setTimeout(() => setPreferences(readStoredAccountPreferences()), 0);
     return () => { if (timer) clearTimeout(timer); };
   }, []);
 
   const update = <K extends keyof Preferences>(key: K, value: Preferences[K]) => { setSaved(false); setPreferences((current) => ({ ...current, [key]: value })); };
   const toggleListValue = (key: "diet" | "allergies", value: string) => { const values = preferences[key]; update(key, values.includes(value) ? values.filter((item) => item !== value) : [...values, value]); };
-  const savePreferences = () => { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences)); setSaved(true); };
+  const savePreferences = () => { saveAccountPreferences(preferences); setSaved(true); };
   const clearChatHistory = () => { window.localStorage.removeItem("eatnow-chat-history"); setClearDialogOpen(false); };
 
   return (
@@ -42,8 +40,8 @@ export default function PreferenceSettings() {
       <section className="settings-card" aria-labelledby="display-settings-title">
         <SettingsHeading icon={<LanguageOutlinedIcon />} title="Ngôn ngữ và giao diện" description="Chọn ngôn ngữ và cách EatNow hiển thị trên thiết bị này." id="display-settings-title" />
         <div className="settings-form-grid">
-          <FormControl fullWidth size="small"><InputLabel id="language-label">Ngôn ngữ</InputLabel><Select labelId="language-label" label="Ngôn ngữ" value={preferences.language} onChange={(event) => update("language", event.target.value)}><MenuItem value="vi">Tiếng Việt</MenuItem><MenuItem value="en">English</MenuItem></Select></FormControl>
-          <FormControl fullWidth size="small"><InputLabel id="theme-label">Giao diện</InputLabel><Select labelId="theme-label" label="Giao diện" value={preferences.theme} onChange={(event) => update("theme", event.target.value)}><MenuItem value="system">Theo hệ thống</MenuItem><MenuItem value="light">Sáng</MenuItem><MenuItem value="dark">Tối</MenuItem></Select></FormControl>
+          <FormControl fullWidth size="small"><InputLabel id="language-label">Ngôn ngữ</InputLabel><Select labelId="language-label" label="Ngôn ngữ" value={preferences.language} onChange={(event) => update("language", event.target.value as Preferences["language"])}><MenuItem value="vi">Tiếng Việt</MenuItem><MenuItem value="en">English</MenuItem></Select></FormControl>
+          <FormControl fullWidth size="small"><InputLabel id="theme-label">Giao diện</InputLabel><Select labelId="theme-label" label="Giao diện" value={preferences.theme} onChange={(event) => update("theme", event.target.value as Preferences["theme"])}><MenuItem value="system">Theo hệ thống</MenuItem><MenuItem value="light">Sáng</MenuItem><MenuItem value="dark">Tối</MenuItem></Select></FormControl>
         </div>
       </section>
       <section className="settings-card" aria-labelledby="food-settings-title">

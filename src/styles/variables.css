@@ -39,3 +39,16 @@
   --background: var(--eatnow-background);
   --foreground: var(--eatnow-text-primary);
 }
+
+html[data-theme="dark"] {
+  --eatnow-primary: #ff8a5b;
+  --eatnow-primary-dark: #ff7043;
+  --eatnow-secondary: #c8b8af;
+  --eatnow-background: #171310;
+  --eatnow-surface: #241e1a;
+  --eatnow-text-primary: #fff8f4;
+  --eatnow-text-secondary: #c8b8af;
+  --eatnow-border: #493c35;
+  --background: var(--eatnow-background);
+  --foreground: var(--eatnow-text-primary);
+}

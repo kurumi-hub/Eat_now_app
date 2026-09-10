@@ -377,6 +377,33 @@
 .settings-dialog-title { display: flex; align-items: center; gap: 10px; }
 .settings-dialog-copy { margin: 0 0 18px; color: #70645d; line-height: 1.6; }
 
+html[data-theme="dark"] .account-page { background: var(--eatnow-background); color: var(--eatnow-text-primary); }
+html[data-theme="dark"] .account-header__title,
+html[data-theme="dark"] .settings-card__heading h2,
+html[data-theme="dark"] .settings-switch-row strong,
+html[data-theme="dark"] .settings-inline-action strong { color: var(--eatnow-text-primary); }
+html[data-theme="dark"] .account-header__description,
+html[data-theme="dark"] .settings-card__heading p,
+html[data-theme="dark"] .settings-switch-row small,
+html[data-theme="dark"] .settings-inline-action span,
+html[data-theme="dark"] .settings-save-bar,
+html[data-theme="dark"] .settings-dialog-copy { color: var(--eatnow-text-secondary); }
+html[data-theme="dark"] .account-sidebar-summary,
+html[data-theme="dark"] .account-sidebar-nav,
+html[data-theme="dark"] .profile-design-card,
+html[data-theme="dark"] .account-panel,
+html[data-theme="dark"] .account-card,
+html[data-theme="dark"] .account-empty-state,
+html[data-theme="dark"] .settings-card,
+html[data-theme="dark"] .account-mobile-nav { border-color: var(--eatnow-border); background: var(--eatnow-surface); box-shadow: 0 12px 28px rgba(0, 0, 0, .24); }
+html[data-theme="dark"] .settings-card--chatbot { background: linear-gradient(145deg, #241e1a, #2c211b); }
+html[data-theme="dark"] .account-sidebar-link { color: var(--eatnow-text-secondary); }
+html[data-theme="dark"] .account-sidebar-link:hover { background: #302720; color: #ffad8c; }
+html[data-theme="dark"] .account-sidebar-link.is-selected { background: #3a251d; color: #ffad8c; }
+html[data-theme="dark"] .settings-switch-row,
+html[data-theme="dark"] .settings-inline-action { border-color: var(--eatnow-border); }
+html[data-theme="dark"] .settings-save-bar { border-color: var(--eatnow-border); background: rgba(36, 30, 26, .96); }
+
 @media (max-width: 1024px) {
   .account-layout-grid {
     grid-template-columns: 250px minmax(0, 1fr);
