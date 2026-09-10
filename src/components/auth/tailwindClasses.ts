@@ -18,7 +18,7 @@ export const brandOverlayClassName =
 export const brandContentClassName =
   "absolute bottom-11 left-10 right-10 z-[2] text-white max-[960px]:bottom-[34px] max-[960px]:left-7 max-[960px]:right-7";
 export const wordmarkClassName =
-  "inline-flex items-center gap-2 text-[32px] font-extrabold leading-none text-[var(--eatnow-primary)] max-[960px]:text-[28px] max-[720px]:text-[26px]";
+  "inline-flex h-[150px] w-[121px] items-center justify-center max-[960px]:h-[132px] max-[960px]:w-[106px] max-[720px]:h-[92px] max-[720px]:w-[74px]";
 export const mobileBrandClassName = "mb-6 hidden max-[720px]:block";
 export const brandTaglineClassName =
   "m-0 mt-7 max-w-[390px] text-[28px] font-extrabold leading-9 text-white max-[960px]:text-[25px] max-[960px]:leading-[33px]";

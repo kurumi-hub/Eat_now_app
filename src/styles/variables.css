@@ -1,13 +1,22 @@
 :root {
   --eatnow-primary: #d94720;
   --eatnow-primary-dark: #b93618;
+  --eatnow-primary-strong: #7a3000;
+  --eatnow-primary-soft: #fff0eb;
   --eatnow-secondary: #70645d;
   --eatnow-accent: #ffb84d;
   --eatnow-background: #fff8f4;
+  --eatnow-page-background: #f9f9fc;
   --eatnow-surface: #ffffff;
+  --eatnow-surface-soft: #fffdfc;
+  --eatnow-surface-muted: #e8e8ea;
   --eatnow-text-primary: #251d18;
+  --eatnow-text-strong: #1a1c1e;
   --eatnow-text-secondary: #70645d;
+  --eatnow-text-warm: #3b2016;
   --eatnow-border: #eadfd8;
+  --eatnow-border-strong: #ddc1b4;
+  --eatnow-shadow-color: rgba(37, 29, 24, 0.08);
   --eatnow-success: #27865c;
   --eatnow-warning: #e59a21;
   --eatnow-error: #d63a3a;

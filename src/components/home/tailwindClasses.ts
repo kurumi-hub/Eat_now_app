@@ -14,7 +14,9 @@ export const headerInnerClassName =
 export const headerBrandGroupClassName =
   "inline-flex min-w-max items-center gap-3";
 export const logoClassName =
-  "text-[34px] font-bold leading-[44px] text-[#7a3000] no-underline max-[760px]:text-[30px] max-[760px]:leading-[38px]";
+  "inline-flex h-11 w-[102px] shrink-0 items-center justify-center no-underline max-[760px]:h-10 max-[760px]:w-[92px]";
+export const logoImageClassName =
+  "block h-auto max-h-14 w-auto max-w-[112px] object-contain";
 export const locationButtonClassName =
   "inline-flex min-h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border-0 bg-[#f3f3f6] px-3 py-2 text-[13px] font-semibold text-[#5a4136] max-[1024px]:hidden [&_span]:whitespace-nowrap";
 export const locationMenuClassName =
@@ -179,7 +181,7 @@ export const footerClassName =
 export const footerInnerClassName =
   "mx-auto flex min-h-[76px] w-[min(100%,1200px)] flex-wrap items-center justify-between gap-x-6 gap-y-4 px-6 py-[18px] max-[760px]:flex-col max-[760px]:justify-center max-[760px]:text-center";
 export const footerBrandClassName =
-  "shrink-0 text-2xl font-bold leading-8 text-[#7a3000] no-underline";
+  "inline-flex h-[76px] w-[61px] shrink-0 items-center justify-center no-underline";
 export const footerCopyClassName =
   "m-0 flex-auto text-center text-sm leading-5 text-[#5a4136]";
 export const footerLinksClassName =
@@ -261,16 +263,16 @@ export function beforePartnerImageClassName(isOffset: boolean) {
 
 export const beforeFaqSectionClassName = "grid gap-11";
 export const beforeFaqHeadingClassName =
-  "grid grid-cols-[minmax(260px,0.8fr)_minmax(0,1.2fr)] items-start gap-8 max-[1024px]:grid-cols-1 max-[760px]:gap-5";
+  "flex w-full min-w-0 flex-row items-center justify-between gap-4 max-[1024px]:flex-col max-[1024px]:items-start";
 export const beforeFaqLargeTitleClassName =
-  "m-0 max-w-[360px] text-[40px] font-extrabold leading-[48px] text-[#7a3000] max-[760px]:text-[32px] max-[760px]:leading-10";
+  "m-0 min-w-0 text-[26px] font-extrabold leading-8 text-[#7a3000] sm:text-[28px] sm:leading-9 lg:text-[30px] max-[760px]:text-[22px] max-[760px]:leading-7";
 export const beforeFaqTabsClassName =
-  "flex flex-wrap justify-end gap-x-5 gap-y-3 max-[1024px]:justify-start max-[760px]:gap-2";
+  "flex shrink-0 flex-nowrap items-center justify-end gap-1.5 sm:gap-2 max-[1024px]:w-full max-[1024px]:justify-start max-[760px]:flex-wrap max-[760px]:gap-1.5";
 export function beforeFaqTabClassName(isActive = false) {
-  return `min-h-9 cursor-pointer rounded-full border bg-transparent px-[18px] py-2 font-[inherit] text-[13px] font-bold leading-[18px] ${
+  return `min-h-8 whitespace-nowrap cursor-pointer rounded-full border px-3 py-1.5 font-[inherit] text-xs font-bold leading-4 transition-all duration-300 ease-in-out sm:px-3.5 sm:text-[13px] ${
     isActive
-      ? "border-[#7a3000] bg-[#ffdbcc] text-[#351000]"
-      : "border-transparent text-[#5a4136]"
+      ? "border-[#7a3000] bg-[#ffdbcc] text-[#351000] shadow-xs"
+      : "border-transparent bg-transparent text-[#5a4136] hover:bg-[#ffdbcc]/40 hover:text-[#7a3000]"
   }`;
 }
 export const beforeFaqCardClassName =
@@ -278,16 +280,16 @@ export const beforeFaqCardClassName =
 export const beforeFaqListClassName =
   "grid content-start gap-[18px]";
 export function beforeFaqQuestionClassName(isActive = false) {
-  return `min-h-12 cursor-pointer rounded-lg border-0 px-5 py-3 text-left font-[inherit] text-lg font-extrabold leading-6 max-[760px]:text-base max-[760px]:leading-[22px] ${
+  return `min-h-12 cursor-pointer rounded-lg border-0 px-5 py-3 text-left font-[inherit] text-lg font-extrabold leading-6 transition-all duration-300 ease-in-out max-[760px]:text-base max-[760px]:leading-[22px] ${
     isActive
-      ? "bg-[#7a3000] text-white shadow-[0_8px_18px_rgba(122,48,0,0.2)]"
-      : "bg-transparent text-[#1a1c1e]"
+      ? "bg-[#7a3000] text-white shadow-[0_8px_18px_rgba(122,48,0,0.2)] scale-[1.01]"
+      : "bg-transparent text-[#1a1c1e] hover:bg-[#ffdbcc]/30 hover:text-[#7a3000] hover:translate-x-1"
   }`;
 }
 export const beforeWorkflowGridClassName =
   "grid grid-cols-3 gap-[18px] max-[1024px]:grid-cols-1";
 export const beforeWorkflowCardClassName =
-  "grid justify-items-center gap-3 rounded-xl bg-[#e8e8ea] px-4 py-[22px] text-center [&_svg]:text-[58px] [&_svg]:text-[#7a3000]";
+  "grid justify-items-center gap-3 rounded-xl bg-[#e8e8ea] px-4 py-[22px] text-center transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 [&_svg]:text-[58px] [&_svg]:text-[#7a3000]";
 export const beforeWorkflowTitleClassName =
   "m-0 text-lg font-extrabold leading-6 text-[#7a3000]";
 export const beforeFaqDescriptionClassName =
@@ -300,7 +302,7 @@ export const beforeFooterClassName = "mt-auto bg-[#e2e2e5]";
 export const beforeFooterInnerClassName =
   "mx-auto grid min-h-[78px] w-[min(100%,1200px)] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-6 px-6 py-[18px] max-[1024px]:grid-cols-1 max-[1024px]:justify-items-center max-[1024px]:text-center";
 export const beforeFooterBrandClassName =
-  "text-[22px] font-extrabold leading-7 text-[#7a3000] no-underline";
+  "inline-flex h-[76px] w-[61px] shrink-0 items-center justify-center no-underline";
 export const beforeFooterNavClassName =
   "flex flex-wrap justify-center gap-[18px]";
 export const beforeFooterButtonClassName =

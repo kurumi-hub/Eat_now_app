@@ -9,6 +9,7 @@ import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import {
   Alert,
   Button,
+  CircularProgress,
   MenuItem,
   Switch,
   TextField,
@@ -16,13 +17,19 @@ import {
   ToggleButtonGroup,
   Typography,
 } from "@mui/material";
+import { useRouter } from "next/navigation";
 import {
   useState,
+  useTransition,
   type ChangeEvent,
   type FormEvent,
   type MouseEvent,
 } from "react";
 
+import {
+  updatePreferencesAction,
+  type PreferencesActionState,
+} from "@/app/account/preferences/actions";
 import type { AccountAppearance, AccountPreferences } from "@/types/account";
 import {
   compactMutedClassName,
@@ -44,13 +51,7 @@ import {
   settingsTitleClassName,
 } from "./tailwindClasses";
 
-const defaultPreferences: AccountPreferences = {
-  orderStatusNotifications: true,
-  promotionalNotifications: true,
-  ownerNotifications: false,
-  appearance: "system",
-  language: "Tiếng Việt",
-};
+const initialActionState: PreferencesActionState = { status: "idle" };
 
 const preferenceRows = [
   {
@@ -73,10 +74,26 @@ const preferenceRows = [
   },
 ] as const;
 
-export default function PreferencesSettingsPanel() {
+type FeedbackState = {
+  severity: "success" | "error";
+  message: string;
+};
+
+type PreferencesSettingsPanelProps = {
+  initialPreferences: AccountPreferences;
+};
+
+export default function PreferencesSettingsPanel({
+  initialPreferences,
+}: PreferencesSettingsPanelProps) {
+  const router = useRouter();
+  const [actionState, setActionState] =
+    useState<PreferencesActionState>(initialActionState);
+  const [isPending, startTransition] = useTransition();
   const [preferences, setPreferences] =
-    useState<AccountPreferences>(defaultPreferences);
-  const [feedback, setFeedback] = useState("");
+    useState<AccountPreferences>(initialPreferences);
+  const [feedback, setFeedback] = useState<FeedbackState | null>(null);
+  const isSaving = isPending;
 
   const handleNotificationChange =
     (key: (typeof preferenceRows)[number]["key"]) =>
@@ -85,7 +102,7 @@ export default function PreferencesSettingsPanel() {
         ...current,
         [key]: event.target.checked,
       }));
-      setFeedback("");
+      setFeedback(null);
     };
 
   const handleAppearanceChange = (
@@ -97,7 +114,7 @@ export default function PreferencesSettingsPanel() {
       ...current,
       appearance: nextAppearance,
     }));
-    setFeedback("");
+    setFeedback(null);
   };
 
   const handleLanguageChange = (
@@ -107,17 +124,52 @@ export default function PreferencesSettingsPanel() {
       ...current,
       language: event.target.value as AccountPreferences["language"],
     }));
-    setFeedback("");
+    setFeedback(null);
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setFeedback("Đã lưu cài đặt hiển thị trên giao diện.");
+
+    if (isSaving) {
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await updatePreferencesAction(actionState, preferences);
+
+      setActionState(result);
+
+      if (result.status === "success") {
+        if (result.preferences) {
+          setPreferences(result.preferences);
+        }
+
+        setFeedback({
+          severity: "success",
+          message: result.message || "Đã lưu cài đặt tài khoản.",
+        });
+        router.refresh();
+        return;
+      }
+
+      if (result.preferences) {
+        setPreferences(result.preferences);
+      }
+
+      setFeedback({
+        severity: "error",
+        message:
+          result.message ||
+          "Không thể lưu cài đặt lúc này. Vui lòng thử lại sau.",
+      });
+    });
   };
 
   return (
     <form className={settingsStackClassName} onSubmit={handleSubmit}>
-      {feedback ? <Alert severity="success">{feedback}</Alert> : null}
+      {feedback ? (
+        <Alert severity={feedback.severity}>{feedback.message}</Alert>
+      ) : null}
 
       <section className={settingsSectionCardClassName}>
         <div className={settingsCardHeaderClassName}>
@@ -153,6 +205,7 @@ export default function PreferencesSettingsPanel() {
                 <Switch
                   checked={preferences[item.key]}
                   onChange={handleNotificationChange(item.key)}
+                  disabled={isSaving}
                   slotProps={{ input: { "aria-label": item.title } }}
                 />
               </article>
@@ -183,10 +236,10 @@ export default function PreferencesSettingsPanel() {
               value={preferences.appearance}
               onChange={handleAppearanceChange}
               aria-label="Chế độ màu"
+              disabled={isSaving}
             >
               <ToggleButton value="light">Sáng</ToggleButton>
               <ToggleButton value="system">Theo máy</ToggleButton>
-              <ToggleButton value="dark">Tối</ToggleButton>
             </ToggleButtonGroup>
           </div>
 
@@ -195,6 +248,7 @@ export default function PreferencesSettingsPanel() {
             label="Ngôn ngữ"
             value={preferences.language}
             onChange={handleLanguageChange}
+            disabled={isSaving}
             sx={settingsInputSx}
             slotProps={{
               input: {
@@ -208,8 +262,19 @@ export default function PreferencesSettingsPanel() {
       </section>
 
       <div className={settingsActionsRowClassName}>
-        <Button type="submit" variant="contained" startIcon={<SaveOutlinedIcon />}>
-          Lưu cài đặt
+        <Button
+          type="submit"
+          variant="contained"
+          disabled={isSaving}
+          startIcon={
+            isSaving ? (
+              <CircularProgress color="inherit" size={18} />
+            ) : (
+              <SaveOutlinedIcon />
+            )
+          }
+        >
+          {isSaving ? "Đang lưu..." : "Lưu cài đặt"}
         </Button>
       </div>
     </form>

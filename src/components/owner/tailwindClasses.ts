@@ -21,7 +21,7 @@ export const sidebarClassName =
   "fixed inset-y-0 left-0 z-[80] flex min-h-screen w-[240px] flex-col gap-[18px] border-r border-[#ddc1b4] bg-white px-3.5 pb-4 pt-6 shadow-[12px_0_24px_rgba(119,87,77,0.04)] max-lg:-translate-x-[105%] max-lg:transition-transform max-lg:duration-200 data-[menu-open=true]:translate-x-0";
 
 export const sidebarBrandClassName = "flex items-center gap-2.5 px-2.5 pb-[18px]";
-export const sidebarBrandIconClassName = "text-[30px] text-[#7a3000]";
+export const sidebarBrandLogoClassName = "h-10 w-[31px] shrink-0 object-contain";
 export const sidebarBrandTitleClassName = "m-0 text-[15px] font-extrabold leading-[1.1] text-[#7a3000]";
 export const sidebarBrandSubtitleClassName = "text-[11px] leading-[1.2] text-[#5a4136]";
 export const sidebarNavClassName = "flex flex-1 flex-col gap-1.5";
@@ -46,6 +46,8 @@ export const mobileBarClassName =
   "fixed inset-x-0 top-0 z-[60] hidden h-16 items-center justify-between border-b border-[rgba(221,193,180,0.55)] bg-white px-4 max-lg:flex";
 export const mobileIconButtonClassName =
   "inline-grid size-10 cursor-pointer place-items-center rounded-full border-0 bg-white text-[#5a4136]";
+export const mobileBrandClassName = "flex min-w-0 items-center gap-2";
+export const mobileBrandLogoClassName = "h-9 w-[27px] shrink-0 object-contain";
 export const mobileBrandTitleClassName = "m-0 font-extrabold text-[#7a3000]";
 export const mobileBrandSubtitleClassName = "m-0 text-xs text-[#5a4136]";
 export const mobileBadgeClassName =

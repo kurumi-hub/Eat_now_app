@@ -1,7 +1,7 @@
-import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
 import { Box, Typography } from "@mui/material";
 import Image from "next/image";
 
+import BrandLogo from "@/components/common/BrandLogo";
 import {
   brandContentClassName,
   brandImageClassName,
@@ -30,8 +30,13 @@ export default function AuthBrandPanel({
     return (
       <Box className={mobileBrandClassName}>
         <Box className={wordmarkClassName} aria-label="EatNow">
-          <RestaurantMenuOutlinedIcon className="shrink-0" fontSize="small" />
-          <span className="text-[var(--eatnow-text-primary)]">EatNow</span>
+          <BrandLogo
+            alt=""
+            className="h-full w-full object-contain"
+            priority
+            sizes="92px"
+            variant="full"
+          />
         </Box>
         <Typography
           component="p"
@@ -56,8 +61,13 @@ export default function AuthBrandPanel({
       <Box className={brandOverlayClassName} aria-hidden="true" />
       <Box className={brandContentClassName}>
         <Box className={wordmarkClassName} aria-label="EatNow">
-          <RestaurantMenuOutlinedIcon className="shrink-0" />
-          <span className="text-white">EatNow</span>
+          <BrandLogo
+            alt=""
+            className="h-full w-full object-contain"
+            priority
+            sizes="150px"
+            variant="full"
+          />
         </Box>
         <Typography component="p" className={brandTaglineClassName}>
           {tagline}

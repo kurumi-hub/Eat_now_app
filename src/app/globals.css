@@ -152,3 +152,19 @@ html {
   }
 }
 
+/* ── FAQ Smooth Fade & Slide Motion ── */
+@keyframes faqFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-faq-fade {
+  animation: faqFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

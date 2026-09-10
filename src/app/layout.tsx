@@ -26,6 +26,22 @@ export const metadata: Metadata = {
   title: "EatNow - Đói bụng? EatNow lo hết.",
   description:
     "EatNow - app đặt đồ ăn giao nhanh, hơn 2.000 quán ăn quanh bạn, giao trung bình 15 phút.",
+  icons: {
+    icon: [
+      {
+        url: "/images/brand/eatnow-icon.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+    apple: [
+      {
+        url: "/images/brand/eatnow-icon.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({

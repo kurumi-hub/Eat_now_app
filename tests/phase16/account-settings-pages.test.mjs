@@ -94,6 +94,90 @@ test("Preferences settings panel includes notifications appearance and language 
   assert.match(preferencesPanel, /Lưu cài đặt/);
 });
 
+test("Preferences settings are loaded and saved through account metadata", async () => {
+  const preferencesPage = await readProjectFile(
+    "src",
+    "app",
+    "account",
+    "preferences",
+    "page.tsx"
+  );
+  const preferencesPanel = await readProjectFile(
+    "src",
+    "components",
+    "account",
+    "PreferencesSettingsPanel.tsx"
+  );
+  const preferencesActions = await readProjectFile(
+    "src",
+    "app",
+    "account",
+    "preferences",
+    "actions.ts"
+  );
+  const preferencesData = await readProjectFile(
+    "src",
+    "lib",
+    "data",
+    "accountPreferences.ts"
+  );
+
+  assert.match(preferencesPage, /getCurrentAccountPreferences/);
+  assert.match(preferencesPage, /initialPreferences=\{preferences\}/);
+  assert.match(preferencesPanel, /initialPreferences/);
+  assert.match(preferencesPanel, /updatePreferencesAction/);
+  assert.match(preferencesPanel, /useTransition/);
+  assert.match(preferencesPanel, /router\.refresh\(\)/);
+  assert.match(preferencesActions, /"use server"/);
+  assert.match(preferencesActions, /validateAccountPreferences/);
+  assert.match(preferencesActions, /supabase\.auth\.updateUser/);
+  assert.match(preferencesActions, /accountPreferences/);
+  assert.match(preferencesActions, /revalidatePath\("\/account\/preferences"\)/);
+  assert.match(preferencesData, /DEFAULT_ACCOUNT_PREFERENCES/);
+  assert.match(preferencesData, /getCurrentAccountPreferences/);
+  assert.match(preferencesData, /readAccountPreferences/);
+});
+
+test("Display preferences do not expose dark mode", async () => {
+  const accountTypes = await readProjectFile("src", "types", "account.ts");
+  const preferencesPanel = await readProjectFile(
+    "src",
+    "components",
+    "account",
+    "PreferencesSettingsPanel.tsx"
+  );
+  const preferencesData = await readProjectFile(
+    "src",
+    "lib",
+    "data",
+    "accountPreferences.ts"
+  );
+  const appThemeProvider = await readProjectFile(
+    "src",
+    "theme",
+    "AppThemeProvider.tsx"
+  );
+  const theme = await readProjectFile("src", "theme", "theme.ts");
+  const rootLayout = await readProjectFile("src", "app", "layout.tsx");
+  const variables = await readProjectFile("src", "styles", "variables.css");
+
+  assert.doesNotMatch(accountTypes, /"dark"/);
+  assert.doesNotMatch(preferencesPanel, /value="dark"|>Tối</);
+  assert.doesNotMatch(preferencesData, /"dark"|prefers-color-scheme/);
+  assert.doesNotMatch(appThemeProvider, /readStoredAccountAppearancePreference|eatnow:appearance-change/);
+  assert.doesNotMatch(theme, /EatNowResolvedThemeMode|createEatNowTheme|mode: resolvedMode|colorSchemes/);
+  assert.doesNotMatch(rootLayout, /ThemePreferenceScript/);
+  assert.doesNotMatch(variables, /\[data-eatnow-theme="dark"\]/);
+  await assert.rejects(
+    access(join(root, "src", "components", "common", "ThemePreferenceScript.tsx")),
+    /ENOENT/
+  );
+  await assert.rejects(
+    access(join(root, "src", "utils", "accountPreferencesClient.ts")),
+    /ENOENT/
+  );
+});
+
 test("Address book panel manages delivery addresses without technical location fields", async () => {
   const addressPanel = await readProjectFile(
     "src",

@@ -1,13 +1,13 @@
 import type { SxProps, Theme } from "@mui/material/styles";
 
 const panelClassName =
-  "rounded-3xl border border-[rgba(221,193,180,0.42)] bg-white shadow-[0_12px_24px_rgba(119,87,77,0.08)]";
-const textDark = "text-[#3b2016]";
-const textMain = "text-[#1a1c1e]";
-const textMuted = "text-[#70645d]";
+  "rounded-3xl border border-[var(--eatnow-border)] bg-[var(--eatnow-surface)] shadow-[var(--eatnow-shadow-1)]";
+const textDark = "text-[var(--eatnow-text-warm)]";
+const textMain = "text-[var(--eatnow-text-strong)]";
+const textMuted = "text-[var(--eatnow-text-secondary)]";
 
 export const pageClassName =
-  "flex min-h-screen flex-col overflow-x-hidden bg-[#f9f9fc] text-[#1a1c1e]";
+  "flex min-h-screen flex-col overflow-x-hidden bg-[var(--eatnow-page-background)] text-[var(--eatnow-text-strong)]";
 export const shellClassName =
   "mx-auto block w-[min(100%,1200px)] flex-1 px-6 pb-14 pt-10 max-[640px]:px-4 max-[640px]:pb-11 max-[640px]:pt-6";
 export const layoutGridClassName =
@@ -18,11 +18,11 @@ export const contentClassName = "min-w-0";
 export const headerClassName =
   "mb-7 flex items-start justify-between gap-5 max-[640px]:mb-[18px]";
 export const headerEyebrowClassName =
-  "m-0 mb-1.5 text-[13px] font-bold uppercase leading-[18px] text-[#d94720]";
+  "m-0 mb-1.5 text-[13px] font-bold uppercase leading-[18px] text-[var(--eatnow-primary)]";
 export const headerTitleClassName =
-  "m-0 text-[32px] font-bold leading-10 text-[#1a1c1e] max-[640px]:text-[28px] max-[640px]:leading-9";
+  "m-0 text-[32px] font-bold leading-10 text-[var(--eatnow-text-strong)] max-[640px]:text-[28px] max-[640px]:leading-9";
 export const headerDescriptionClassName =
-  "mt-2 max-w-[760px] text-base leading-6 text-[#3b2016]";
+  "mt-2 max-w-[760px] text-base leading-6 text-[var(--eatnow-text-warm)]";
 export const headerActionsClassName = "shrink-0";
 
 export const sidebarClassName =
@@ -54,12 +54,12 @@ export const sidebarDividerClassName =
 export const sidebarLogoutClassName =
   "!min-h-[52px] !justify-start !rounded-none !px-[18px] !py-3";
 export const mobileNavClassName =
-  "mb-5 hidden rounded-[20px] border border-[rgba(221,193,180,0.48)] bg-white shadow-[0_8px_18px_rgba(119,87,77,0.06)] max-[900px]:block";
+  "mb-5 hidden rounded-[20px] border border-[var(--eatnow-border)] bg-[var(--eatnow-surface)] shadow-[var(--eatnow-shadow-1)] max-[900px]:block";
 export const mobileNavSx: SxProps<Theme> = {
   "& .MuiTabs-flexContainer": { minHeight: 52 },
   "& .MuiTab-root": {
     minHeight: 52,
-    color: "#3b2016",
+    color: "var(--eatnow-text-warm)",
     fontWeight: 700,
     textTransform: "none",
   },
@@ -84,9 +84,9 @@ export const profileFormGridClassName =
 export const profileFieldClassName =
   "flex min-w-0 flex-col gap-2";
 export const profileFieldLabelClassName =
-  "ml-1 text-[13px] font-bold leading-[18px] text-[#3b2016]";
+  "ml-1 text-[13px] font-bold leading-[18px] text-[var(--eatnow-text-warm)]";
 export const profileReadonlyValueClassName =
-  "flex min-h-14 items-center gap-2.5 rounded-2xl border border-[#ddc1b4] bg-[#e8e8ea] px-[18px] text-base leading-6 text-[#3b2016] [overflow-wrap:anywhere] [&_svg]:shrink-0 [&_svg]:text-[22px] [&_svg]:text-[#8a7267]";
+  "flex min-h-14 items-center gap-2.5 rounded-2xl border border-[var(--eatnow-border-strong)] bg-[var(--eatnow-surface-muted)] px-[18px] text-base leading-6 text-[var(--eatnow-text-warm)] [overflow-wrap:anywhere] [&_svg]:shrink-0 [&_svg]:text-[22px] [&_svg]:text-[var(--eatnow-text-secondary)]";
 export const profileStatusDotClassName =
   "h-2.5 w-2.5 shrink-0 rounded-full bg-[#12b981]";
 export const profileActionsFooterClassName =
@@ -94,16 +94,16 @@ export const profileActionsFooterClassName =
 export const profileFieldSx: SxProps<Theme> = {
   "& .MuiOutlinedInput-root": {
     minHeight: 56,
-    border: "1px solid #ddc1b4",
+    border: "1px solid var(--eatnow-border-strong)",
     borderRadius: 16,
-    color: "#3b2016",
-    background: "#fffdfc",
+    color: "var(--eatnow-text-warm)",
+    background: "var(--eatnow-surface-soft)",
     fontSize: 16,
     lineHeight: "24px",
   },
   "& .MuiOutlinedInput-notchedOutline": { border: 0 },
   "& .MuiOutlinedInput-input": {
-    color: "#3b2016",
+    color: "var(--eatnow-text-warm)",
     fontSize: 16,
     lineHeight: "24px",
     padding: "15px 18px",
@@ -120,13 +120,13 @@ export const settingsCardHeaderClassName =
 export const settingsCardHeaderCenterClassName =
   "mb-6 flex items-center gap-3.5 max-[640px]:items-start max-[640px]:flex-col [&>div]:min-w-0 [&>div]:flex-auto";
 export const settingsCardIconClassName =
-  "grid h-[42px] w-[42px] shrink-0 place-items-center rounded-2xl bg-[#fff0eb] text-[#7a3000] [&_svg]:text-2xl";
+  "grid h-[42px] w-[42px] shrink-0 place-items-center rounded-2xl bg-[var(--eatnow-primary-soft)] text-[var(--eatnow-primary-strong)] [&_svg]:text-2xl";
 export const settingsEyebrowClassName =
-  "m-0 mb-1 text-xs font-extrabold uppercase leading-4 text-[#d94720]";
+  "m-0 mb-1 text-xs font-extrabold uppercase leading-4 text-[var(--eatnow-primary)]";
 export const settingsTitleClassName =
-  "!m-0 !font-[var(--font-baloo),var(--font-be-vietnam),sans-serif] !text-[22px] !font-extrabold !leading-[30px] !text-[#1a1c1e] max-[760px]:!text-xl max-[760px]:!leading-7";
+  "!m-0 !font-[var(--font-baloo),var(--font-be-vietnam),sans-serif] !text-[22px] !font-extrabold !leading-[30px] !text-[var(--eatnow-text-strong)] max-[760px]:!text-xl max-[760px]:!leading-7";
 export const settingsSoftChipClassName =
-  "!ml-auto !h-[30px] !rounded-full !bg-[#fff0eb] !text-xs !font-extrabold !text-[#7a3000] max-[640px]:!ml-0";
+  "!ml-auto !h-[30px] !rounded-full !bg-[var(--eatnow-primary-soft)] !text-xs !font-extrabold !text-[var(--eatnow-primary-strong)] max-[640px]:!ml-0";
 export const settingsActionsRowClassName =
   "mt-6 flex justify-end gap-3 max-[640px]:mt-9 max-[640px]:w-full max-[640px]:flex-col-reverse [&_.MuiButton-root]:max-[640px]:flex-[1_1_100%]";
 

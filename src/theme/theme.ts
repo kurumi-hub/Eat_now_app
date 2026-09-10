@@ -9,9 +9,13 @@ const colors = {
   accent: "#FFB84D",
   background: "#FFF8F4",
   surface: "#FFFFFF",
+  surfaceSoft: "#FFFDFC",
   textPrimary: "#251D18",
   textSecondary: "#70645D",
   border: "#EADFD8",
+  inputBorder: "#D9C9C0",
+  inputHoverBorder: "#B99180",
+  cardShadow: "0 14px 34px rgba(37, 29, 24, 0.08)",
   success: "#27865C",
   warning: "#E59A21",
   error: "#D63A3A",
@@ -128,9 +132,9 @@ const theme = createTheme({
         root: {
           minHeight: 44,
           borderRadius: 12,
-          backgroundColor: "#FFFDFC",
+          backgroundColor: colors.surfaceSoft,
           "&:hover .MuiOutlinedInput-notchedOutline": {
-            borderColor: "#B99180",
+            borderColor: colors.inputHoverBorder,
           },
           "&.Mui-focused": {
             boxShadow: focusRing,
@@ -141,7 +145,7 @@ const theme = createTheme({
           },
         },
         notchedOutline: {
-          borderColor: "#D9C9C0",
+          borderColor: colors.inputBorder,
         },
       },
     },
@@ -163,7 +167,7 @@ const theme = createTheme({
         root: {
           minWidth: 44,
           minHeight: 44,
-          color: "#B99180",
+          color: colors.inputHoverBorder,
           "&.Mui-checked": {
             color: colors.primary,
           },
@@ -179,7 +183,7 @@ const theme = createTheme({
         root: {
           borderRadius: 16,
           border: `1px solid ${colors.border}`,
-          boxShadow: "0 14px 34px rgba(37, 29, 24, 0.08)",
+          boxShadow: colors.cardShadow,
         },
       },
     },

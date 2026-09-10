@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
+import BrandLogo from "@/components/common/BrandLogo";
 import { shipperNavItems, shipperDriverProfile } from "@/components/shipper/shipperFlowData";
 
 type ShipperShellProps = {
@@ -68,7 +69,14 @@ export default function ShipperShell({ children }: ShipperShellProps) {
                     />
                   </div>
                 </Link>
-                <Link href="/shipper">
+                <Link href="/shipper" className="flex items-center gap-2 no-underline" aria-label="EatNow Shipper">
+                  <BrandLogo
+                    alt=""
+                    className="h-10 w-[31px] shrink-0 object-contain"
+                    priority
+                    sizes="40px"
+                    variant="mark"
+                  />
                   <h1 className="text-xl sm:text-2xl font-bold text-shipper-primary tracking-tight">
                     EatNow Shipper
                   </h1>

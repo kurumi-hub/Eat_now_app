@@ -107,7 +107,7 @@ test("Every customer header surface receives the backend delivery location label
   );
 
   assert.match(beforeLoginPage, /deliveryLocationLabel\?: string/);
-  assert.match(beforeLoginPage, /<span>\{deliveryLocationLabel\}<\/span>/);
+  assert.doesNotMatch(beforeLoginPage, /beforeLocationClassName/);
   assert.doesNotMatch(beforeLoginPage, /<span>Ninh Kiều, Cần Thơ<\/span>/);
 
   for (const componentPath of headerComponents) {

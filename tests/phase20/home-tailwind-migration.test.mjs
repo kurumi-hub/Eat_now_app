@@ -59,3 +59,67 @@ test("Customer header keeps backend location picker behavior while using Tailwin
   assert.match(classes, /data-\[active=true\]:border-\[#ffb49c\]/);
   assert.match(classes, /line-clamp-2/);
 });
+
+test("Global customer footer does not link to the shipper channel", async () => {
+  const footer = await readProjectFile(
+    "src",
+    "components",
+    "home",
+    "CustomerFooter.tsx"
+  );
+
+  assert.doesNotMatch(footer, /href="\/shipper"/);
+});
+
+test("Customer surfaces use the official EatNow logo assets", async () => {
+  const logo = await readProjectFile(
+    "src",
+    "components",
+    "common",
+    "BrandLogo.tsx"
+  );
+  const header = await readProjectFile(
+    "src",
+    "components",
+    "home",
+    "CustomerHeader.tsx"
+  );
+  const footer = await readProjectFile(
+    "src",
+    "components",
+    "home",
+    "CustomerFooter.tsx"
+  );
+  const beforeLogin = await readProjectFile(
+    "src",
+    "components",
+    "home",
+    "BeforeLoginHomePage.tsx"
+  );
+  const classes = await readProjectFile(
+    "src",
+    "components",
+    "home",
+    "tailwindClasses.ts"
+  );
+
+  await access(join(root, "public", "images", "brand", "eatnow-logo.png"));
+  await access(join(root, "public", "images", "brand", "eatnow-logo-horizontal.png"));
+  await access(join(root, "public", "images", "brand", "eatnow-logo-mark.png"));
+  await access(join(root, "public", "images", "brand", "eatnow-icon.png"));
+  await access(join(root, "src", "app", "favicon.ico"));
+  await access(join(root, "src", "app", "icon.png"));
+  await access(join(root, "src", "app", "apple-icon.png"));
+
+  assert.match(logo, /eatnow-logo\.png/);
+  assert.match(logo, /eatnow-logo-horizontal\.png/);
+  assert.match(logo, /eatnow-logo-mark\.png/);
+  assert.match(logo, /eatnow-icon\.png/);
+  assert.match(classes, /export const logoImageClassName/);
+  assert.match(header, /<BrandLogo/);
+  assert.match(header, /variant="horizontal"/);
+  assert.match(footer, /<BrandLogo/);
+  assert.match(footer, /variant="full"/);
+  assert.match(beforeLogin, /variant="horizontal"/);
+  assert.match(beforeLogin, /variant="full"/);
+});

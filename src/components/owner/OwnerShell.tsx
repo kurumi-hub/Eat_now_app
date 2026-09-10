@@ -16,12 +16,12 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
-import StorefrontIcon from "@mui/icons-material/Storefront";
 import type { SvgIconComponent } from "@mui/icons-material";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
+import BrandLogo from "@/components/common/BrandLogo";
 import * as ownerStyles from "@/components/owner/tailwindClasses";
 import {
   ordersBadge,
@@ -96,7 +96,13 @@ export default function OwnerShell({ children }: OwnerShellProps) {
         aria-label="Restaurant Owner navigation"
       >
         <div className={ownerStyles.sidebarBrandClassName}>
-          <StorefrontIcon className={ownerStyles.sidebarBrandIconClassName} />
+          <BrandLogo
+            alt=""
+            className={ownerStyles.sidebarBrandLogoClassName}
+            priority
+            sizes="40px"
+            variant="mark"
+          />
           <div>
             <p className={ownerStyles.sidebarBrandTitleClassName}>EatNow</p>
             <span className={ownerStyles.sidebarBrandSubtitleClassName}>Restaurant Owner</span>
@@ -170,11 +176,20 @@ export default function OwnerShell({ children }: OwnerShellProps) {
         >
           {isMenuOpen ? <CloseIcon /> : <MenuIcon />}
         </button>
-        <div>
-          <p className={ownerStyles.mobileBrandTitleClassName}>EatNow</p>
-          <span className={ownerStyles.mobileBrandSubtitleClassName}>
-            {activeItem?.label ?? "Dashboard"}
-          </span>
+        <div className={ownerStyles.mobileBrandClassName}>
+          <BrandLogo
+            alt=""
+            className={ownerStyles.mobileBrandLogoClassName}
+            priority
+            sizes="36px"
+            variant="mark"
+          />
+          <div>
+            <p className={ownerStyles.mobileBrandTitleClassName}>EatNow</p>
+            <span className={ownerStyles.mobileBrandSubtitleClassName}>
+              {activeItem?.label ?? "Dashboard"}
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Link

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import BrandLogo from "@/components/common/BrandLogo";
 import {
   footerBrandClassName,
   footerButtonClassName,
@@ -9,6 +10,7 @@ import {
   footerCopyClassName,
   footerInnerClassName,
   footerLinksClassName,
+  logoImageClassName,
 } from "./tailwindClasses";
 
 type CustomerFooterProps = {
@@ -25,8 +27,13 @@ export default function CustomerFooter({ onPlaceholder }: CustomerFooterProps) {
   return (
     <footer className={footerClassName}>
       <div className={footerInnerClassName}>
-        <Link className={footerBrandClassName} href="/">
-          EatNow
+        <Link className={footerBrandClassName} href="/" aria-label="EatNow trang chủ">
+          <BrandLogo
+            alt=""
+            className={logoImageClassName}
+            sizes="76px"
+            variant="full"
+          />
         </Link>
         <p className={footerCopyClassName}>
           Nền tảng đặt món ăn trực tuyến nhanh chóng, tiện lợi và chuẩn vị.
@@ -50,12 +57,6 @@ export default function CustomerFooter({ onPlaceholder }: CustomerFooterProps) {
           >
             Chính sách
           </button>
-          <Link
-            className={footerButtonClassName}
-            href="/shipper"
-          >
-            Kênh tài xế
-          </Link>
           <button
             className={footerButtonClassName}
             type="button"

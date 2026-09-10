@@ -1,13 +1,13 @@
+"use client";
+
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
-import ExpandMoreOutlinedIcon from "@mui/icons-material/ExpandMoreOutlined";
-import LocalMallOutlinedIcon from "@mui/icons-material/LocalMallOutlined";
-import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
-import RestaurantOutlinedIcon from "@mui/icons-material/RestaurantOutlined";
-import RouteOutlinedIcon from "@mui/icons-material/RouteOutlined";
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 
+import BrandLogo from "@/components/common/BrandLogo";
 import { DEFAULT_DELIVERY_LOCATION_LABEL } from "@/utils/addressDisplay";
+import { beforeFaqTabsData } from "./beforeFaqData";
 import { homeHeroImage } from "./homeData";
 import {
   beforeActionsClassName,
@@ -41,7 +41,6 @@ import {
   beforeHeroImageClassName,
   beforeHeroOverlayClassName,
   beforeHeroTitleClassName,
-  beforeLocationClassName,
   beforeLoginLinkClassName,
   beforeMainClassName,
   beforePartnerCardClassName,
@@ -63,6 +62,7 @@ import {
   beforeWorkflowGridClassName,
   beforeWorkflowTitleClassName,
   logoClassName,
+  logoImageClassName,
 } from "./tailwindClasses";
 
 type BeforeLoginHomePageProps = {
@@ -118,48 +118,37 @@ const partnerImages = [
   },
 ];
 
-const faqQuestions = [
-  "EatNow hoạt động như thế nào?",
-  "Những phương thức thanh toán nào được chấp nhận?",
-  "Tôi có thể theo dõi đơn hàng trong thời gian thực không?",
-  "Có ưu đãi hoặc khuyến mãi đặc biệt nào không?",
-  "EatNow có khả dụng ở khu vực của tôi không?",
-];
-
-const workflowCards = [
-  {
-    title: "Đặt món!",
-    description: "Chọn món yêu thích từ các nhà hàng gần bạn.",
-    icon: RestaurantOutlinedIcon,
-  },
-  {
-    title: "Theo dõi tiến độ",
-    description: "Cập nhật trạng thái đơn hàng theo từng bước giao.",
-    icon: RouteOutlinedIcon,
-  },
-  {
-    title: "Nhận đơn hàng!",
-    description: "Bữa ăn nóng hổi được giao tới cửa nhanh chóng.",
-    icon: LocalMallOutlinedIcon,
-  },
-];
 
 export default function BeforeLoginHomePage({
   deliveryLocationLabel = DEFAULT_DELIVERY_LOCATION_LABEL,
 }: BeforeLoginHomePageProps) {
+  const [activeTabId, setActiveTabId] = useState("faq");
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+
+  const activeTab =
+    beforeFaqTabsData.find((tab) => tab.id === activeTabId) ??
+    beforeFaqTabsData[0];
+  const activeTopic =
+    activeTab.items[activeQuestionIndex] ?? activeTab.items[0];
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTabId(tabId);
+    setActiveQuestionIndex(0);
+  };
   return (
     <div className={beforeShellClassName}>
       <header className={beforeHeaderClassName}>
         <div className={beforeHeaderInnerClassName}>
           <div className={beforeBrandGroupClassName}>
             <Link className={logoClassName} href="/" aria-label="EatNow trang chủ">
-              EatNow
+              <BrandLogo
+                alt=""
+                className={logoImageClassName}
+                priority
+                sizes="102px"
+                variant="horizontal"
+              />
             </Link>
-            <button className={beforeLocationClassName} type="button">
-              <LocationOnOutlinedIcon fontSize="small" />
-              <span>{deliveryLocationLabel}</span>
-              <ExpandMoreOutlinedIcon fontSize="small" />
-            </button>
           </div>
 
           <nav className={beforeActionsClassName} aria-label="Tài khoản">
@@ -283,36 +272,38 @@ export default function BeforeLoginHomePage({
               Tìm hiểu thêm về chúng tôi!
             </h2>
             <nav className={beforeFaqTabsClassName} aria-label="Chủ đề thông tin">
-              <button className={beforeFaqTabClassName(true)} type="button">
-                Câu hỏi thường gặp
-              </button>
-              <button className={beforeFaqTabClassName()} type="button">
-                Chúng tôi là ai?
-              </button>
-              <button className={beforeFaqTabClassName()} type="button">
-                Chương trình đối tác
-              </button>
-              <button className={beforeFaqTabClassName()} type="button">
-                Hỗ trợ & Trợ giúp
-              </button>
+              {beforeFaqTabsData.map((tab) => (
+                <button
+                  key={tab.id}
+                  className={beforeFaqTabClassName(activeTabId === tab.id)}
+                  type="button"
+                  onClick={() => handleTabChange(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </nav>
           </div>
 
           <div className={beforeFaqCardClassName}>
             <div className={beforeFaqListClassName}>
-              {faqQuestions.map((question, index) => (
+              {activeTab.items.map((item, index) => (
                 <button
-                  className={beforeFaqQuestionClassName(index === 0)}
-                  key={question}
+                  className={beforeFaqQuestionClassName(activeQuestionIndex === index)}
+                  key={item.question}
                   type="button"
+                  onClick={() => setActiveQuestionIndex(index)}
                 >
-                  {question}
+                  {item.question}
                 </button>
               ))}
             </div>
 
-            <div className={beforeWorkflowGridClassName}>
-              {workflowCards.map((card) => {
+            <div
+              key={`${activeTabId}-${activeQuestionIndex}`}
+              className={`${beforeWorkflowGridClassName} animate-faq-fade`}
+            >
+              {activeTopic.cards.map((card) => {
                 const Icon = card.icon;
 
                 return (
@@ -329,11 +320,11 @@ export default function BeforeLoginHomePage({
               })}
             </div>
 
-            <p className={beforeFaqDescriptionClassName}>
-              EatNow đơn giản hóa quy trình đặt đồ ăn. Duyệt qua thực đơn đa
-              dạng của chúng tôi, chọn những món ăn yêu thích và tiến hành
-              thanh toán. Bữa ăn ngon của bạn sẽ được giao đến tận cửa ngay lập
-              tức.
+            <p
+              key={`desc-${activeTabId}-${activeQuestionIndex}`}
+              className={`${beforeFaqDescriptionClassName} animate-faq-fade`}
+            >
+              {activeTopic.description}
             </p>
           </div>
         </section>
@@ -341,8 +332,13 @@ export default function BeforeLoginHomePage({
 
       <footer className={beforeFooterClassName}>
         <div className={beforeFooterInnerClassName}>
-          <Link className={beforeFooterBrandClassName} href="/">
-            EatNow
+          <Link className={beforeFooterBrandClassName} href="/" aria-label="EatNow trang chủ">
+            <BrandLogo
+              alt=""
+              className={logoImageClassName}
+              sizes="76px"
+              variant="full"
+            />
           </Link>
           <nav className={beforeFooterNavClassName} aria-label="Thông tin EatNow">
             <button className={beforeFooterButtonClassName} type="button">

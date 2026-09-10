@@ -32,6 +32,7 @@ import {
   setDefaultAddressAction,
 } from "@/app/account/addresses/actions";
 import { logout } from "@/app/auth/actions";
+import BrandLogo from "@/components/common/BrandLogo";
 import { useCart } from "@/contexts/CartContext";
 import type { AccountAddress } from "@/types/account";
 import type { PublicUser } from "@/types/auth";
@@ -64,6 +65,7 @@ import {
   locationOptionSecondaryClassName,
   loginButtonClassName,
   logoClassName,
+  logoImageClassName,
   navClassName,
   navItemClassName,
   registerButtonClassName,
@@ -213,7 +215,13 @@ export default function CustomerHeader({
       <div className={headerInnerClassName}>
         <div className={headerBrandGroupClassName}>
           <Link className={logoClassName} href="/" aria-label="EatNow trang chủ">
-            EatNow
+            <BrandLogo
+              alt=""
+              className={logoImageClassName}
+              priority
+              sizes="102px"
+              variant="horizontal"
+            />
           </Link>
           <button
             className={locationButtonClassName}

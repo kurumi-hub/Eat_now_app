@@ -8,16 +8,20 @@ export const SELLER_STATUSES = [
 
 export type SellerStatus = (typeof SELLER_STATUSES)[number];
 
-export const ACCOUNT_APPEARANCES = ["light", "dark", "system"] as const;
+export const ACCOUNT_APPEARANCES = ["light", "system"] as const;
 
 export type AccountAppearance = (typeof ACCOUNT_APPEARANCES)[number];
+
+export const ACCOUNT_LANGUAGES = ["Tiếng Việt"] as const;
+
+export type AccountLanguage = (typeof ACCOUNT_LANGUAGES)[number];
 
 export type AccountPreferences = {
   orderStatusNotifications: boolean;
   promotionalNotifications: boolean;
   ownerNotifications: boolean;
   appearance: AccountAppearance;
-  language: "Tiếng Việt";
+  language: AccountLanguage;
 };
 
 export type ProfileFormValues = {
