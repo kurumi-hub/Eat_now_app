@@ -15,6 +15,7 @@ import "@/styles/global.css";
 import "@/styles/routes.css";
 import "@/styles/home.css";
 import "@/styles/auth.css";
+import "@/styles/chat.css";
 
 const baloo = Baloo_2({
   variable: "--font-baloo",

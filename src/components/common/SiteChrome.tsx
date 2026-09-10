@@ -7,6 +7,7 @@ import { useState, type ReactNode } from "react";
 import SiteFooter from "@/components/common/SiteFooter";
 import MobileBottomNav from "@/components/common/MobileBottomNav";
 import CustomerHeader from "@/components/home/CustomerHeader";
+import ChatWidget from "@/components/chat/ChatWidget";
 import type { PublicUser } from "@/types/auth";
 
 type SiteChromeProps = {
@@ -73,6 +74,7 @@ export default function SiteChrome({
       {children}
       <SiteFooter onPlaceholder={setNotice} />
       {showMobileBottomNav ? <MobileBottomNav user={user} /> : null}
+      {showMobileBottomNav ? <ChatWidget /> : null}
       <Snackbar
         open={Boolean(notice)}
         autoHideDuration={3200}
