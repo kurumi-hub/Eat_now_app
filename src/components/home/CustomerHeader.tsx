@@ -34,6 +34,7 @@ import { hasAnyRole, hasRole } from "@/utils/roles";
 import { useCartStore } from "@/store/cartStore";
 import { useCartSession } from "@/store/useCartSession";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
+import BrandLogo from "@/components/common/BrandLogo";
 import { signalNavigationStart } from "@/utils/navigationFeedback";
 
 type CustomerHeaderProps = {
@@ -125,7 +126,7 @@ export default function CustomerHeader({
       <div className="home-header__inner">
         <div className="home-header__brand-group">
           <Link className="home-logo" href="/?home=1" aria-label="EatNow trang chủ">
-            EatNow
+            <BrandLogo alt="" className="home-logo__image" priority sizes="112px" variant="horizontal" />
           </Link>
           <Link
             className="home-location"

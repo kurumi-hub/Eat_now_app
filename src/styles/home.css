@@ -52,11 +52,16 @@
 }
 
 .home-logo {
-  color: #7a3000;
-  font-size: 34px;
-  font-weight: 700;
-  line-height: 44px;
+  display: block;
+  width: 112px;
+  line-height: 0;
   text-decoration: none;
+}
+
+.home-logo__image {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .home-location,
@@ -833,29 +838,15 @@
 }
 
 .site-footer__brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 11px;
-  color: #ffffff;
-  font-family: var(--font-baloo), sans-serif;
-  font-size: 30px;
-  font-weight: 800;
-  line-height: 1;
+  display: inline-block;
+  line-height: 0;
   text-decoration: none;
 }
 
-.site-footer__brand-mark {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  border-radius: 14px;
-  background: linear-gradient(145deg, #f15a2b, #d94720);
-  box-shadow: 0 10px 24px rgba(217, 71, 32, 0.3);
-}
-
-.site-footer__brand-mark svg {
-  font-size: 24px;
+.site-footer__brand-image {
+  display: block;
+  width: 160px;
+  height: auto;
 }
 
 .site-footer__description {
@@ -1039,8 +1030,7 @@
   }
 
   .home-logo {
-    font-size: 30px;
-    line-height: 38px;
+    width: 102px;
   }
 
   .home-search {

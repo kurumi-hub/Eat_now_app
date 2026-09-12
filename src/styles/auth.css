@@ -94,19 +94,13 @@
 .auth-wordmark {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  color: var(--eatnow-primary);
-  font-size: 32px;
   line-height: 1;
-  font-weight: 800;
 }
 
-.auth-wordmark span {
-  color: var(--eatnow-text-primary);
-}
-
-.auth-wordmark--light span {
-  color: #ffffff;
+.auth-wordmark__image {
+  display: block;
+  width: 150px;
+  height: auto;
 }
 
 .auth-brand-tagline {
@@ -401,7 +395,7 @@
   }
 
   .auth-wordmark {
-    font-size: 28px;
+    line-height: 1;
   }
 
   .auth-brand-tagline {
@@ -455,7 +449,11 @@
   }
 
   .auth-wordmark {
-    font-size: 25px;
+    line-height: 1;
+  }
+
+  .auth-wordmark__image {
+    width: 92px;
   }
 
   .auth-mobile-brand > p {

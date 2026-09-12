@@ -3,11 +3,12 @@
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import FacebookOutlinedIcon from "@mui/icons-material/FacebookOutlined";
 import InstagramIcon from "@mui/icons-material/Instagram";
-import LocalDiningOutlinedIcon from "@mui/icons-material/LocalDiningOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import PhoneInTalkOutlinedIcon from "@mui/icons-material/PhoneInTalkOutlined";
 import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
 import Link from "next/link";
+
+import BrandLogo from "@/components/common/BrandLogo";
 
 type SiteFooterProps = {
   onPlaceholder?: (message: string) => void;
@@ -30,10 +31,7 @@ export default function SiteFooter({ onPlaceholder }: SiteFooterProps) {
               href="/?home=1"
               aria-label="EatNow trang chủ"
             >
-              <span className="site-footer__brand-mark" aria-hidden="true">
-                <LocalDiningOutlinedIcon />
-              </span>
-              <span>EatNow</span>
+              <BrandLogo alt="" className="site-footer__brand-image" sizes="160px" variant="horizontal" />
             </Link>
             <p className="site-footer__description">
               Món ngon quanh bạn, giao tận cửa nhanh chóng và an tâm trong từng
