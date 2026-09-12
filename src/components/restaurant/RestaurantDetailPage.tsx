@@ -196,6 +196,10 @@ export default function RestaurantDetailPage({
   };
 
   const handleAddItem = (item: RestaurantMenuItem) => {
+    if (!isAuthenticated) {
+      router.push(`/login?next=${encodeURIComponent(`/restaurants/${restaurant.slug}`)}`);
+      return;
+    }
     if (!restaurant.isOpen) {
       showNotice(restaurant.availabilityMessage || "Nhà hàng hiện chưa nhận đơn.");
       return;
@@ -209,6 +213,10 @@ export default function RestaurantDetailPage({
   };
 
   const addToCart = (food: RestaurantMenuItem, selection: CartSelection) => {
+    if (!isAuthenticated) {
+      router.push(`/login?next=${encodeURIComponent(`/restaurants/${restaurant.slug}`)}`);
+      return;
+    }
     addItem({
       restaurantId: restaurant.id,
       restaurantName: restaurant.name,

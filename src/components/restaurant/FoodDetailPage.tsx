@@ -20,6 +20,7 @@ import {
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { useCartStore } from "@/store/cartStore";
@@ -72,6 +73,7 @@ export default function FoodDetailPage({
   isAuthenticated,
   flashSale,
 }: FoodDetailPageProps) {
+  const router = useRouter();
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [pendingSelection, setPendingSelection] = useState<CartSelection | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: "" });
@@ -91,7 +93,16 @@ export default function FoodDetailPage({
 
   const showNotice = (message: string) => setSnackbar({ open: true, message });
 
+  const loginPath = useMemo(() => {
+    const path = `/restaurants/${restaurant.slug}/foods/${food.id}`;
+    return flashSale ? `${path}?sale=${encodeURIComponent(flashSale.id)}` : path;
+  }, [flashSale, food.id, restaurant.slug]);
+
   const openOptions = () => {
+    if (!isAuthenticated) {
+      router.push(`/login?next=${encodeURIComponent(loginPath)}`);
+      return;
+    }
     if (!restaurant.isOpen) {
       showNotice(restaurant.availabilityMessage || "Nhà hàng hiện chưa nhận đơn.");
       return;
@@ -104,6 +115,10 @@ export default function FoodDetailPage({
   };
 
   const addToCart = (selection: CartSelection) => {
+    if (!isAuthenticated) {
+      router.push(`/login?next=${encodeURIComponent(loginPath)}`);
+      return;
+    }
     addItem({
       restaurantId: restaurant.id,
       restaurantName: restaurant.name,
