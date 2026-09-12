@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 
-import { EATNOW_ASSISTANT_SYSTEM_PROMPT } from "@/lib/chat/prompt";
+import { FOOTBOT_SYSTEM_PROMPT } from "@/lib/chat/prompt";
 import { takeChatRateLimit } from "@/lib/chat/rateLimit";
 import { getCurrentPublicUser } from "@/utils/auth/guards";
 
@@ -59,11 +59,11 @@ function friendlyGeminiError(error: unknown) {
   let friendlyMessage: string;
 
   if (/429|quota|resource_exhausted/i.test(message)) {
-    friendlyMessage = "EatNow Assistant đang nhận quá nhiều câu hỏi. Bạn vui lòng đợi một chút rồi thử lại nhé.";
+    friendlyMessage = "FootBot đang nhận quá nhiều câu hỏi. Bạn vui lòng đợi một chút rồi thử lại nhé.";
   } else if (/api.?key|permission|401|403/i.test(message)) {
-    friendlyMessage = "EatNow Assistant chưa được cấu hình đúng. Vui lòng liên hệ quản trị viên.";
+    friendlyMessage = "FootBot chưa được cấu hình đúng. Vui lòng liên hệ quản trị viên.";
   } else {
-    friendlyMessage = "EatNow Assistant đang tạm gián đoạn. Bạn vui lòng thử lại sau nhé.";
+    friendlyMessage = "FootBot đang tạm gián đoạn. Bạn vui lòng thử lại sau nhé.";
   }
 
   const statusText = status ? `${status}` : "không xác định";
@@ -79,7 +79,7 @@ function friendlyGeminiError(error: unknown) {
 
 function logGeminiError(error: unknown, model: string) {
   const { status, message } = geminiErrorDetails(error);
-  console.error("[EatNow Assistant] Gemini request failed", {
+  console.error("[FootBot] Gemini request failed", {
     model,
     status,
     message,
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
   const user = await getCurrentPublicUser();
   if (!user || user.status !== "ACTIVE") {
     return NextResponse.json(
-      { error: "Vui lòng đăng nhập để sử dụng EatNow Assistant." },
+      { error: "Vui lòng đăng nhập để sử dụng FootBot." },
       { status: 401 }
     );
   }
@@ -141,7 +141,7 @@ export async function POST(request: Request) {
       model,
       contents: messages,
       config: {
-        systemInstruction: EATNOW_ASSISTANT_SYSTEM_PROMPT,
+        systemInstruction: FOOTBOT_SYSTEM_PROMPT,
         temperature: 0.6,
         maxOutputTokens: 700,
       },

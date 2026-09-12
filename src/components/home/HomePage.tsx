@@ -2,13 +2,11 @@
 
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
-import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import StarBorderOutlinedIcon from "@mui/icons-material/StarBorderOutlined";
-import { Alert, Button, Snackbar } from "@mui/material";
+import { Button } from "@mui/material";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import type { PublicUser } from "@/types/auth";
 import type { SiteMediaItem } from "@/types/siteMedia";
 import type { HomeFlashSale as HomeFlashSaleData } from "@/types/flashSale";
@@ -31,11 +29,6 @@ type HomePageProps = {
   favorites: FavoriteRestaurant[];
 };
 
-type SnackbarState = {
-  open: boolean;
-  message: string;
-};
-
 export default function HomePage({
   user,
   categories,
@@ -47,18 +40,6 @@ export default function HomePage({
   favorites,
 }: HomePageProps) {
   const router = useRouter();
-  const [snackbar, setSnackbar] = useState<SnackbarState>({
-    open: false,
-    message: "",
-  });
-
-  const showPlaceholder = (message: string) => {
-    setSnackbar({ open: true, message });
-  };
-
-  const handleSnackbarClose = () => {
-    setSnackbar((current) => ({ ...current, open: false }));
-  };
 
   return (
     <div className="home-experience">
@@ -176,31 +157,6 @@ export default function HomePage({
         </section>
 
       </main>
-
-      <button
-        className="home-foodbot"
-        type="button"
-        aria-label="Mở trợ lý FoodBot"
-        onClick={() =>
-          showPlaceholder(
-            "Trợ lý FoodBot sẽ được triển khai ở sprint tiếp theo."
-          )
-        }
-      >
-        <SmartToyOutlinedIcon />
-        <span>Trợ lý FoodBot</span>
-      </button>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={2600}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert severity="info" variant="filled" onClose={handleSnackbarClose}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 }
