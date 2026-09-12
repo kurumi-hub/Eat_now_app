@@ -5,6 +5,8 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
+import StopCircleRoundedIcon from "@mui/icons-material/StopCircleRounded";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -17,7 +19,7 @@ import {
   useState,
 } from "react";
 
-import type { ChatMessage } from "@/lib/chat/types";
+import type { ChatFoodResult, ChatMessage, ChatStreamEvent } from "@/lib/chat/types";
 
 const MAX_CONTEXT_MESSAGES = 12;
 
@@ -69,6 +71,41 @@ function renderMessageText(text: string): ReactNode[] {
   });
 }
 
+function money(value: number) {
+  return `${Math.round(value).toLocaleString("vi-VN")}đ`;
+}
+
+function FoodResultCards({ items }: { items: ChatFoodResult[] }) {
+  if (!items.length) return null;
+  return (
+    <div className="assistant-results" aria-label={`${items.length} món ăn được tìm thấy`}>
+      {items.map((item) => (
+        <Link className="assistant-food-card" href={item.url} key={item.foodId}>
+          <span className="assistant-food-card__image">
+            {item.imageUrl ? (
+              <Image src={item.imageUrl} alt={item.imageAlt} fill unoptimized sizes="76px" />
+            ) : <SmartToyRoundedIcon aria-hidden="true" />}
+          </span>
+          <span className="assistant-food-card__content">
+            <strong>{item.foodName}</strong>
+            <small>{item.restaurantName}</small>
+            <span>
+              <b>{item.hasSizes ? `Từ ${money(item.price)}` : money(item.price)}</b>
+              {item.normalPrice !== item.price ? <del>{money(item.normalPrice)}</del> : null}
+            </span>
+            <small>
+              {item.foodRating > 0 ? `${item.foodRating.toFixed(1)}★` : "Món mới"}
+              {item.distanceKm !== null ? ` · ${item.distanceKm.toLocaleString("vi-VN")} km` : ""}
+              {item.flashSaleItemId ? " · Flash sale" : ""}
+            </small>
+          </span>
+          <span className="assistant-food-card__action">Xem món</span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export default function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -77,6 +114,8 @@ export default function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
   const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const requestRef = useRef<AbortController | null>(null);
+  const sendingRef = useRef(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -84,22 +123,31 @@ export default function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
     if (isAuthenticated && !isSending) inputRef.current?.focus();
   }, [isAuthenticated, isOpen, isSending, messages]);
 
+  useEffect(() => () => requestRef.current?.abort(), []);
+
   const resetConversation = () => {
+    requestRef.current?.abort();
+    requestRef.current = null;
+    sendingRef.current = false;
+    setIsSending(false);
     setMessages([greetingMessage()]);
     setInput("");
   };
 
-  const sendMessage = async (rawContent: string) => {
+  const sendMessage = async (rawContent: string, contextMessages = messages) => {
     const content = rawContent.trim();
-    if (!isAuthenticated || !content || isSending) return;
+    if (!isAuthenticated || !content || sendingRef.current) return;
 
     const userMessage = newMessage("user", content);
     const assistantMessage = newMessage("assistant", "");
-    const requestMessages = [...messages, userMessage].slice(-MAX_CONTEXT_MESSAGES);
+    const requestMessages = [...contextMessages, userMessage].slice(-MAX_CONTEXT_MESSAGES);
+    const controller = new AbortController();
+    requestRef.current = controller;
+    sendingRef.current = true;
 
     setInput("");
     setIsSending(true);
-    setMessages((current) => [...current, userMessage, assistantMessage]);
+    setMessages([...contextMessages, userMessage, assistantMessage]);
 
     try {
       const response = await fetch("/api/chat", {
@@ -111,6 +159,7 @@ export default function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
             content: messageContent,
           })),
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -122,27 +171,85 @@ export default function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = "";
+      let streamError: Extract<ChatStreamEvent, { type: "error" }> | null = null;
+
+      const consumeLine = (line: string) => {
+        if (!line.trim()) return;
+        const event = JSON.parse(line) as ChatStreamEvent;
+        if (event.type === "text") {
+          setMessages((current) => current.map((message) =>
+            message.id === assistantMessage.id
+              ? { ...message, content: message.content + event.text }
+              : message
+          ));
+        } else if (event.type === "results") {
+          setMessages((current) => current.map((message) =>
+            message.id === assistantMessage.id ? { ...message, results: event.items } : message
+          ));
+        } else if (event.type === "error") {
+          streamError = event;
+        }
+      };
 
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        const textChunk = decoder.decode(value, { stream: true });
-        setMessages((current) => current.map((message) =>
-          message.id === assistantMessage.id
-            ? { ...message, content: message.content + textChunk }
-            : message
-        ));
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        lines.forEach(consumeLine);
+      }
+      buffer += decoder.decode();
+      if (buffer.trim()) consumeLine(buffer);
+      if (streamError) {
+        const message = streamError as Extract<ChatStreamEvent, { type: "error" }>;
+        setMessages((current) => current.map((item) => item.id === assistantMessage.id
+          ? {
+              ...item,
+              content: item.content ? `${item.content}\n\n${message.message}` : message.message,
+              failed: message.retryable,
+            }
+          : item));
       }
     } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
+      if (controller.signal.aborted) return;
+      const receivedMessage = error instanceof Error ? error.message : "";
+      const errorMessage = /^(FootBot|Vui lòng|Bạn đang|Không thể|Phản hồi)/.test(receivedMessage)
+        ? receivedMessage
         : "FootBot đang tạm gián đoạn. Bạn vui lòng thử lại nhé.";
       setMessages((current) => current.map((message) =>
-        message.id === assistantMessage.id ? { ...message, content: errorMessage } : message
+        message.id === assistantMessage.id
+          ? { ...message, content: errorMessage, failed: true }
+          : message
       ));
     } finally {
-      setIsSending(false);
+      if (requestRef.current === controller) {
+        requestRef.current = null;
+        sendingRef.current = false;
+        setIsSending(false);
+      }
     }
+  };
+
+  const stopSending = () => {
+    requestRef.current?.abort();
+    requestRef.current = null;
+    sendingRef.current = false;
+    setIsSending(false);
+    setMessages((current) => current.map((message, index) =>
+      index === current.length - 1 && message.role === "assistant" && !message.content
+        ? { ...message, content: "Đã dừng trả lời." }
+        : message
+    ));
+  };
+
+  const retryMessage = (assistantId: string) => {
+    const assistantIndex = messages.findIndex((message) => message.id === assistantId);
+    const userMessage = assistantIndex > 0 ? messages[assistantIndex - 1] : null;
+    if (!userMessage || userMessage.role !== "user") return;
+    const baseMessages = messages.slice(0, assistantIndex - 1);
+    void sendMessage(userMessage.content, baseMessages);
   };
 
   const handleSubmit = (event: FormEvent) => {
@@ -207,6 +314,12 @@ export default function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
                           ? renderMessageText(message.content)
                           : <><span /><span /><span /></>}
                       </div>
+                      {message.results ? <FoodResultCards items={message.results} /> : null}
+                      {message.failed ? (
+                        <button className="assistant-retry" type="button" onClick={() => retryMessage(message.id)}>
+                          Thử lại
+                        </button>
+                      ) : null}
                       {message.content && message.time ? <time>{message.time}</time> : null}
                     </div>
                   </div>
@@ -242,8 +355,13 @@ export default function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
                   disabled={isSending}
                   aria-label="Tin nhắn"
                 />
-                <button type="submit" disabled={!input.trim() || isSending} aria-label="Gửi tin nhắn">
-                  <SendRoundedIcon fontSize="small" />
+                <button
+                  type={isSending ? "button" : "submit"}
+                  onClick={isSending ? stopSending : undefined}
+                  disabled={!isSending && !input.trim()}
+                  aria-label={isSending ? "Dừng trả lời" : "Gửi tin nhắn"}
+                >
+                  {isSending ? <StopCircleRoundedIcon fontSize="small" /> : <SendRoundedIcon fontSize="small" />}
                 </button>
               </form>
               <p className="assistant-disclaimer">AI có thể trả lời chưa chính xác. Không chia sẻ mật khẩu hoặc OTP.</p>

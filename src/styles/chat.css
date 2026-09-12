@@ -215,6 +215,91 @@
   font-size: 10px;
 }
 
+.assistant-results {
+  width: min(100%, 340px);
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.assistant-food-card {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #e1cbc0;
+  border-radius: 13px;
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 10px;
+  position: relative;
+  background: #fff;
+  color: #221a15;
+  box-shadow: 0 2px 7px rgb(37 29 24 / 7%);
+  text-decoration: none;
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.assistant-food-card:hover,
+.assistant-food-card:focus-visible {
+  border-color: #d94720;
+  box-shadow: 0 5px 14px rgb(90 48 29 / 12%);
+  transform: translateY(-1px);
+}
+
+.assistant-food-card__image {
+  width: 68px;
+  height: 68px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  background: #f5e5dd;
+  color: #a34220;
+}
+
+.assistant-food-card__image img { object-fit: cover; }
+
+.assistant-food-card__content {
+  min-width: 0;
+  padding-right: 4px;
+  display: grid;
+  align-content: start;
+  gap: 2px;
+}
+
+.assistant-food-card__content > strong,
+.assistant-food-card__content > small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assistant-food-card__content > strong { font-size: 12.5px; }
+.assistant-food-card__content > small { color: #765f55; font-size: 10px; }
+.assistant-food-card__content > span { display: flex; align-items: baseline; gap: 6px; }
+.assistant-food-card__content b { color: #d94720; font-size: 12px; }
+.assistant-food-card__content del { color: #927c72; font-size: 9px; }
+.assistant-food-card__action {
+  grid-column: 1 / -1;
+  color: #a53b1b;
+  font-size: 10px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.assistant-retry {
+  margin-top: 6px;
+  border: 1px solid #d7b9aa;
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: #fff;
+  color: #a53b1b;
+  cursor: pointer;
+  font: 700 10px/1.2 var(--font-be-vietnam), sans-serif;
+}
+
+.assistant-retry:hover { border-color: #d94720; background: #fff7f3; }
+
 .assistant-bubble.is-typing { display: flex; gap: 5px; padding: 13px 16px; }
 .assistant-bubble.is-typing span {
   width: 7px;
