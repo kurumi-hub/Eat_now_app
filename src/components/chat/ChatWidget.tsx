@@ -5,7 +5,6 @@ import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 
 import type { ChatMessage } from "@/lib/chat/types";
 
-const STORAGE_KEY = "eatnow-assistant-session-v1";
 const MAX_CONTEXT_MESSAGES = 12;
 
 const GREETING: ChatMessage = {
@@ -36,34 +35,8 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    let restoredMessages = [GREETING];
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as ChatMessage[];
-        if (Array.isArray(parsed) && parsed.length) restoredMessages = parsed;
-      }
-    } catch {
-      sessionStorage.removeItem(STORAGE_KEY);
-    }
-
-    const restoreTimer = window.setTimeout(() => {
-      setMessages(restoredMessages);
-      setIsHydrated(true);
-    }, 0);
-
-    return () => window.clearTimeout(restoreTimer);
-  }, []);
-
-  useEffect(() => {
-    if (!isHydrated) return;
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-  }, [isHydrated, messages]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -74,7 +47,6 @@ export default function ChatWidget() {
   const resetConversation = () => {
     setMessages([GREETING]);
     setInput("");
-    sessionStorage.removeItem(STORAGE_KEY);
   };
 
   const sendMessage = async (rawContent: string) => {

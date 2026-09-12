@@ -2,11 +2,10 @@
 
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
-import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
-import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, Switch } from "@mui/material";
+import { Alert, Button, Chip, FormControl, InputLabel, MenuItem, Select, Switch } from "@mui/material";
 import { useEffect, useState, type ReactNode } from "react";
 
 import {
@@ -24,7 +23,6 @@ export default function PreferenceSettings() {
   const [preferences, setPreferences] = useState(initialPreferences);
   const [saved, setSaved] = useState(false);
   const [displayNotice, setDisplayNotice] = useState("");
-  const [clearDialogOpen, setClearDialogOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setPreferences(readStoredAccountPreferences()), 0);
@@ -47,7 +45,6 @@ export default function PreferenceSettings() {
   };
   const toggleListValue = (key: "diet" | "allergies", value: string) => { const values = preferences[key]; update(key, values.includes(value) ? values.filter((item) => item !== value) : [...values, value]); };
   const savePreferences = () => { saveAccountPreferences(preferences); setSaved(true); };
-  const clearChatHistory = () => { window.localStorage.removeItem("eatnow-chat-history"); setClearDialogOpen(false); };
 
   return (
     <div className="settings-stack">
@@ -78,15 +75,12 @@ export default function PreferenceSettings() {
         </div>
       </section>
       <section className="settings-card settings-card--chatbot" aria-labelledby="chatbot-settings-title">
-        <SettingsHeading icon={<AutoAwesomeOutlinedIcon />} title="Chatbot và cá nhân hóa" description="Kiểm soát dữ liệu chatbot được phép dùng và lưu lại." id="chatbot-settings-title" />
+        <SettingsHeading icon={<AutoAwesomeOutlinedIcon />} title="Chatbot và cá nhân hóa" description="Kiểm soát dữ liệu chatbot được phép sử dụng." id="chatbot-settings-title" />
         <div className="settings-switch-list">
           <SettingSwitch label="Cho phép sử dụng sở thích ăn uống" description="Dùng chế độ ăn và dị ứng đã chọn để tìm món phù hợp." checked={preferences.chatbotPersonalization} onChange={(checked) => update("chatbotPersonalization", checked)} />
-          <SettingSwitch label="Lưu lịch sử trò chuyện" description="Giúp chatbot tiếp tục ngữ cảnh ở lần trò chuyện sau." checked={preferences.saveChatHistory} onChange={(checked) => update("saveChatHistory", checked)} />
         </div>
-        <div className="settings-inline-action"><div><strong>Xóa lịch sử trò chuyện</strong><span>Xóa các cuộc hội thoại đã lưu trên thiết bị.</span></div><Button color="error" variant="text" startIcon={<DeleteSweepOutlinedIcon />} onClick={() => setClearDialogOpen(true)}>Xóa lịch sử</Button></div>
       </section>
       <div className="settings-save-bar"><span>Lưu các tùy chọn ăn uống, thông báo và chatbot.</span><Button variant="contained" onClick={savePreferences}>Lưu cài đặt</Button></div>
-      <Dialog open={clearDialogOpen} onClose={() => setClearDialogOpen(false)} fullWidth maxWidth="xs"><DialogTitle>Xóa lịch sử trò chuyện?</DialogTitle><DialogContent>Lịch sử trò chuyện đã lưu trên thiết bị này sẽ bị xóa và không thể khôi phục.</DialogContent><DialogActions><Button onClick={() => setClearDialogOpen(false)}>Hủy</Button><Button color="error" variant="contained" onClick={clearChatHistory}>Xóa lịch sử</Button></DialogActions></Dialog>
     </div>
   );
 }

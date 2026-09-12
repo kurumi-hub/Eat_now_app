@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { EATNOW_ASSISTANT_SYSTEM_PROMPT } from "@/lib/chat/prompt";
 import { takeChatRateLimit } from "@/lib/chat/rateLimit";
+import { getCurrentPublicUser } from "@/utils/auth/guards";
 
 export const runtime = "nodejs";
 
@@ -86,6 +87,14 @@ function logGeminiError(error: unknown, model: string) {
 }
 
 export async function POST(request: Request) {
+  const user = await getCurrentPublicUser();
+  if (!user || user.status !== "ACTIVE") {
+    return NextResponse.json(
+      { error: "Vui lòng đăng nhập để sử dụng EatNow Assistant." },
+      { status: 401 }
+    );
+  }
+
   const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   const identity = forwardedFor || request.headers.get("x-real-ip") || "local";
   const rateLimit = takeChatRateLimit(identity);

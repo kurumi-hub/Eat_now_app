@@ -74,7 +74,7 @@ export default function SiteChrome({
       {children}
       <SiteFooter onPlaceholder={setNotice} />
       {showMobileBottomNav ? <MobileBottomNav user={user} /> : null}
-      {showMobileBottomNav ? <ChatWidget /> : null}
+      {showMobileBottomNav && user?.status === "ACTIVE" ? <ChatWidget /> : null}
       <Snackbar
         open={Boolean(notice)}
         autoHideDuration={3200}
