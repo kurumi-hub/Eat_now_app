@@ -37,7 +37,7 @@ import { isRealFoodImage } from "@/utils/foodImage";
 
 const CheckoutAddressDialog = dynamic(() => import("@/components/checkout/CheckoutAddressDialog"), { ssr: false });
 
-type CheckoutPageProps = { user: PublicUser; addresses: AccountAddress[] };
+type CheckoutPageProps = { user: PublicUser; addresses: AccountAddress[]; initialAddressId?: string };
 type VoucherSlot = keyof VoucherSelection;
 type VoucherPreview = {
   selected: boolean;
@@ -87,7 +87,7 @@ function lineDescription(line: CartLine) {
   return parts.join(" · ");
 }
 
-export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
+export default function CheckoutPage({ user, addresses, initialAddressId }: CheckoutPageProps) {
   const router = useRouter();
   const lines = useCartStore((state) => state.lines);
   const restaurantName = useCartStore((state) => state.restaurantName);
@@ -95,7 +95,11 @@ export default function CheckoutPage({ user, addresses }: CheckoutPageProps) {
   const updateFoodImages = useCartStore((state) => state.updateFoodImages);
   const cartReady = useCartSession(user.id);
   const defaultAddress = useMemo(() => addresses.find((a) => a.isDefault) ?? addresses[0], [addresses]);
-  const [addressId, setAddressId] = useState(defaultAddress?.id ?? "");
+  const [addressId, setAddressId] = useState(
+    addresses.some((address) => address.id === initialAddressId)
+      ? initialAddressId ?? ""
+      : defaultAddress?.id ?? ""
+  );
   const [voucherCodes, setVoucherCodes] = useState<VoucherSelection>({});
   const [vouchers, setVouchers] = useState<CheckoutVoucher[]>([]);
   const [voucherError, setVoucherError] = useState("");

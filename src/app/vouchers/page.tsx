@@ -1,12 +1,13 @@
 import VoucherPage from "@/components/voucher/VoucherPage";
-import { getPublicVouchers, parseCustomerVouchers } from "@/lib/data/vouchers";
+import { parseCustomerVouchers } from "@/lib/data/vouchers";
 import { getCurrentPublicUser } from "@/utils/auth/guards";
 import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
 
 export default async function VouchersRoute() {
   const user = await getCurrentPublicUser();
   if (!user) {
-    return <VoucherPage data={{ discover: await getPublicVouchers(), wallet: [] }} isAuthenticated={false} />;
+    redirect("/login?next=/vouchers");
   }
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("api_list_customer_vouchers");

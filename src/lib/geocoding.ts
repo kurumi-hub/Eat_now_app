@@ -104,6 +104,17 @@ export async function geocodePlaceId(
   );
 }
 
+/** Chuyển tọa độ thiết bị thành địa chỉ hiển thị bằng Google Maps. */
+export async function reverseGeocode(
+  lat: number,
+  lon: number
+): Promise<GeocodeResult | null> {
+  if (!isValidCoordinate(lat, lon)) return null;
+  return requestGeocodingApi(
+    new URLSearchParams({ latlng: `${lat},${lon}` })
+  );
+}
+
 export function isValidCoordinate(lat: number, lon: number) {
   return (
     Number.isFinite(lat) &&

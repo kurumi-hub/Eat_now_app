@@ -4,6 +4,9 @@ import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import ExpandMoreOutlinedIcon from "@mui/icons-material/ExpandMoreOutlined";
 import HomeWorkOutlinedIcon from "@mui/icons-material/HomeWorkOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
+import MyLocationOutlinedIcon from "@mui/icons-material/MyLocationOutlined";
+import AddLocationAltOutlinedIcon from "@mui/icons-material/AddLocationAltOutlined";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
@@ -27,7 +30,7 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { logout } from "@/app/auth/actions";
 import type { PublicUser } from "@/types/auth";
 import { hasAnyRole, hasRole } from "@/utils/roles";
@@ -36,10 +39,17 @@ import { useCartSession } from "@/store/useCartSession";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
 import BrandLogo from "@/components/common/BrandLogo";
 import { signalNavigationStart } from "@/utils/navigationFeedback";
+import type { AccountAddress } from "@/types/account";
+import type { DeliverySelection } from "@/lib/deliverySelection";
+import {
+  selectCurrentDeliveryLocationAction,
+  selectSavedDeliveryAddressAction,
+} from "@/app/delivery-address/actions";
 
 type CustomerHeaderProps = {
   user: PublicUser | null;
-  deliveryAddress?: string | null;
+  addresses?: AccountAddress[];
+  initialDeliverySelection?: DeliverySelection | null;
   activeSectionId?: string | null;
   onSectionNavigate: (sectionId: string) => void;
 };
@@ -62,7 +72,8 @@ function getInitials(fullName = "EatNow") {
 
 export default function CustomerHeader({
   user,
-  deliveryAddress,
+  addresses = [],
+  initialDeliverySelection = null,
   activeSectionId = "home-hero",
   onSectionNavigate,
 }: CustomerHeaderProps) {
@@ -72,6 +83,10 @@ export default function CustomerHeader({
   const routeSearch = pathname === "/restaurants" ? searchParams.get("q")?.trim() ?? "" : "";
   const [search, setSearch] = useState(routeSearch);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [locationAnchor, setLocationAnchor] = useState<HTMLElement | null>(null);
+  const [deliverySelection, setDeliverySelection] = useState(initialDeliverySelection);
+  const [locationStatus, setLocationStatus] = useState("");
+  const [isSelectingLocation, startSelectingLocation] = useTransition();
   const hasSellerAccess = hasAnyRole(user, [
     "RESTAURANT_OWNER",
     "RESTAURANT_STAFF",
@@ -121,6 +136,47 @@ export default function CustomerHeader({
     setMenuAnchor(null);
   };
 
+  const selectSavedAddress = (addressId: string) => {
+    setLocationStatus("");
+    startSelectingLocation(async () => {
+      const result = await selectSavedDeliveryAddressAction(addressId);
+      if (!result.ok || !result.selection) {
+        setLocationStatus(result.message);
+        return;
+      }
+      setDeliverySelection(result.selection);
+      setLocationAnchor(null);
+      router.refresh();
+    });
+  };
+
+  const selectCurrentLocation = () => {
+    setLocationStatus("");
+    if (!navigator.geolocation) {
+      setLocationStatus("Trình duyệt không hỗ trợ định vị.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        startSelectingLocation(async () => {
+          const result = await selectCurrentDeliveryLocationAction(
+            position.coords.latitude,
+            position.coords.longitude
+          );
+          if (!result.ok || !result.selection) {
+            setLocationStatus(result.message);
+            return;
+          }
+          setDeliverySelection(result.selection);
+          setLocationAnchor(null);
+          router.refresh();
+        });
+      },
+      () => setLocationStatus("Không thể lấy vị trí. Hãy cấp quyền định vị cho trình duyệt."),
+      { enableHighAccuracy: true, timeout: 12_000, maximumAge: 30_000 }
+    );
+  };
+
   return (
     <header className="home-header">
       <div className="home-header__inner">
@@ -128,21 +184,60 @@ export default function CustomerHeader({
           <Link className="home-logo" href="/?home=1" aria-label="EatNow trang chủ">
             <BrandLogo alt="" className="home-logo__image" priority sizes="112px" variant="horizontal" />
           </Link>
-          <Link
+          <button
+            type="button"
             className="home-location"
-            href={
-              hasRole(user, "CUSTOMER")
-                ? "/account/addresses"
-                : user
-                  ? "/account/profile"
-                  : "/login?next=/account/addresses"
-            }
-            title={deliveryAddress || "Chọn địa chỉ giao hàng"}
+            onClick={(event) => setLocationAnchor(event.currentTarget)}
+            title={deliverySelection?.label || "Chọn địa chỉ giao hàng"}
+            aria-haspopup="menu"
+            aria-expanded={Boolean(locationAnchor)}
           >
             <LocationOnOutlinedIcon fontSize="small" />
-            <span>{deliveryAddress || "Chọn địa chỉ giao hàng"}</span>
+            <span className="home-location__copy">
+              <small>Giao đến</small>
+              <strong>{deliverySelection?.label || "Chọn địa chỉ giao hàng"}</strong>
+            </span>
             <ExpandMoreOutlinedIcon fontSize="small" />
-          </Link>
+          </button>
+          <Menu
+            anchorEl={locationAnchor}
+            open={Boolean(locationAnchor)}
+            onClose={() => { setLocationAnchor(null); setLocationStatus(""); }}
+            slotProps={{ paper: { className: "home-location-menu" } }}
+            transformOrigin={{ horizontal: "left", vertical: "top" }}
+            anchorOrigin={{ horizontal: "left", vertical: "bottom" }}
+          >
+            <div className="home-location-menu__heading">
+              <strong>Địa chỉ giao hàng</strong>
+              <span>Chọn nơi bạn muốn nhận món</span>
+            </div>
+            {addresses.map((address) => {
+              const selected = deliverySelection?.kind === "saved" && deliverySelection.addressId === address.id;
+              return (
+                <MenuItem key={address.id} selected={selected} disabled={isSelectingLocation} onClick={() => selectSavedAddress(address.id)}>
+                  <ListItemIcon><HomeWorkOutlinedIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText
+                    primary={address.label || (address.isDefault ? "Địa chỉ mặc định" : address.recipientName || "Địa chỉ đã lưu")}
+                    secondary={[address.line1, address.district, address.city].filter(Boolean).join(", ")}
+                  />
+                  {selected ? <CheckRoundedIcon className="home-location-menu__check" fontSize="small" /> : null}
+                </MenuItem>
+              );
+            })}
+            {addresses.length ? <Divider /> : null}
+            <MenuItem disabled={isSelectingLocation} onClick={selectCurrentLocation}>
+              <ListItemIcon><MyLocationOutlinedIcon fontSize="small" /></ListItemIcon>
+              <ListItemText primary={isSelectingLocation ? "Đang xác định vị trí…" : "Dùng vị trí hiện tại"} />
+              {deliverySelection?.kind === "current" ? <CheckRoundedIcon className="home-location-menu__check" fontSize="small" /> : null}
+            </MenuItem>
+            <Link className="home-location-menu__link" href={user ? "/account/addresses" : "/login?next=/account/addresses"} onClick={() => setLocationAnchor(null)}>
+              <MenuItem component="span">
+                <ListItemIcon><AddLocationAltOutlinedIcon fontSize="small" /></ListItemIcon>
+                <ListItemText primary={user ? "Thêm hoặc quản lý địa chỉ" : "Đăng nhập để lưu địa chỉ"} />
+              </MenuItem>
+            </Link>
+            {locationStatus ? <p className="home-location-menu__status">{locationStatus}</p> : null}
+          </Menu>
         </div>
 
         <form className="home-search" role="search" onSubmit={handleSearchSubmit}>
@@ -178,8 +273,9 @@ export default function CustomerHeader({
         <nav className="home-nav" aria-label="Điều hướng trang chủ">
           {navItems.map((item) => {
             const className = `home-nav__item ${item.sectionId === activeSectionId ? "is-active" : ""}`;
-            return item.href ? (
-              <Link key={item.label} className={className} href={item.href}>{item.label}</Link>
+            const href = item.href === "/vouchers" && !user ? "/login?next=/vouchers" : item.href;
+            return href ? (
+              <Link key={item.label} className={className} href={href}>{item.label}</Link>
             ) : (
               <button key={item.label} className={className} type="button" onClick={() => onSectionNavigate(item.sectionId)}>{item.label}</button>
             );

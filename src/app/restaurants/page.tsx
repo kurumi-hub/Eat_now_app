@@ -8,6 +8,7 @@ import { getCurrentUserAddresses } from "@/lib/data/addresses";
 import { getRestaurantDirectory } from "@/lib/data/restaurants";
 import { getCurrentPublicUser } from "@/utils/auth/guards";
 import { hasRole } from "@/utils/roles";
+import { getDeliverySelection } from "@/lib/deliverySelection";
 
 type RestaurantsRouteProps = {
   searchParams: Promise<{
@@ -40,10 +41,10 @@ export default async function RestaurantsRoute({ searchParams }: RestaurantsRout
   const addresses = user && hasRole(user, "CUSTOMER")
     ? await getCurrentUserAddresses()
     : [];
-  const defaultAddress = addresses.find((address) => address.isDefault) ?? addresses[0];
+  const deliverySelection = await getDeliverySelection(addresses);
   const savedLocation: ViewerLocation | null =
-    typeof defaultAddress?.lat === "number" && typeof defaultAddress?.lon === "number"
-      ? { lat: defaultAddress.lat, lon: defaultAddress.lon }
+    typeof deliverySelection?.lat === "number" && typeof deliverySelection?.lon === "number"
+      ? { lat: deliverySelection.lat, lon: deliverySelection.lon }
       : null;
   const urlLat = coordinate(first(params.lat), -90, 90);
   const urlLon = coordinate(first(params.lon), -180, 180);

@@ -9,10 +9,13 @@ import MobileBottomNav from "@/components/common/MobileBottomNav";
 import CustomerHeader from "@/components/home/CustomerHeader";
 import ChatWidget from "@/components/chat/ChatWidget";
 import type { PublicUser } from "@/types/auth";
+import type { AccountAddress } from "@/types/account";
+import type { DeliverySelection } from "@/lib/deliverySelection";
 
 type SiteChromeProps = {
   user: PublicUser | null;
-  deliveryAddress?: string | null;
+  addresses: AccountAddress[];
+  deliverySelection: DeliverySelection | null;
   children: ReactNode;
 };
 
@@ -29,7 +32,8 @@ const WORKSPACE_PREFIXES = ["/admin", "/moderator", "/owner", "/shipper"];
 
 export default function SiteChrome({
   user,
-  deliveryAddress,
+  addresses,
+  deliverySelection,
   children,
 }: SiteChromeProps) {
   const pathname = usePathname();
@@ -59,7 +63,8 @@ export default function SiteChrome({
     <div className={`site-chrome${showMobileBottomNav ? " has-mobile-bottom-nav" : ""}`}>
       <CustomerHeader
         user={user}
-        deliveryAddress={deliveryAddress}
+        addresses={addresses}
+        initialDeliverySelection={deliverySelection}
         activeSectionId={
           pathname === "/"
             ? "home-hero"

@@ -26,6 +26,7 @@ type AddressRow = {
 function rowToAddress(row: AddressRow): AccountAddress {
   return {
     id: row.id,
+    label: row.label ?? undefined,
     recipientName: row.recipient_name ?? "",
     phone: row.recipient_phone ?? "",
     line1: row.address,

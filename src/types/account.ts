@@ -42,6 +42,7 @@ export type SecurityPasswordFormValues = {
 
 export type AccountAddress = {
   id: string;
+  label?: string;
   recipientName: string;
   phone: string;
   line1: string;

@@ -9,6 +9,7 @@ import SiteChrome from "@/components/common/SiteChrome";
 import { getCurrentUserAddresses } from "@/lib/data/addresses";
 import { getCurrentPublicUser } from "@/utils/auth/guards";
 import { hasRole } from "@/utils/roles";
+import { getDeliverySelection } from "@/lib/deliverySelection";
 import "./globals.css";
 import "@/styles/variables.css";
 import "@/styles/global.css";
@@ -47,8 +48,7 @@ export default async function RootLayout({
   const user = await getCurrentPublicUser();
   const addresses =
     user && hasRole(user, "CUSTOMER") ? await getCurrentUserAddresses() : [];
-  const defaultAddress =
-    addresses.find((address) => address.isDefault) ?? addresses[0] ?? null;
+  const deliverySelection = await getDeliverySelection(addresses);
 
   return (
     <html
@@ -68,7 +68,8 @@ export default async function RootLayout({
             <Suspense fallback={children}>
               <SiteChrome
                 user={user}
-                deliveryAddress={defaultAddress?.line1 ?? null}
+                addresses={addresses}
+                deliverySelection={deliverySelection}
               >
                 {children}
               </SiteChrome>
