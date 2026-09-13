@@ -225,6 +225,7 @@ export async function POST(request: Request) {
             items: foodResults.items,
             count: foodResults.items.length,
             locationAvailable: foodResults.locationAvailable,
+            searchedQueries: foodResults.searchedQueries,
           }),
         ],
         config: {

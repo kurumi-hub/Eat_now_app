@@ -1,5 +1,6 @@
 import "server-only";
 
+import { splitAlternativeFoodQueries } from "@/lib/chat/query";
 import type { ChatFoodResult } from "@/lib/chat/types";
 import { createClient } from "@/utils/supabase/server";
 
@@ -121,10 +122,14 @@ export function normalizeFoodSearchArgs(value: unknown): ChatFoodSearchArgs {
   };
 }
 
-export async function searchChatFoods(args: ChatFoodSearchArgs, location: ChatLocation) {
+async function searchSingleQuery(
+  args: ChatFoodSearchArgs,
+  location: ChatLocation,
+  query: string | null
+) {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("api_chat_search_foods", {
-    p_query: args.query,
+    p_query: query,
     p_tags: args.tags.length ? args.tags : null,
     p_min_price: args.minPrice,
     p_max_price: args.maxPrice,
@@ -146,5 +151,37 @@ export async function searchChatFoods(args: ChatFoodSearchArgs, location: ChatLo
       })
     : [];
 
-  return { items, locationAvailable: location !== null };
+  return items;
+}
+
+function interleaveUnique(groups: ChatFoodResult[][], limit: number) {
+  const items: ChatFoodResult[] = [];
+  const seen = new Set<string>();
+  const longest = Math.max(0, ...groups.map((group) => group.length));
+
+  for (let index = 0; index < longest && items.length < limit; index += 1) {
+    for (const group of groups) {
+      const item = group[index];
+      if (!item || seen.has(item.foodId)) continue;
+      seen.add(item.foodId);
+      items.push(item);
+      if (items.length >= limit) break;
+    }
+  }
+
+  return items;
+}
+
+export async function searchChatFoods(args: ChatFoodSearchArgs, location: ChatLocation) {
+  const alternatives = splitAlternativeFoodQueries(args.query);
+  const searchedQueries = alternatives.length ? alternatives : [args.query];
+  const groups = await Promise.all(
+    searchedQueries.map((query) => searchSingleQuery(args, location, query))
+  );
+
+  return {
+    items: interleaveUnique(groups, args.limit),
+    locationAvailable: location !== null,
+    searchedQueries: alternatives,
+  };
 }
