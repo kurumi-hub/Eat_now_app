@@ -42,8 +42,25 @@ const foodSearchTool = {
       promotionOnly: { type: "boolean", description: "Chỉ lấy món có flash sale đang hiệu lực." },
       maxDistanceKm: { type: "number", minimum: 0.5, maximum: 30, description: "Bán kính tối đa nếu người dùng yêu cầu gần họ." },
       sort: { type: "string", enum: ["recommended", "nearest", "rating", "price"] },
-      limit: { type: "integer", minimum: 1, maximum: 5 },
     },
+  },
+};
+
+const foodSelectionTool = {
+  name: "select_food_results",
+  description: "Chọn tối đa 5 món thực sự phù hợp với yêu cầu từ các ứng viên RPC. Loại món chỉ khớp yếu qua mô tả, category hoặc nhà hàng nhưng không đúng món người dùng muốn. Chỉ dùng foodId có trong danh sách.",
+  parametersJsonSchema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      selectedFoodIds: {
+        type: "array",
+        items: { type: "string" },
+        maxItems: 5,
+        description: "Danh sách foodId phù hợp nhất, theo thứ tự tốt nhất.",
+      },
+    },
+    required: ["selectedFoodIds"],
   },
 };
 
@@ -126,6 +143,14 @@ function logError(error: unknown, model: string, requestId: string) {
 
 function eventLine(event: ChatStreamEvent) {
   return `${JSON.stringify(event)}\n`;
+}
+
+function selectedFoodIds(value: unknown, allowedIds: Set<string>) {
+  if (!value || typeof value !== "object" || !("selectedFoodIds" in value) ||
+      !Array.isArray(value.selectedFoodIds)) return null;
+  return [...new Set(value.selectedFoodIds.flatMap((id) =>
+    typeof id === "string" && allowedIds.has(id) ? [id] : []
+  ))].slice(0, 5);
 }
 
 async function takePersistentRateLimit(userId: string) {
@@ -247,10 +272,11 @@ export async function POST(request: Request) {
     let emptyTextFallback = "Mình chưa thể trả lời câu hỏi này. Bạn thử diễn đạt theo cách khác nhé.";
 
     if (call?.name === "search_foods") {
-      foodResults = await searchChatFoods(normalizeFoodSearchArgs(call.args), location);
+      const searchArgs = normalizeFoodSearchArgs(call.args);
+      foodResults = await searchChatFoods(searchArgs, location);
       const modelContent = firstResponse.candidates?.[0]?.content;
       if (!modelContent) throw new Error("Gemini tool call did not include model content");
-      finalStream = await ai.models.generateContentStream({
+      const selectionResponse = await ai.models.generateContent({
         model,
         contents: [
           ...messages,
@@ -258,22 +284,42 @@ export async function POST(request: Request) {
           functionResponseContent(call, "search_foods", {
             items: foodResults.items,
             count: foodResults.items.length,
-            locationAvailable: foodResults.locationAvailable,
+            ...(foodResults.locationRequested
+              ? { locationAvailable: foodResults.locationAvailable }
+              : {}),
             searchedQueries: foodResults.searchedQueries,
           }),
         ],
         config: {
           systemInstruction: FOOTBOT_SYSTEM_PROMPT,
-          temperature: 0.3,
-          maxOutputTokens: 500,
+          temperature: 0.1,
+          maxOutputTokens: 300,
           abortSignal: signal,
-          tools: [{ functionDeclarations: chatTools }],
-          toolConfig: { functionCallingConfig: { mode: FunctionCallingConfigMode.NONE } },
+          tools: [{ functionDeclarations: [foodSelectionTool] }],
+          toolConfig: {
+            functionCallingConfig: {
+              mode: FunctionCallingConfigMode.ANY,
+              allowedFunctionNames: [foodSelectionTool.name],
+            },
+          },
         },
       });
+      const selectionCall = selectionResponse.functionCalls?.find(
+        (item) => item.name === foodSelectionTool.name
+      );
+      const allowedIds = new Set(foodResults.items.map((item) => item.foodId));
+      const pickedIds = selectedFoodIds(selectionCall?.args, allowedIds);
+      const pickedItems = pickedIds === null
+        ? foodResults.items.slice(0, 5)
+        : pickedIds.flatMap((id) => {
+            const item = foodResults?.items.find((candidate) => candidate.foodId === id);
+            return item ? [item] : [];
+          });
+      foodResults = { ...foodResults, items: pickedItems };
       emptyTextFallback = foodResults.items.length
         ? `Mình tìm thấy ${foodResults.items.length} món phù hợp. Bạn chọn một món bên dưới để xem chi tiết nhé.`
         : "Mình chưa tìm thấy món phù hợp trong catalog EatNow. Bạn thử đổi tên món hoặc nới ngân sách nhé.";
+      directText = emptyTextFallback;
     } else if (call?.name === "answer_eatnow_help") {
       const modelContent = firstResponse.candidates?.[0]?.content;
       if (!modelContent) throw new Error("Gemini help call did not include model content");

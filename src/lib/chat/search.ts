@@ -118,7 +118,7 @@ export function normalizeFoodSearchArgs(value: unknown): ChatFoodSearchArgs {
     promotionOnly: args.promotionOnly === true,
     maxDistanceKm: boundedNumber(args.maxDistanceKm, 0.5, 30),
     sort,
-    limit: Math.trunc(boundedNumber(args.limit, 1, 5) ?? 5),
+    limit: 10,
   };
 }
 
@@ -128,6 +128,7 @@ async function searchSingleQuery(
   query: string | null
 ) {
   const supabase = await createClient();
+  const usesLocation = args.maxDistanceKm !== null || args.sort === "nearest";
   const { data, error } = await supabase.rpc("api_chat_search_foods", {
     p_query: query,
     p_tags: args.tags.length ? args.tags : null,
@@ -135,9 +136,9 @@ async function searchSingleQuery(
     p_max_price: args.maxPrice,
     p_open_only: args.openOnly,
     p_promotion_only: args.promotionOnly,
-    p_lat: location?.lat ?? null,
-    p_lon: location?.lon ?? null,
-    p_max_distance_km: location ? args.maxDistanceKm : null,
+    p_lat: usesLocation ? location?.lat ?? null : null,
+    p_lon: usesLocation ? location?.lon ?? null : null,
+    p_max_distance_km: usesLocation && location ? args.maxDistanceKm : null,
     p_sort: location || args.sort !== "nearest" ? args.sort : "recommended",
     p_limit: args.limit,
   });
@@ -182,6 +183,7 @@ export async function searchChatFoods(args: ChatFoodSearchArgs, location: ChatLo
   return {
     items: interleaveUnique(groups, args.limit),
     locationAvailable: location !== null,
+    locationRequested: args.maxDistanceKm !== null || args.sort === "nearest",
     searchedQueries: alternatives,
   };
 }

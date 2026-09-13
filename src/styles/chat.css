@@ -286,27 +286,22 @@
 .assistant-food-card__content del { color: #927c72; font-size: 9px; }
 .assistant-food-card__actions {
   border-top: 1px solid #eee1da;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  justify-content: flex-end;
+  background: #fffaf7;
 }
 
 .assistant-food-card__actions a {
-  padding: 8px 6px;
-  color: #765f55;
-  font-size: 10px;
-  font-weight: 800;
-  text-align: center;
+  width: 42px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: #d94720;
+  color: #fff;
   text-decoration: none;
 }
 
-.assistant-food-card__actions a + a {
-  border-left: 1px solid #eee1da;
-  background: #d94720;
-  color: #fff;
-}
-
-.assistant-food-card__actions a:hover { background: #fff4ee; color: #a53b1b; }
-.assistant-food-card__actions a + a:hover { background: #b93618; color: #fff; }
+.assistant-food-card__actions a:hover { background: #b93618; color: #fff; }
 
 .assistant-retry {
   margin-top: 6px;

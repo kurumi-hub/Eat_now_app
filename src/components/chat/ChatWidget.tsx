@@ -1,5 +1,6 @@
 "use client";
 
+import AddShoppingCartRoundedIcon from "@mui/icons-material/AddShoppingCartRounded";
 import ChatRoundedIcon from "@mui/icons-material/ChatRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
@@ -109,9 +110,12 @@ function FoodResultCards({ items }: { items: ChatFoodResult[] }) {
             </span>
           </Link>
           <div className="assistant-food-card__actions">
-            <Link href={item.url}>Chi tiết</Link>
-            <Link href={`${item.url}${item.url.includes("?") ? "&" : "?"}add=1`}>
-              Thêm vào giỏ
+            <Link
+              href={`${item.url}${item.url.includes("?") ? "&" : "?"}add=1`}
+              aria-label={`Thêm ${item.foodName} vào giỏ`}
+              title="Thêm vào giỏ"
+            >
+              <AddShoppingCartRoundedIcon fontSize="small" />
             </Link>
           </div>
         </article>
