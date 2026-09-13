@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
   if (rspCode === "00" && transactionStatus === "00") {
     return NextResponse.redirect(
-      new URL(`/orders/success?orderId=${orderId}&payment=success`, req.url)
+      new URL(`/orders/${orderId}?payment=checking`, req.url)
     );
   }
 

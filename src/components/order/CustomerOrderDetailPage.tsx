@@ -11,7 +11,7 @@ import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { cancelPendingOrderAction } from "@/app/orders/actions";
 import CustomerDeliveryPanel, { type CustomerDeliveryData } from "@/components/order/CustomerDeliveryPanel";
@@ -63,10 +63,10 @@ function time(value?: string) {
   });
 }
 
-function stages(journey: CustomerOrderJourney) {
+function stages(journey: CustomerOrderJourney, order: CustomerOrderDetailView) {
   const deliveryStarted = ["delivering", "proof_submitted", "awaiting_customer_confirmation", "delivery_review", "disputed", "delivered"].includes(journey.deliveryStatus);
-  return [
-    { id: "placed", title: "Đã đặt hàng", description: "EatNow đã ghi nhận đơn hàng.", at: journey.createdAt, reached: true },
+  const steps = [
+    { id: "placed", title: "Đã ghi nhận đơn", description: "EatNow đã ghi nhận yêu cầu đặt hàng.", at: journey.createdAt, reached: true },
     { id: "accepted", title: "Nhà hàng xác nhận", description: "Nhà hàng đã tiếp nhận đơn.", at: journey.acceptedAt, reached: Boolean(journey.acceptedAt) },
     { id: "searching", title: "Đang tìm tài xế", description: "EatNow tìm tài xế trong tối đa 30 phút.", at: journey.acceptedAt, reached: Boolean(journey.acceptedAt) },
     { id: "assigned", title: "Tài xế nhận chuyến", description: "Có tài xế nhận chuyến thì nhà hàng mới bắt đầu chuẩn bị.", at: journey.shipperAssignedAt, reached: Boolean(journey.shipperAssignedAt) },
@@ -78,9 +78,23 @@ function stages(journey: CustomerOrderJourney) {
     { id: "proof", title: "Chờ xác nhận nhận hàng", description: "Tài xế đã gửi ảnh giao hàng.", at: journey.proofSubmittedAt, reached: Boolean(journey.proofSubmittedAt) },
     { id: "completed", title: "Hoàn thành", description: "Bạn đã xác nhận nhận hàng thành công.", at: journey.deliveredAt, reached: Boolean(journey.deliveredAt || journey.status === "completed") },
   ];
+  if (order.payment && order.payment.method !== "cod") {
+    steps.splice(1, 0, {
+      id: "payment",
+      title: "Xác nhận thanh toán",
+      description: order.payment.status === "failed"
+        ? "Giao dịch VNPay không thành công."
+        : "EatNow đang chờ VNPay xác nhận giao dịch.",
+      at: order.payment.paidAt,
+      reached: order.payment.status === "success" || order.payment.status === "refunded",
+    });
+  }
+  return steps;
 }
 
 function statusDescription(order: CustomerOrderDetailView) {
+  if (order.payment?.method !== "cod" && order.payment?.status === "pending") return "EatNow đang chờ VNPay xác nhận thanh toán. Đơn chưa được chuyển đến nhà hàng.";
+  if (order.payment?.method !== "cod" && order.payment?.status === "failed") return "Thanh toán VNPay không thành công. Đơn chưa được chuyển đến nhà hàng.";
   if (["proof_submitted", "awaiting_customer_confirmation"].includes(order.deliveryStatus)) return "Tài xế đã gửi ảnh giao hàng. Hãy kiểm tra và xác nhận bên dưới.";
   if (["delivery_review", "disputed"].includes(order.deliveryStatus)) return "Phản hồi của bạn đã được ghi nhận và đang được EatNow xử lý.";
   if (order.status === "cancelled") return "Đơn hàng đã dừng. Xem lý do trong hành trình bên dưới.";
@@ -100,11 +114,29 @@ export default function CustomerOrderDetailPage({
   const router = useRouter();
   const [notice, setNotice] = useState("");
   const [pending, startTransition] = useTransition();
-  const presentation = customerOrderStatus({ status: order.status, deliveryStatus: order.deliveryStatus });
-  const timeline = stages(journey);
+  const paymentPending = order.payment?.method !== "cod" && order.payment?.status === "pending";
+  const paymentFailed = order.payment?.method !== "cod" && order.payment?.status === "failed";
+  const presentation = paymentPending
+    ? { label: "Đang xác nhận thanh toán", tone: "pending" }
+    : paymentFailed
+      ? { label: "Thanh toán không thành công", tone: "issue" }
+      : customerOrderStatus({ status: order.status, deliveryStatus: order.deliveryStatus });
+  const timeline = stages(journey, order);
   const lastReached = timeline.reduce((last, step, index) => step.reached ? index : last, 0);
   const extraFees = order.pricing.packagingFee + order.pricing.serviceFee + order.pricing.smallOrderFee
     + order.pricing.paymentFee + order.pricing.otherFee + order.pricing.taxAmount + order.pricing.tipAmount;
+
+  useEffect(() => {
+    if (!paymentPending) return;
+    let refreshCount = 0;
+    const timer = window.setInterval(() => {
+      refreshCount += 1;
+      router.refresh();
+      if (refreshCount >= 10) window.clearInterval(timer);
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [paymentPending, router]);
+
   const cancelOrder = () => {
     if (!window.confirm(`Hủy đơn #${order.code}? Nhà hàng chưa xác nhận nên bạn có thể hủy ngay.`)) return;
     startTransition(async () => {
