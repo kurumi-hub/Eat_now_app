@@ -85,6 +85,7 @@ type RestaurantDirectoryRpc = {
     close_at?: string | null;
     lat?: number | string | null;
     lon?: number | string | null;
+    distance_km?: number | string | null;
     has_promotion?: boolean | null;
     has_freeship?: boolean | null;
     matched_foods?: string[] | null;
@@ -255,6 +256,7 @@ function mapDirectoryItem(
     closesAt: restaurant.close_at ?? "",
     lat: toFiniteNumber(restaurant.lat),
     lon: toFiniteNumber(restaurant.lon),
+    distanceKm: toFiniteNumber(restaurant.distance_km),
     hasPromotion: restaurant.has_promotion === true,
     hasFreeship: restaurant.has_freeship === true,
     matchedFoods: Array.isArray(restaurant.matched_foods)

@@ -23,6 +23,7 @@ export type RestaurantListItem = {
   closesAt: string;
   lat: number | null;
   lon: number | null;
+  distanceKm: number | null;
   hasPromotion: boolean;
   hasFreeship: boolean;
   matchedFoods: string[];

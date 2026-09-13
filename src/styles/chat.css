@@ -224,8 +224,9 @@
 
 .assistant-food-card {
   min-width: 0;
+  position: relative;
   border: 1px solid #e1cbc0;
-  border-radius: 13px;
+  border-radius: 16px;
   overflow: hidden;
   background: #fff;
   color: #221a15;
@@ -242,13 +243,15 @@
 
 .assistant-food-card__details {
   min-width: 0;
-  padding: 8px;
+  padding: 10px 52px 10px 10px;
   display: grid;
   grid-template-columns: 68px minmax(0, 1fr);
   gap: 10px;
   color: inherit;
   text-decoration: none;
 }
+
+.assistant-food-card--restaurant .assistant-food-card__details { padding-right: 10px; }
 
 .assistant-food-card__image {
   width: 68px;
@@ -284,24 +287,37 @@
 .assistant-food-card__content > span { display: flex; align-items: baseline; gap: 6px; }
 .assistant-food-card__content b { color: #d94720; font-size: 12px; }
 .assistant-food-card__content del { color: #927c72; font-size: 9px; }
-.assistant-food-card__actions {
-  border-top: 1px solid #eee1da;
-  display: flex;
-  justify-content: flex-end;
-  background: #fffaf7;
-}
-
-.assistant-food-card__actions a {
-  width: 42px;
-  height: 34px;
+.assistant-food-card__add {
+  width: 38px;
+  height: 38px;
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  border: 0;
+  border-radius: 50%;
   display: grid;
   place-items: center;
   background: #d94720;
   color: #fff;
-  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgb(217 71 32 / 28%);
+  transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease;
 }
 
-.assistant-food-card__actions a:hover { background: #b93618; color: #fff; }
+.assistant-food-card__add:hover:not(:disabled),
+.assistant-food-card__add:focus-visible {
+  background: #b93618;
+  box-shadow: 0 6px 14px rgb(217 71 32 / 34%);
+  transform: translateY(-1px) scale(1.04);
+}
+
+.assistant-food-card__add:disabled {
+  background: #c8b5ac;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.assistant-food-card__meta { color: #765f55; font-size: 10px; }
 
 .assistant-retry {
   margin-top: 6px;

@@ -29,7 +29,7 @@ type GeminiContent = { role: "user" | "model"; parts: Array<{ text: string }> };
 
 const foodSearchTool = {
   name: "search_foods",
-  description: "Tìm món ăn thật đang có trên EatNow theo từ khóa, chế độ ăn, ngân sách, vị trí và khuyến mãi.",
+  description: "Tìm món ăn hoặc nhà hàng thật đang có trên EatNow theo từ khóa, chế độ ăn, ngân sách, vị trí và khuyến mãi.",
   parametersJsonSchema: {
     type: "object",
     additionalProperties: false,
@@ -38,29 +38,35 @@ const foodSearchTool = {
       tags: { type: "array", items: { type: "string" }, maxItems: 4, description: "Tag chế độ ăn bắt buộc, ví dụ Ăn chay, Thuần chay hoặc Halal." },
       minPrice: { type: "number", minimum: 0, description: "Giá tối thiểu VND cho một món." },
       maxPrice: { type: "number", minimum: 0, description: "Ngân sách tối đa VND cho một món." },
-      openOnly: { type: "boolean", description: "Chỉ lấy nhà hàng đang nhận đơn; mặc định true." },
+      openOnly: { type: "boolean", description: "Chỉ lấy nhà hàng đang nhận đơn. Chỉ đặt true khi người dùng yêu cầu quán đang mở/đang bán." },
       promotionOnly: { type: "boolean", description: "Chỉ lấy món có flash sale đang hiệu lực." },
       maxDistanceKm: { type: "number", minimum: 0.5, maximum: 30, description: "Bán kính tối đa nếu người dùng yêu cầu gần họ." },
       sort: { type: "string", enum: ["recommended", "nearest", "rating", "price"] },
+      resultTypes: {
+        type: "array",
+        items: { type: "string", enum: ["food", "restaurant"] },
+        maxItems: 2,
+        description: "Loại kết quả cần tìm. Dùng restaurant khi người dùng hỏi quán/nhà hàng, food khi hỏi món; có thể dùng cả hai.",
+      },
     },
   },
 };
 
 const foodSelectionTool = {
-  name: "select_food_results",
-  description: "Chọn tối đa 5 món thực sự phù hợp với yêu cầu từ các ứng viên RPC. Loại món chỉ khớp yếu qua mô tả, category hoặc nhà hàng nhưng không đúng món người dùng muốn. Chỉ dùng foodId có trong danh sách.",
+  name: "select_catalog_results",
+  description: "Chọn tối đa 5 món hoặc nhà hàng thực sự phù hợp từ các ứng viên RPC. Loại kết quả chỉ khớp yếu nhưng không đúng ý định. Chỉ dùng resultKey có trong danh sách.",
   parametersJsonSchema: {
     type: "object",
     additionalProperties: false,
     properties: {
-      selectedFoodIds: {
+      selectedResultKeys: {
         type: "array",
         items: { type: "string" },
         maxItems: 5,
-        description: "Danh sách foodId phù hợp nhất, theo thứ tự tốt nhất.",
+        description: "Danh sách resultKey phù hợp nhất, theo thứ tự tốt nhất.",
       },
     },
-    required: ["selectedFoodIds"],
+    required: ["selectedResultKeys"],
   },
 };
 
@@ -145,12 +151,16 @@ function eventLine(event: ChatStreamEvent) {
   return `${JSON.stringify(event)}\n`;
 }
 
-function selectedFoodIds(value: unknown, allowedIds: Set<string>) {
-  if (!value || typeof value !== "object" || !("selectedFoodIds" in value) ||
-      !Array.isArray(value.selectedFoodIds)) return null;
-  return [...new Set(value.selectedFoodIds.flatMap((id) =>
+function selectedResultKeys(value: unknown, allowedIds: Set<string>) {
+  if (!value || typeof value !== "object" || !("selectedResultKeys" in value) ||
+      !Array.isArray(value.selectedResultKeys)) return null;
+  return [...new Set(value.selectedResultKeys.flatMap((id) =>
     typeof id === "string" && allowedIds.has(id) ? [id] : []
   ))].slice(0, 5);
+}
+
+function catalogResultKey(item: NonNullable<Awaited<ReturnType<typeof searchChatFoods>>>["items"][number]) {
+  return item.kind === "food" ? `food:${item.foodId}` : `restaurant:${item.restaurantId}`;
 }
 
 async function takePersistentRateLimit(userId: string) {
@@ -282,7 +292,11 @@ export async function POST(request: Request) {
           ...messages,
           modelContent,
           functionResponseContent(call, "search_foods", {
-            items: foodResults.items,
+            items: foodResults.items.map((item) => ({
+              ...item,
+              resultKey: catalogResultKey(item),
+              ...(!foodResults?.locationRequested ? { distanceKm: undefined } : {}),
+            })),
             count: foodResults.items.length,
             ...(foodResults.locationRequested
               ? { locationAvailable: foodResults.locationAvailable }
@@ -307,18 +321,18 @@ export async function POST(request: Request) {
       const selectionCall = selectionResponse.functionCalls?.find(
         (item) => item.name === foodSelectionTool.name
       );
-      const allowedIds = new Set(foodResults.items.map((item) => item.foodId));
-      const pickedIds = selectedFoodIds(selectionCall?.args, allowedIds);
+      const allowedIds = new Set(foodResults.items.map(catalogResultKey));
+      const pickedIds = selectedResultKeys(selectionCall?.args, allowedIds);
       const pickedItems = pickedIds === null
         ? foodResults.items.slice(0, 5)
         : pickedIds.flatMap((id) => {
-            const item = foodResults?.items.find((candidate) => candidate.foodId === id);
+            const item = foodResults?.items.find((candidate) => catalogResultKey(candidate) === id);
             return item ? [item] : [];
           });
       foodResults = { ...foodResults, items: pickedItems };
       emptyTextFallback = foodResults.items.length
-        ? `Mình tìm thấy ${foodResults.items.length} món phù hợp. Bạn chọn một món bên dưới để xem chi tiết nhé.`
-        : "Mình chưa tìm thấy món phù hợp trong catalog EatNow. Bạn thử đổi tên món hoặc nới ngân sách nhé.";
+        ? `Mình tìm thấy ${foodResults.items.length} kết quả phù hợp. Bạn chọn một thẻ bên dưới để xem chi tiết nhé.`
+        : "Mình chưa tìm thấy món hoặc nhà hàng phù hợp trong EatNow. Bạn thử đổi từ khóa hoặc nới điều kiện nhé.";
       directText = emptyTextFallback;
     } else if (call?.name === "answer_eatnow_help") {
       const modelContent = firstResponse.candidates?.[0]?.content;

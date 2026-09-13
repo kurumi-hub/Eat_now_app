@@ -1,7 +1,8 @@
 import "server-only";
 
 import { splitAlternativeFoodQueries } from "@/lib/chat/query";
-import type { ChatFoodResult } from "@/lib/chat/types";
+import type { ChatCatalogResult, ChatFoodResult, ChatRestaurantResult } from "@/lib/chat/types";
+import { getRestaurantDirectory } from "@/lib/data/restaurants";
 import { createClient } from "@/utils/supabase/server";
 
 export type ChatFoodSearchArgs = {
@@ -13,6 +14,7 @@ export type ChatFoodSearchArgs = {
   promotionOnly: boolean;
   maxDistanceKm: number | null;
   sort: "recommended" | "nearest" | "rating" | "price";
+  resultTypes: Array<"food" | "restaurant">;
   limit: number;
 };
 
@@ -29,6 +31,8 @@ type SearchRow = {
   has_sizes?: unknown;
   food_rating?: unknown;
   restaurant_name?: unknown;
+  restaurant_id?: unknown;
+  restaurant_slug?: unknown;
   restaurant_rating?: unknown;
   order_state?: unknown;
   distance_km?: unknown;
@@ -61,10 +65,12 @@ function names(value: unknown) {
 
 function mapResult(row: SearchRow): ChatFoodResult | null {
   if (typeof row.food_id !== "string" || typeof row.food_name !== "string" ||
+      typeof row.restaurant_id !== "string" || typeof row.restaurant_slug !== "string" ||
       typeof row.restaurant_name !== "string" || typeof row.url !== "string" ||
       !row.url.startsWith("/restaurants/")) return null;
 
   return {
+    kind: "food",
     foodId: row.food_id,
     foodName: row.food_name,
     description: typeof row.description === "string" ? row.description : "",
@@ -74,6 +80,8 @@ function mapResult(row: SearchRow): ChatFoodResult | null {
     normalPrice: finiteNumber(row.normal_price),
     hasSizes: row.has_sizes === true,
     foodRating: finiteNumber(row.food_rating),
+    restaurantId: row.restaurant_id,
+    restaurantSlug: row.restaurant_slug,
     restaurantName: row.restaurant_name,
     restaurantRating: finiteNumber(row.restaurant_rating),
     orderState: typeof row.order_state === "string" ? row.order_state : "UNAVAILABLE",
@@ -108,16 +116,21 @@ export function normalizeFoodSearchArgs(value: unknown): ChatFoodSearchArgs {
   }))].slice(0, 4);
   const minPrice = boundedNumber(args.minPrice, 0, 10_000_000);
   const maxPrice = boundedNumber(args.maxPrice, 0, 10_000_000);
+  const requestedTypes = Array.isArray(args.resultTypes) ? args.resultTypes : [];
+  const resultTypes = [...new Set(requestedTypes.flatMap((type) =>
+    type === "food" || type === "restaurant" ? [type] : []
+  ))] as Array<"food" | "restaurant">;
 
   return {
     query: shortText(args.query, 120) || null,
     tags,
     minPrice,
     maxPrice: minPrice !== null && maxPrice !== null && maxPrice < minPrice ? minPrice : maxPrice,
-    openOnly: args.openOnly !== false,
+    openOnly: args.openOnly === true,
     promotionOnly: args.promotionOnly === true,
     maxDistanceKm: boundedNumber(args.maxDistanceKm, 0.5, 30),
     sort,
+    resultTypes: resultTypes.length ? resultTypes : ["food", "restaurant"],
     limit: 10,
   };
 }
@@ -128,7 +141,6 @@ async function searchSingleQuery(
   query: string | null
 ) {
   const supabase = await createClient();
-  const usesLocation = args.maxDistanceKm !== null || args.sort === "nearest";
   const { data, error } = await supabase.rpc("api_chat_search_foods", {
     p_query: query,
     p_tags: args.tags.length ? args.tags : null,
@@ -136,9 +148,9 @@ async function searchSingleQuery(
     p_max_price: args.maxPrice,
     p_open_only: args.openOnly,
     p_promotion_only: args.promotionOnly,
-    p_lat: usesLocation ? location?.lat ?? null : null,
-    p_lon: usesLocation ? location?.lon ?? null : null,
-    p_max_distance_km: usesLocation && location ? args.maxDistanceKm : null,
+    p_lat: location?.lat ?? null,
+    p_lon: location?.lon ?? null,
+    p_max_distance_km: location ? args.maxDistanceKm : null,
     p_sort: location || args.sort !== "nearest" ? args.sort : "recommended",
     p_limit: args.limit,
   });
@@ -155,16 +167,21 @@ async function searchSingleQuery(
   return items;
 }
 
-function interleaveUnique(groups: ChatFoodResult[][], limit: number) {
-  const items: ChatFoodResult[] = [];
+function resultKey(item: ChatCatalogResult) {
+  return item.kind === "food" ? `food:${item.foodId}` : `restaurant:${item.restaurantId}`;
+}
+
+function interleaveUnique(groups: ChatCatalogResult[][], limit: number) {
+  const items: ChatCatalogResult[] = [];
   const seen = new Set<string>();
   const longest = Math.max(0, ...groups.map((group) => group.length));
 
   for (let index = 0; index < longest && items.length < limit; index += 1) {
     for (const group of groups) {
       const item = group[index];
-      if (!item || seen.has(item.foodId)) continue;
-      seen.add(item.foodId);
+      const key = item ? resultKey(item) : "";
+      if (!item || seen.has(key)) continue;
+      seen.add(key);
       items.push(item);
       if (items.length >= limit) break;
     }
@@ -173,15 +190,54 @@ function interleaveUnique(groups: ChatFoodResult[][], limit: number) {
   return items;
 }
 
+async function searchRestaurants(args: ChatFoodSearchArgs, location: ChatLocation) {
+  const directory = await getRestaurantDirectory({
+    search: args.query ?? "",
+    openOnly: args.openOnly,
+    promotionOnly: args.promotionOnly,
+    lat: location?.lat ?? null,
+    lon: location?.lon ?? null,
+    maxDistanceKm: location ? args.maxDistanceKm : null,
+    sort: args.sort === "nearest" || args.sort === "rating" ? args.sort : "recommended",
+    page: 1,
+    pageSize: 10,
+  });
+
+  return directory.items.map((item): ChatRestaurantResult => ({
+    kind: "restaurant",
+    restaurantId: item.id,
+    restaurantSlug: item.slug,
+    restaurantName: item.name,
+    address: item.address,
+    imageUrl: item.image,
+    imageAlt: item.imageAlt,
+    rating: item.rating,
+    reviewCount: item.reviewCount,
+    orderState: item.orderState,
+    distanceKm: item.distanceKm,
+    hasPromotion: item.hasPromotion,
+    hasFreeship: item.hasFreeship,
+    matchedFoods: item.matchedFoods,
+    url: `/restaurants/${item.slug}`,
+  }));
+}
+
 export async function searchChatFoods(args: ChatFoodSearchArgs, location: ChatLocation) {
   const alternatives = splitAlternativeFoodQueries(args.query);
   const searchedQueries = alternatives.length ? alternatives : [args.query];
-  const groups = await Promise.all(
-    searchedQueries.map((query) => searchSingleQuery(args, location, query))
-  );
+  const foodGroups = args.resultTypes.includes("food")
+    ? await Promise.all(searchedQueries.map((query) => searchSingleQuery(args, location, query)))
+    : [];
+  const restaurantItems = args.resultTypes.includes("restaurant")
+    ? await searchRestaurants(args, location)
+    : [];
+  const items = interleaveUnique([
+    ...foodGroups,
+    ...(restaurantItems.length ? [restaurantItems] : []),
+  ], args.limit);
 
   return {
-    items: interleaveUnique(groups, args.limit),
+    items,
     locationAvailable: location !== null,
     locationRequested: args.maxDistanceKm !== null || args.sort === "nearest",
     searchedQueries: alternatives,

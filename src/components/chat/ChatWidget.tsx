@@ -7,6 +7,18 @@ import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
 import StopCircleRoundedIcon from "@mui/icons-material/StopCircleRounded";
+import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
+import {
+  Alert,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Snackbar,
+} from "@mui/material";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -16,11 +28,20 @@ import {
   type KeyboardEvent,
   type ReactNode,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 
-import type { ChatFoodResult, ChatMessage, ChatStreamEvent } from "@/lib/chat/types";
+import type { RestaurantMenuItem } from "@/components/restaurant/restaurantDetailData";
+import type { ChatCatalogResult, ChatFoodResult, ChatMessage, ChatStreamEvent } from "@/lib/chat/types";
+import { useCartStore } from "@/store/cartStore";
+import type { FoodFlashSale } from "@/types/flashSale";
+
+const FoodOptionsModal = dynamic(
+  () => import("@/components/cart/FoodOptionsModal"),
+  { ssr: false }
+);
 
 const MAX_CONTEXT_MESSAGES = 12;
 
@@ -33,6 +54,25 @@ const QUICK_QUESTIONS = [
 
 type ChatWidgetProps = {
   isAuthenticated: boolean;
+};
+
+type CartSelection = {
+  size?: { id: string; name: string; price: number };
+  toppings: { id: string; name: string; price: number }[];
+  note?: string;
+  quantity: number;
+};
+
+type FoodOptionsPayload = {
+  restaurant: {
+    id: string;
+    name: string;
+    slug: string;
+    isOpen: boolean;
+    availabilityMessage: string | null;
+  };
+  food: RestaurantMenuItem;
+  flashSale: FoodFlashSale | null;
 };
 
 function formatTime() {
@@ -83,12 +123,25 @@ function money(value: number) {
   return `${Math.round(value).toLocaleString("vi-VN")}đ`;
 }
 
-function FoodResultCards({ items }: { items: ChatFoodResult[] }) {
+function distanceLabel(value: number | null) {
+  if (value === null) return "";
+  return `${value.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} km`;
+}
+
+function FoodResultCards({
+  items,
+  loadingFoodId,
+  onAddFood,
+}: {
+  items: ChatCatalogResult[];
+  loadingFoodId: string | null;
+  onAddFood: (item: ChatFoodResult) => void;
+}) {
   if (!items.length) return null;
   return (
-    <div className="assistant-results" aria-label={`${items.length} món ăn được tìm thấy`}>
-      {items.map((item) => (
-        <article className="assistant-food-card" key={item.foodId}>
+    <div className="assistant-results" aria-label={`${items.length} kết quả được tìm thấy`}>
+      {items.map((item) => item.kind === "food" ? (
+        <article className="assistant-food-card" key={`food-${item.foodId}`}>
           <Link className="assistant-food-card__details" href={item.url}>
             <span className="assistant-food-card__image">
               {item.imageUrl ? (
@@ -104,20 +157,45 @@ function FoodResultCards({ items }: { items: ChatFoodResult[] }) {
               </span>
               <small>
                 {item.foodRating > 0 ? `${item.foodRating.toFixed(1)}★` : "Món mới"}
-                {item.distanceKm !== null ? ` · ${item.distanceKm.toLocaleString("vi-VN")} km` : ""}
+                {item.distanceKm !== null ? ` · ${distanceLabel(item.distanceKm)}` : ""}
                 {item.flashSaleItemId ? " · Flash sale" : ""}
+                {item.orderState !== "OPEN" ? " · Tạm ngưng nhận đơn" : ""}
               </small>
             </span>
           </Link>
-          <div className="assistant-food-card__actions">
-            <Link
-              href={`${item.url}${item.url.includes("?") ? "&" : "?"}add=1`}
-              aria-label={`Thêm ${item.foodName} vào giỏ`}
-              title="Thêm vào giỏ"
-            >
-              <AddShoppingCartRoundedIcon fontSize="small" />
-            </Link>
-          </div>
+          <button
+            className="assistant-food-card__add"
+            type="button"
+            onClick={() => onAddFood(item)}
+            disabled={loadingFoodId === item.foodId || item.orderState !== "OPEN"}
+            aria-label={`Thêm ${item.foodName} vào giỏ`}
+            title={item.orderState === "OPEN" ? "Thêm vào giỏ" : "Nhà hàng hiện chưa nhận đơn"}
+          >
+            <AddShoppingCartRoundedIcon fontSize="small" />
+          </button>
+        </article>
+      ) : (
+        <article className="assistant-food-card assistant-food-card--restaurant" key={`restaurant-${item.restaurantId}`}>
+          <Link className="assistant-food-card__details" href={item.url}>
+            <span className="assistant-food-card__image">
+              {item.imageUrl ? (
+                <Image src={item.imageUrl} alt={item.imageAlt} fill unoptimized sizes="76px" />
+              ) : <StorefrontRoundedIcon aria-hidden="true" />}
+            </span>
+            <span className="assistant-food-card__content">
+              <strong>{item.restaurantName}</strong>
+              <small>{item.address}</small>
+              <span className="assistant-food-card__meta">
+                {item.rating > 0 ? `${item.rating.toFixed(1)}★` : "Quán mới"}
+                {item.distanceKm !== null ? ` · ${distanceLabel(item.distanceKm)}` : ""}
+                {item.orderState === "OPEN" ? " · Đang mở" : " · Tạm ngưng"}
+              </span>
+              <small>
+                {item.matchedFoods.length ? item.matchedFoods.slice(0, 2).join(" · ") : "Xem thực đơn"}
+                {item.hasPromotion ? " · Có ưu đãi" : ""}
+              </small>
+            </span>
+          </Link>
         </article>
       ))}
     </div>
@@ -130,10 +208,31 @@ export default function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => [greetingMessage("")]);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [foodOptions, setFoodOptions] = useState<FoodOptionsPayload | null>(null);
+  const [loadingFoodId, setLoadingFoodId] = useState<string | null>(null);
+  const [pendingSelection, setPendingSelection] = useState<CartSelection | null>(null);
+  const [notice, setNotice] = useState({ open: false, message: "" });
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const requestRef = useRef<AbortController | null>(null);
   const sendingRef = useRef(false);
+  const addItem = useCartStore((state) => state.addItem);
+  const hasConflictingRestaurant = useCartStore((state) => state.hasConflictingRestaurant);
+  const clearCart = useCartStore((state) => state.clearCart);
+
+  const orderFood = useMemo(() => {
+    if (!foodOptions) return null;
+    const { food, flashSale } = foodOptions;
+    if (!flashSale) return food;
+    return {
+      ...food,
+      price: flashSale.salePrice,
+      sizes: food.sizes?.map((size) => ({
+        ...size,
+        price: flashSale.salePrice + Math.max(0, size.price - flashSale.originalPrice),
+      })),
+    };
+  }, [foodOptions]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -150,6 +249,75 @@ export default function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
     setIsSending(false);
     setMessages([greetingMessage()]);
     setInput("");
+  };
+
+  const openFoodOptions = async (item: ChatFoodResult) => {
+    if (loadingFoodId) return;
+    setLoadingFoodId(item.foodId);
+    try {
+      const params = new URLSearchParams({ foodId: item.foodId, restaurant: item.restaurantSlug });
+      if (item.flashSaleItemId) params.set("sale", item.flashSaleItemId);
+      const response = await fetch(`/api/chat/food-options?${params}`);
+      const payload = await response.json().catch(() => null) as (FoodOptionsPayload & { error?: string }) | null;
+      if (!response.ok || !payload?.food || !payload.restaurant) {
+        throw new Error(payload?.error || "Không tải được tùy chọn của món.");
+      }
+      if (!payload.restaurant.isOpen) {
+        setNotice({ open: true, message: payload.restaurant.availabilityMessage || "Nhà hàng hiện chưa nhận đơn." });
+        return;
+      }
+      if (!payload.food.isAvailable) {
+        setNotice({ open: true, message: "Món này hiện chưa sẵn sàng để đặt." });
+        return;
+      }
+      setFoodOptions(payload);
+    } catch (error) {
+      setNotice({
+        open: true,
+        message: error instanceof Error ? error.message : "Không tải được tùy chọn của món.",
+      });
+    } finally {
+      setLoadingFoodId(null);
+    }
+  };
+
+  const addFoodToCart = (selection: CartSelection) => {
+    if (!foodOptions) return;
+    const { restaurant, food, flashSale } = foodOptions;
+    addItem({
+      restaurantId: restaurant.id,
+      restaurantName: restaurant.name,
+      foodId: food.id,
+      foodName: food.name,
+      foodImage: food.image,
+      basePrice: flashSale?.salePrice ?? food.price,
+      originalBasePrice: flashSale?.originalPrice,
+      flashSaleItemId: flashSale?.id,
+      flashSaleEndsAt: flashSale?.endsAt,
+      flashSalePerUserLimit: flashSale?.perUserLimit,
+      size: selection.size,
+      toppings: selection.toppings,
+      note: selection.note,
+      quantity: Math.min(selection.quantity, flashSale?.perUserLimit ?? selection.quantity),
+    });
+    setFoodOptions(null);
+    setPendingSelection(null);
+    setNotice({ open: true, message: `Đã thêm ${food.name} vào giỏ hàng.` });
+  };
+
+  const confirmFoodOptions = (selection: CartSelection) => {
+    if (!foodOptions) return;
+    if (hasConflictingRestaurant(foodOptions.restaurant.id)) {
+      setPendingSelection(selection);
+      return;
+    }
+    addFoodToCart(selection);
+  };
+
+  const replaceCart = () => {
+    if (!pendingSelection) return;
+    clearCart();
+    addFoodToCart(pendingSelection);
   };
 
   const sendMessage = async (rawContent: string, contextMessages = messages) => {
@@ -332,7 +500,13 @@ export default function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
                           ? renderMessageText(message.content)
                           : <><span /><span /><span /></>}
                       </div>
-                      {message.results ? <FoodResultCards items={message.results} /> : null}
+                      {message.results ? (
+                        <FoodResultCards
+                          items={message.results}
+                          loadingFoodId={loadingFoodId}
+                          onAddFood={(item) => void openFoodOptions(item)}
+                        />
+                      ) : null}
                       {message.failed ? (
                         <button className="assistant-retry" type="button" onClick={() => retryMessage(message.id)}>
                           Thử lại
@@ -399,6 +573,41 @@ export default function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
           )}
         </section>
       ) : null}
+
+      <FoodOptionsModal
+        open={Boolean(foodOptions)}
+        food={orderFood}
+        onClose={() => setFoodOptions(null)}
+        onConfirm={confirmFoodOptions}
+      />
+
+      <Dialog open={Boolean(pendingSelection)} onClose={() => setPendingSelection(null)}>
+        <DialogTitle>Bắt đầu giỏ hàng mới?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Giỏ hàng đang có món từ nhà hàng khác. Xóa giỏ hiện tại để thêm món từ {foodOptions?.restaurant.name}?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPendingSelection(null)}>Hủy</Button>
+          <Button variant="contained" color="error" onClick={replaceCart}>Xóa giỏ và thêm món</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={notice.open}
+        autoHideDuration={2800}
+        onClose={() => setNotice((current) => ({ ...current, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity="info"
+          variant="filled"
+          onClose={() => setNotice((current) => ({ ...current, open: false }))}
+        >
+          {notice.message}
+        </Alert>
+      </Snackbar>
 
       <button
         type="button"
