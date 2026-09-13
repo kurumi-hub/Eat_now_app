@@ -44,9 +44,7 @@ export async function GET(req: NextRequest) {
   // nằm ở route IPN (server-to-server), vì user có thể đóng tab/mất mạng
   // trước khi trình duyệt kịp redirect về đây.
   if (!isValid || !isExpectedMerchant || !isExpectedCurrency) {
-    return NextResponse.redirect(
-      new URL(`/orders/${orderId}?payment=invalid`, req.url)
-    );
+    return NextResponse.redirect(new URL("/orders?payment=invalid", req.url));
   }
 
   const paymentSuccessful = rspCode === "00" && transactionStatus === "00";
@@ -61,17 +59,13 @@ export async function GET(req: NextRequest) {
   const rawAmount = params.vnp_Amount;
   const transactionId = params.vnp_TransactionNo?.trim();
   if (!rawAmount || !/^\d+$/.test(rawAmount) || !transactionId) {
-    return NextResponse.redirect(
-      new URL(`/orders/${orderId}?payment=invalid`, req.url)
-    );
+    return NextResponse.redirect(new URL("/orders?payment=invalid", req.url));
   }
 
   const amountInSmallestUnit = Number(rawAmount);
   const gatewayAmount = amountInSmallestUnit / 100;
   if (!Number.isSafeInteger(amountInSmallestUnit) || !Number.isFinite(gatewayAmount)) {
-    return NextResponse.redirect(
-      new URL(`/orders/${orderId}?payment=invalid`, req.url)
-    );
+    return NextResponse.redirect(new URL("/orders?payment=invalid", req.url));
   }
 
   // Fallback cho trường hợp sandbox không gửi IPN hoặc IPN đến chậm. RPC vẫn
