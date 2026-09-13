@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import qs from "qs";
 
 export const vnpayConfig = {
   vnp_TmnCode: process.env.VNPAY_TMN_CODE?.trim() ?? "",
@@ -12,21 +13,24 @@ export const vnpayConfig = {
 export type VnpayParams = Record<string, string | number>;
 
 /**
- * VNPay ký đúng chuỗi query đã URL-encode, với tên tham số tăng dần.
- * URLSearchParams dùng application/x-www-form-urlencoded (space thành "+"),
- * khớp với urlencode trong tài liệu tích hợp chính thức của VNPay.
+ * Dựng chuỗi ký theo đúng mẫu Node.js chính thức của VNPay 2.1.0:
+ * sortObject -> encodeURIComponent (space thành "+") -> qs.stringify.
+ * Không dùng URLSearchParams vì tập ký tự percent-encode của WHATWG có thể
+ * khác encodeURIComponent ở một số giá trị callback.
  */
 export function buildVnpayQuery(params: VnpayParams): string {
-  const query = new URLSearchParams();
-  const entries = Object.entries(params).sort(([left], [right]) =>
-    left < right ? -1 : left > right ? 1 : 0
-  );
+  const encoded: Record<string, string> = {};
+  const keys = Object.keys(params)
+    .map((key) => encodeURIComponent(key))
+    .sort();
 
-  for (const [key, value] of entries) {
-    query.append(key, String(value));
+  for (const encodedKey of keys) {
+    const rawKey = decodeURIComponent(encodedKey);
+    encoded[encodedKey] = encodeURIComponent(String(params[rawKey]))
+      .replace(/%20/g, "+");
   }
 
-  return query.toString();
+  return qs.stringify(encoded, { encode: false });
 }
 
 export function createVnpaySecureHash(
