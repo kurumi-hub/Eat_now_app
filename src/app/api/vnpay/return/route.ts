@@ -5,6 +5,7 @@ import {
   txnRefToOrderId,
   validateVnpayConfig,
   verifyVnpaySecureHash,
+  verifyVnpaySecureHashFromRawUrl,
   vnpayConfig,
   type VnpayParams,
 } from "@/lib/vnpay";
@@ -22,6 +23,10 @@ export async function GET(req: NextRequest) {
 
   const isValid = verifyVnpaySecureHash(
     vnpParams,
+    secureHash,
+    vnpayConfig.vnp_HashSecret
+  ) || verifyVnpaySecureHashFromRawUrl(
+    req.url,
     secureHash,
     vnpayConfig.vnp_HashSecret
   );

@@ -37,10 +37,25 @@ export function createVnpaySecureHash(
   params: VnpayParams,
   hashSecret: string
 ): string {
+  return createVnpaySecureHashFromQuery(buildVnpayQuery(params), hashSecret);
+}
+
+function createVnpaySecureHashFromQuery(
+  query: string,
+  hashSecret: string
+): string {
   return crypto
     .createHmac("sha512", hashSecret)
-    .update(buildVnpayQuery(params), "utf8")
+    .update(query, "utf8")
     .digest("hex");
+}
+
+function hashesMatch(receivedHash: string | undefined, expectedHash: string) {
+  if (!receivedHash || !/^[0-9a-f]{128}$/i.test(receivedHash)) return false;
+  return crypto.timingSafeEqual(
+    Buffer.from(receivedHash.toLowerCase(), "hex"),
+    Buffer.from(expectedHash, "hex")
+  );
 }
 
 export function verifyVnpaySecureHash(
@@ -48,12 +63,48 @@ export function verifyVnpaySecureHash(
   receivedHash: string | undefined,
   hashSecret: string
 ): boolean {
-  if (!receivedHash || !/^[0-9a-f]{128}$/i.test(receivedHash)) return false;
-
   const expected = createVnpaySecureHash(params, hashSecret);
-  return crypto.timingSafeEqual(
-    Buffer.from(receivedHash.toLowerCase(), "hex"),
-    Buffer.from(expected, "hex")
+  return hashesMatch(receivedHash, expected);
+}
+
+/**
+ * Kiểm tra thêm trên raw query để không làm mất biểu diễn byte mà VNPay đã ký
+ * (ví dụ "+" so với "%20", hoặc tập ký tự được percent-encode). Chỉ các
+ * tham số vnp_* được dùng và callback có key trùng lặp bị từ chối.
+ */
+export function verifyVnpaySecureHashFromRawUrl(
+  rawUrl: string,
+  receivedHash: string | undefined,
+  hashSecret: string
+): boolean {
+  const queryStart = rawUrl.indexOf("?");
+  if (queryStart < 0) return false;
+
+  const seenKeys = new Set<string>();
+  const signedPairs: Array<{ key: string; pair: string }> = [];
+
+  try {
+    for (const part of rawUrl.slice(queryStart + 1).split("&")) {
+      if (!part) continue;
+      const separator = part.indexOf("=");
+      const rawKey = separator < 0 ? part : part.slice(0, separator);
+      const key = decodeURIComponent(rawKey.replace(/\+/g, " "));
+      if (!key.startsWith("vnp_") || key === "vnp_SecureHash" || key === "vnp_SecureHashType") {
+        continue;
+      }
+      if (seenKeys.has(key)) return false;
+      seenKeys.add(key);
+      signedPairs.push({ key, pair: part });
+    }
+  } catch {
+    return false;
+  }
+
+  signedPairs.sort((left, right) => left.key.localeCompare(right.key, "en"));
+  const signData = signedPairs.map(({ pair }) => pair).join("&");
+  return hashesMatch(
+    receivedHash,
+    createVnpaySecureHashFromQuery(signData, hashSecret)
   );
 }
 

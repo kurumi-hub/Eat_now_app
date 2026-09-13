@@ -5,6 +5,7 @@ import {
   txnRefToOrderId,
   validateVnpayConfig,
   verifyVnpaySecureHash,
+  verifyVnpaySecureHashFromRawUrl,
   vnpayConfig,
   type VnpayParams,
 } from "@/lib/vnpay";
@@ -62,11 +63,17 @@ export async function GET(req: NextRequest) {
   delete vnpParams.vnp_SecureHash;
   delete vnpParams.vnp_SecureHashType;
 
-  const signatureValid = verifyVnpaySecureHash(
+  const parsedSignatureValid = verifyVnpaySecureHash(
     vnpParams,
     secureHash,
     vnpayConfig.vnp_HashSecret
   );
+  const rawSignatureValid = verifyVnpaySecureHashFromRawUrl(
+    req.url,
+    secureHash,
+    vnpayConfig.vnp_HashSecret
+  );
+  const signatureValid = parsedSignatureValid || rawSignatureValid;
   const orderId = txnRefToOrderId(params.vnp_TxnRef);
   const expectedMerchant = params.vnp_TmnCode === vnpayConfig.vnp_TmnCode;
   const expectedCurrency = params.vnp_CurrCode === "VND";
@@ -75,7 +82,14 @@ export async function GET(req: NextRequest) {
   await recordGatewayEvent(
     supabase,
     params,
-    vnpParams,
+    {
+      ...vnpParams,
+      eatnow_signature_mode: parsedSignatureValid
+        ? "official"
+        : rawSignatureValid
+          ? "raw"
+          : "invalid",
+    },
     orderId,
     signatureValid && expectedMerchant && expectedCurrency
   );
