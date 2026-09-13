@@ -63,7 +63,14 @@ function newMessage(role: ChatMessage["role"], content: string): ChatMessage {
 }
 
 function renderMessageText(text: string): ReactNode[] {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+  let normalized = text.replace(/\\([*_`])/g, "$1");
+  const boldMarkers = normalized.match(/\*\*/g)?.length ?? 0;
+  if (boldMarkers % 2 !== 0) {
+    const unmatchedIndex = normalized.lastIndexOf("**");
+    normalized = `${normalized.slice(0, unmatchedIndex)}${normalized.slice(unmatchedIndex + 2)}`;
+  }
+
+  return normalized.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return <strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong>;
     }
@@ -80,27 +87,34 @@ function FoodResultCards({ items }: { items: ChatFoodResult[] }) {
   return (
     <div className="assistant-results" aria-label={`${items.length} món ăn được tìm thấy`}>
       {items.map((item) => (
-        <Link className="assistant-food-card" href={item.url} key={item.foodId}>
-          <span className="assistant-food-card__image">
-            {item.imageUrl ? (
-              <Image src={item.imageUrl} alt={item.imageAlt} fill unoptimized sizes="76px" />
-            ) : <SmartToyRoundedIcon aria-hidden="true" />}
-          </span>
-          <span className="assistant-food-card__content">
-            <strong>{item.foodName}</strong>
-            <small>{item.restaurantName}</small>
-            <span>
-              <b>{item.hasSizes ? `Từ ${money(item.price)}` : money(item.price)}</b>
-              {item.normalPrice !== item.price ? <del>{money(item.normalPrice)}</del> : null}
+        <article className="assistant-food-card" key={item.foodId}>
+          <Link className="assistant-food-card__details" href={item.url}>
+            <span className="assistant-food-card__image">
+              {item.imageUrl ? (
+                <Image src={item.imageUrl} alt={item.imageAlt} fill unoptimized sizes="76px" />
+              ) : <SmartToyRoundedIcon aria-hidden="true" />}
             </span>
-            <small>
-              {item.foodRating > 0 ? `${item.foodRating.toFixed(1)}★` : "Món mới"}
-              {item.distanceKm !== null ? ` · ${item.distanceKm.toLocaleString("vi-VN")} km` : ""}
-              {item.flashSaleItemId ? " · Flash sale" : ""}
-            </small>
-          </span>
-          <span className="assistant-food-card__action">Xem món</span>
-        </Link>
+            <span className="assistant-food-card__content">
+              <strong>{item.foodName}</strong>
+              <small>{item.restaurantName}</small>
+              <span>
+                <b>{item.hasSizes ? `Từ ${money(item.price)}` : money(item.price)}</b>
+                {item.normalPrice !== item.price ? <del>{money(item.normalPrice)}</del> : null}
+              </span>
+              <small>
+                {item.foodRating > 0 ? `${item.foodRating.toFixed(1)}★` : "Món mới"}
+                {item.distanceKm !== null ? ` · ${item.distanceKm.toLocaleString("vi-VN")} km` : ""}
+                {item.flashSaleItemId ? " · Flash sale" : ""}
+              </small>
+            </span>
+          </Link>
+          <div className="assistant-food-card__actions">
+            <Link href={item.url}>Chi tiết</Link>
+            <Link href={`${item.url}${item.url.includes("?") ? "&" : "?"}add=1`}>
+              Thêm vào giỏ
+            </Link>
+          </div>
+        </article>
       ))}
     </div>
   );

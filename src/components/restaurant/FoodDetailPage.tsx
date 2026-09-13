@@ -49,6 +49,7 @@ type FoodDetailPageProps = {
   reviewOrders: ReviewEligibleOrder[];
   isAuthenticated: boolean;
   flashSale: FoodFlashSale | null;
+  openOptionsInitially?: boolean;
 };
 
 function formatCurrency(value: number) {
@@ -72,9 +73,12 @@ export default function FoodDetailPage({
   reviewOrders,
   isAuthenticated,
   flashSale,
+  openOptionsInitially = false,
 }: FoodDetailPageProps) {
   const router = useRouter();
-  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(
+    openOptionsInitially && isAuthenticated && restaurant.isOpen && food.isAvailable
+  );
   const [pendingSelection, setPendingSelection] = useState<CartSelection | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: "" });
   const addItem = useCartStore((state) => state.addItem);

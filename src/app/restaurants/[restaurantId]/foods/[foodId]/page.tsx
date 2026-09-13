@@ -11,7 +11,7 @@ type FoodDetailRouteProps = {
     restaurantId: string;
     foodId: string;
   }>;
-  searchParams: Promise<{ sale?: string | string[] }>;
+  searchParams: Promise<{ sale?: string | string[]; add?: string | string[] }>;
 };
 
 export default async function FoodDetailRoute({ params, searchParams }: FoodDetailRouteProps) {
@@ -47,6 +47,7 @@ export default async function FoodDetailRoute({ params, searchParams }: FoodDeta
       reviewOrders={reviewOrders}
       isAuthenticated={Boolean(user)}
       flashSale={flashSale}
+      openOptionsInitially={(Array.isArray(query.add) ? query.add[0] : query.add) === "1"}
     />
   );
 }

@@ -47,6 +47,30 @@ const foodSearchTool = {
   },
 };
 
+const eatNowHelpTool = {
+  name: "answer_eatnow_help",
+  description: "Chọn khi người dùng chào hỏi hoặc hỏi cách sử dụng EatNow, voucher, giỏ hàng, đặt món hay quy trình giao đồ ăn mà không yêu cầu dữ liệu cá nhân theo thời gian thực.",
+  parametersJsonSchema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      topic: { type: "string", description: "Chủ đề EatNow cần giải đáp." },
+    },
+  },
+};
+
+const rejectOutOfScopeTool = {
+  name: "reject_out_of_scope",
+  description: "Chọn cho mọi câu hỏi không liên quan đến món ăn, nhà hàng, đặt đồ ăn hoặc cách sử dụng EatNow, ví dụ toán học, lập trình, bài tập, tin tức và kiến thức tổng quát.",
+  parametersJsonSchema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {},
+  },
+};
+
+const chatTools = [foodSearchTool, eatNowHelpTool, rejectOutOfScopeTool];
+
 function normalizeMessages(value: unknown): GeminiContent[] | null {
   if (!Array.isArray(value)) return null;
   const messages = value.slice(-MAX_MESSAGES).flatMap((message: RequestMessage) => {
@@ -122,13 +146,17 @@ async function takePersistentRateLimit(userId: string) {
   return takeChatRateLimit(userId);
 }
 
-function functionResponseContent(call: FunctionCall, output: Record<string, unknown>): Content {
+function functionResponseContent(
+  call: FunctionCall,
+  name: string,
+  output: Record<string, unknown>
+): Content {
   return {
     role: "user",
     parts: [{
       functionResponse: {
         id: call.id,
-        name: "search_foods",
+        name,
         response: { output },
       },
     }],
@@ -202,17 +230,23 @@ export async function POST(request: Request) {
         temperature: 0.3,
         maxOutputTokens: 500,
         abortSignal: signal,
-        tools: [{ functionDeclarations: [foodSearchTool] }],
-        toolConfig: { functionCallingConfig: { mode: FunctionCallingConfigMode.AUTO } },
+        tools: [{ functionDeclarations: chatTools }],
+        toolConfig: {
+          functionCallingConfig: {
+            mode: FunctionCallingConfigMode.ANY,
+            allowedFunctionNames: chatTools.map((tool) => tool.name),
+          },
+        },
       },
     });
 
-    const call = firstResponse.functionCalls?.find((item) => item.name === "search_foods");
+    const call = firstResponse.functionCalls?.[0];
     let foodResults = null as Awaited<ReturnType<typeof searchChatFoods>> | null;
     let finalStream: Awaited<ReturnType<typeof ai.models.generateContentStream>> | null = null;
-    let directText = firstResponse.text?.trim() || "";
+    let directText = "";
+    let emptyTextFallback = "Mình chưa thể trả lời câu hỏi này. Bạn thử diễn đạt theo cách khác nhé.";
 
-    if (call) {
+    if (call?.name === "search_foods") {
       foodResults = await searchChatFoods(normalizeFoodSearchArgs(call.args), location);
       const modelContent = firstResponse.candidates?.[0]?.content;
       if (!modelContent) throw new Error("Gemini tool call did not include model content");
@@ -221,7 +255,7 @@ export async function POST(request: Request) {
         contents: [
           ...messages,
           modelContent,
-          functionResponseContent(call, {
+          functionResponseContent(call, "search_foods", {
             items: foodResults.items,
             count: foodResults.items.length,
             locationAvailable: foodResults.locationAvailable,
@@ -233,11 +267,38 @@ export async function POST(request: Request) {
           temperature: 0.3,
           maxOutputTokens: 500,
           abortSignal: signal,
-          tools: [{ functionDeclarations: [foodSearchTool] }],
+          tools: [{ functionDeclarations: chatTools }],
           toolConfig: { functionCallingConfig: { mode: FunctionCallingConfigMode.NONE } },
         },
       });
-      directText = "";
+      emptyTextFallback = foodResults.items.length
+        ? `Mình tìm thấy ${foodResults.items.length} món phù hợp. Bạn chọn một món bên dưới để xem chi tiết nhé.`
+        : "Mình chưa tìm thấy món phù hợp trong catalog EatNow. Bạn thử đổi tên món hoặc nới ngân sách nhé.";
+    } else if (call?.name === "answer_eatnow_help") {
+      const modelContent = firstResponse.candidates?.[0]?.content;
+      if (!modelContent) throw new Error("Gemini help call did not include model content");
+      finalStream = await ai.models.generateContentStream({
+        model,
+        contents: [
+          ...messages,
+          modelContent,
+          functionResponseContent(call, "answer_eatnow_help", {
+            allowed: true,
+            instruction: "Trả lời ngắn gọn, chỉ trong phạm vi EatNow.",
+          }),
+        ],
+        config: {
+          systemInstruction: FOOTBOT_SYSTEM_PROMPT,
+          temperature: 0.3,
+          maxOutputTokens: 500,
+          abortSignal: signal,
+          tools: [{ functionDeclarations: chatTools }],
+          toolConfig: { functionCallingConfig: { mode: FunctionCallingConfigMode.NONE } },
+        },
+      });
+      emptyTextFallback = "Mình có thể hướng dẫn bạn tìm món, dùng voucher, giỏ hàng và đặt đồ ăn trên EatNow.";
+    } else {
+      directText = "Mình chỉ hỗ trợ chọn món và giải đáp cách sử dụng EatNow. Bạn muốn mình gợi ý món gì hôm nay?";
     }
 
     const stream = new ReadableStream<Uint8Array>({
@@ -259,7 +320,7 @@ export async function POST(request: Request) {
             }
           }
           if (!emittedText) {
-            emit({ type: "text", text: "Mình chưa thể trả lời câu hỏi này. Bạn thử diễn đạt theo cách khác nhé." });
+            emit({ type: "text", text: emptyTextFallback });
           }
           emit({ type: "done" });
         } catch (error) {
