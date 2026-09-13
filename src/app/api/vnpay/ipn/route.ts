@@ -5,7 +5,6 @@ import {
   txnRefToOrderId,
   validateVnpayConfig,
   verifyVnpaySecureHash,
-  verifyVnpaySecureHashFromRawUrl,
   vnpayConfig,
   type VnpayParams,
 } from "@/lib/vnpay";
@@ -63,20 +62,16 @@ export async function GET(req: NextRequest) {
   delete vnpParams.vnp_SecureHash;
   delete vnpParams.vnp_SecureHashType;
 
-  const parsedSignatureValid = verifyVnpaySecureHash(
+  const signatureValid = verifyVnpaySecureHash(
     vnpParams,
     secureHash,
     vnpayConfig.vnp_HashSecret
   );
-  const rawSignatureValid = verifyVnpaySecureHashFromRawUrl(
-    req.url,
-    secureHash,
-    vnpayConfig.vnp_HashSecret
-  );
-  const signatureValid = parsedSignatureValid || rawSignatureValid;
   const orderId = txnRefToOrderId(params.vnp_TxnRef);
   const expectedMerchant = params.vnp_TmnCode === vnpayConfig.vnp_TmnCode;
-  const expectedCurrency = params.vnp_CurrCode === "VND";
+  // VNPay không luôn gửi vnp_CurrCode trong payload callback. Nếu có thì
+  // bắt buộc là VND; số tiền vẫn được RPC đối chiếu với order trong DB.
+  const expectedCurrency = !params.vnp_CurrCode || params.vnp_CurrCode === "VND";
   const supabase = createAdminClient();
 
   await recordGatewayEvent(
@@ -84,11 +79,7 @@ export async function GET(req: NextRequest) {
     params,
     {
       ...vnpParams,
-      eatnow_signature_mode: parsedSignatureValid
-        ? "official"
-        : rawSignatureValid
-          ? "raw"
-          : "invalid",
+      eatnow_signature_mode: signatureValid ? "official" : "invalid",
     },
     orderId,
     signatureValid && expectedMerchant && expectedCurrency

@@ -5,7 +5,6 @@ import {
   txnRefToOrderId,
   validateVnpayConfig,
   verifyVnpaySecureHash,
-  verifyVnpaySecureHashFromRawUrl,
   vnpayConfig,
   type VnpayParams,
 } from "@/lib/vnpay";
@@ -25,16 +24,13 @@ export async function GET(req: NextRequest) {
     vnpParams,
     secureHash,
     vnpayConfig.vnp_HashSecret
-  ) || verifyVnpaySecureHashFromRawUrl(
-    req.url,
-    secureHash,
-    vnpayConfig.vnp_HashSecret
   );
   const orderId = txnRefToOrderId(params.vnp_TxnRef);
   const rspCode = params.vnp_ResponseCode;
   const transactionStatus = params.vnp_TransactionStatus;
   const isExpectedMerchant = params.vnp_TmnCode === vnpayConfig.vnp_TmnCode;
-  const isExpectedCurrency = params.vnp_CurrCode === "VND";
+  // vnp_CurrCode có thể không xuất hiện trong Return payload của VNPay.
+  const isExpectedCurrency = !params.vnp_CurrCode || params.vnp_CurrCode === "VND";
 
   if (!orderId) {
     return NextResponse.redirect(new URL("/orders?payment=invalid", req.url));
