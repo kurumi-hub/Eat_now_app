@@ -44,6 +44,9 @@ export default function OwnerOrderConsole({ restaurantId, data: initialData, men
   const [realtimeState, setRealtimeState] = useState<"connecting" | "live" | "retrying">("connecting");
   const [confirmingOrderId, setConfirmingOrderId] = useState("");
   const [pickupFeedback, setPickupFeedback] = useState<PickupFeedback | null>(null);
+  const [acceptingOrder, setAcceptingOrder] = useState<OwnerOrderItem | null>(null);
+  const [etaMinutes, setEtaMinutes] = useState("25");
+  const [acceptError, setAcceptError] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState(initialData.items[0]?.id ?? "");
   const queryRef = useRef({ page: 1, filter: "all" as (typeof FILTERS)[number][0], search: "" });
   const requestIdRef = useRef(0);
@@ -146,6 +149,14 @@ export default function OwnerOrderConsole({ restaurantId, data: initialData, men
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
+  useEffect(() => {
+    if (!acceptingOrder) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !pending) setAcceptingOrder(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [acceptingOrder, pending]);
   const menuImages = useMemo(() => new Map(menu.foods.map((food) => {
     const image = food.images.find((item) => item.isPrimary) ?? food.images[0];
     return [food.name.trim().toLocaleLowerCase("vi"), image] as const;
@@ -153,10 +164,35 @@ export default function OwnerOrderConsole({ restaurantId, data: initialData, men
   const selectedOrder = items.find((item) => item.id === selectedOrderId) ?? items[0];
   const run = (item: OwnerOrderItem, action: "accept" | "reject" | "start_preparing" | "ready") => {
     let reason = ""; let etaMinutes: number | undefined;
-    if (action === "accept") { const raw = window.prompt("Thời gian chuẩn bị dự kiến sau khi có tài xế (phút):", "25"); if (!raw) return; etaMinutes = Number(raw); }
     if (action === "reject") { reason = window.prompt("Lý do từ chối đơn (ít nhất 5 ký tự):") || ""; if (!reason) return; }
     startTransition(async () => { const result = await transitionOwnerOrderAction({ restaurantId, orderId: item.id,
       action, reason, etaMinutes, expectedVersion: item.version }); setNotice(result); if (result.ok) { await syncOrders(); router.refresh(); } });
+  };
+  const openAcceptDialog = (item: OwnerOrderItem) => {
+    setAcceptingOrder(item);
+    setEtaMinutes("25");
+    setAcceptError("");
+  };
+  const acceptOrder = () => {
+    if (!acceptingOrder || pending) return;
+    const minutes = Number(etaMinutes);
+    if (!Number.isInteger(minutes) || minutes < 5 || minutes > 180) {
+      setAcceptError("Thời gian chuẩn bị phải là số nguyên từ 5 đến 180 phút.");
+      return;
+    }
+    setAcceptError("");
+    startTransition(async () => {
+      const result = await transitionOwnerOrderAction({
+        restaurantId, orderId: acceptingOrder.id, action: "accept",
+        etaMinutes: minutes, expectedVersion: acceptingOrder.version,
+      });
+      setNotice(result);
+      if (result.ok) {
+        setAcceptingOrder(null);
+        await syncOrders();
+        router.refresh();
+      } else setAcceptError(result.message);
+    });
   };
   const confirmPickup = (item: OwnerOrderItem) => {
     if (pending || confirmingOrderId) return;
@@ -209,8 +245,17 @@ export default function OwnerOrderConsole({ restaurantId, data: initialData, men
         {selectedOrder.note && <blockquote>Ghi chú khách: {selectedOrder.note}</blockquote>}
         <details><summary>Lịch sử trạng thái ({selectedOrder.events.length})</summary><ol>{selectedOrder.events.map((event) => <li key={event.id}><span>{event.toOrderStatus || event.toDeliveryStatus || event.eventType}</span><small>{event.source} · {time(event.createdAt)}{event.note ? ` · ${event.note}` : ""}</small></li>)}</ol></details>
         {pickupFeedback?.orderId === selectedOrder.id && <div className={`owner-order-pickup-feedback is-${pickupFeedback.state}`} role="status" aria-live="polite">{pickupFeedback.message}</div>}
-        <footer>{selectedOrder.status === "pending" && <><button type="button" disabled={pending} onClick={() => run(selectedOrder,"accept")}>Nhận đơn</button>{canReject && <button type="button" className="is-danger" disabled={pending} onClick={() => run(selectedOrder,"reject")}>Từ chối</button>}</>}{selectedOrder.status === "confirmed" && <button type="button" disabled={pending || !selectedOrder.shipper || !["assigned", "arrived_at_restaurant"].includes(selectedOrder.deliveryStatus)} onClick={() => run(selectedOrder,"start_preparing")}>{selectedOrder.shipper ? "Bắt đầu chuẩn bị" : "Đang tìm tài xế · tối đa 30 phút"}</button>}{selectedOrder.status === "preparing" && <button type="button" disabled={pending || !selectedOrder.shipper} onClick={() => run(selectedOrder,"ready")}>{selectedOrder.shipper ? "Món đã sẵn sàng" : "Đang tìm tài xế thay thế"}</button>}{selectedOrder.status === "ready" && selectedOrder.deliveryStatus === "arrived_at_restaurant" && selectedOrder.pickupConfirmationRequestedAt && <button type="button" className="is-primary" disabled={pending || confirmingOrderId === selectedOrder.id} onClick={() => confirmPickup(selectedOrder)}>{confirmingOrderId === selectedOrder.id ? "Đang xác nhận…" : "Xác nhận đã giao món cho tài xế"}</button>}</footer>
+        <footer>{selectedOrder.status === "pending" && <><button type="button" disabled={pending} onClick={() => openAcceptDialog(selectedOrder)}>Nhận đơn</button>{canReject && <button type="button" className="is-danger" disabled={pending} onClick={() => run(selectedOrder,"reject")}>Từ chối</button>}</>}{selectedOrder.status === "confirmed" && <button type="button" disabled={pending || !selectedOrder.shipper || !["assigned", "arrived_at_restaurant"].includes(selectedOrder.deliveryStatus)} onClick={() => run(selectedOrder,"start_preparing")}>{selectedOrder.shipper ? "Bắt đầu chuẩn bị" : "Đang tìm tài xế · tối đa 30 phút"}</button>}{selectedOrder.status === "preparing" && <button type="button" disabled={pending || !selectedOrder.shipper} onClick={() => run(selectedOrder,"ready")}>{selectedOrder.shipper ? "Món đã sẵn sàng" : "Đang tìm tài xế thay thế"}</button>}{selectedOrder.status === "ready" && selectedOrder.deliveryStatus === "arrived_at_restaurant" && selectedOrder.pickupConfirmationRequestedAt && <button type="button" className="is-primary" disabled={pending || confirmingOrderId === selectedOrder.id} onClick={() => confirmPickup(selectedOrder)}>{confirmingOrderId === selectedOrder.id ? "Đang xác nhận…" : "Xác nhận đã giao món cho tài xế"}</button>}</footer>
       </article>
     </div> : <div className="owner-menu-empty"><strong>Không có đơn phù hợp</strong><span>Thử chọn bộ lọc khác.</span></div>}
+    {acceptingOrder && <div className="owner-accept-modal" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !pending) setAcceptingOrder(null); }}>
+      <form className="owner-accept-dialog" role="dialog" aria-modal="true" aria-labelledby="owner-accept-title" onSubmit={(event) => { event.preventDefault(); acceptOrder(); }}>
+        <div className="owner-accept-dialog__icon" aria-hidden="true">✓</div>
+        <div><p>Đơn hàng {acceptingOrder.code}</p><h2 id="owner-accept-title">Xác nhận nhận đơn</h2><span>Cho khách và tài xế biết khi nào món ăn dự kiến được chuẩn bị xong.</span></div>
+        <label htmlFor="owner-eta-minutes">Thời gian chuẩn bị dự kiến<div className="owner-accept-dialog__input"><input id="owner-eta-minutes" autoFocus type="number" inputMode="numeric" min={5} max={180} step={1} required value={etaMinutes} onChange={(event) => { setEtaMinutes(event.target.value); setAcceptError(""); }} /><span>phút</span></div><small>Nhập từ 5 đến 180 phút. Thời gian được tính sau khi hệ thống tìm được tài xế.</small></label>
+        {acceptError && <div className="owner-accept-dialog__error" role="alert">{acceptError}</div>}
+        <div className="owner-accept-dialog__actions"><button type="button" disabled={pending} onClick={() => setAcceptingOrder(null)}>Hủy</button><button type="submit" disabled={pending}>{pending ? "Đang nhận đơn…" : "Xác nhận nhận đơn"}</button></div>
+      </form>
+    </div>}
   </section>;
 }
