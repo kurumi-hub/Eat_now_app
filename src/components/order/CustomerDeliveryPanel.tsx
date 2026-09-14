@@ -87,6 +87,14 @@ const SHOW_LIVE_MAP = new Set([
   "picked_up",
   "delivering",
 ]);
+const TRACKING_STATUSES = new Set([
+  "assigned",
+  "arrived_at_restaurant",
+  "picked_up",
+  "delivering",
+  "proof_submitted",
+  "awaiting_customer_confirmation",
+]);
 
 export default function CustomerDeliveryPanel({ initial }: { initial: CustomerDeliveryData }) {
   const router = useRouter();
@@ -96,15 +104,19 @@ export default function CustomerDeliveryPanel({ initial }: { initial: CustomerDe
   const [clock, setClock] = useState(() => Date.now());
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [proofImageFailed, setProofImageFailed] = useState(false);
+  const [trackingStoppedFor, setTrackingStoppedFor] = useState("");
+  const trackingActive = trackingStoppedFor !== initial.orderId && TRACKING_STATUSES.has(initial.deliveryStatus);
 
   useEffect(() => { setProofImageFailed(false); }, [initial.proofUrl]);
-  useEffect(() => { setLocation(initial.latestLocation); }, [initial.latestLocation]);
+  useEffect(() => { if (trackingActive) setLocation(initial.latestLocation); }, [initial.latestLocation, trackingActive]);
   useEffect(() => {
+    if (!trackingActive) return;
     const timer = window.setInterval(() => setClock(Date.now()), 10_000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [trackingActive]);
 
   useEffect(() => {
+    if (!trackingActive) return;
     const supabase = createClient();
     const channel = supabase.channel(`order-tracking-${initial.orderId}`).on("postgres_changes", {
       event: "INSERT", schema: "public", table: "shipper_location_events", filter: `order_id=eq.${initial.orderId}`,
@@ -117,7 +129,7 @@ export default function CustomerDeliveryPanel({ initial }: { initial: CustomerDe
       setRealtimeConnected(status === "SUBSCRIBED");
     });
     return () => { void supabase.removeChannel(channel); };
-  }, [initial.orderId, router]);
+  }, [initial.orderId, router, trackingActive]);
 
   const refreshLatestLocation = useCallback(async () => {
     const supabase = createClient();
@@ -137,6 +149,7 @@ export default function CustomerDeliveryPanel({ initial }: { initial: CustomerDe
   }, [initial.deliveryStatus, initial.orderId, router]);
 
   useEffect(() => {
+    if (!trackingActive) return;
     const timer = window.setInterval(() => {
       const recordedAt = location?.recordedAt
         ? new Date(location.recordedAt).getTime()
@@ -145,14 +158,17 @@ export default function CustomerDeliveryPanel({ initial }: { initial: CustomerDe
       if (!realtimeConnected || stale) void refreshLatestLocation();
     }, 15_000);
     return () => window.clearInterval(timer);
-  }, [location?.recordedAt, realtimeConnected, refreshLatestLocation]);
+  }, [location?.recordedAt, realtimeConnected, refreshLatestLocation, trackingActive]);
 
-  const confirm = (received: boolean) => { let reason = ""; if (!received) { reason = window.prompt("Cho EatNow biết lý do bạn chưa nhận được hàng (ít nhất 5 ký tự):") || ""; if (!reason) return; } startTransition(async () => { const result = await confirmDeliveryAction(initial.orderId, received, reason); setNotice(result.message); if (result.ok) router.refresh(); }); };
-  const mapUrl = location ? `https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lon}` : undefined;
-  const locationAge = location?.recordedAt
-    ? Math.max(0, Math.floor((clock - new Date(location.recordedAt).getTime()) / 1000))
+  const confirm = (received: boolean) => { let reason = ""; if (!received) { reason = window.prompt("Cho EatNow biết lý do bạn chưa nhận được hàng (ít nhất 5 ký tự):") || ""; if (!reason) return; } startTransition(async () => { const result = await confirmDeliveryAction(initial.orderId, received, reason); setNotice(result.message); if (result.ok) { if (received) { setTrackingStoppedFor(initial.orderId); setRealtimeConnected(false); setLocation(null); } router.refresh(); } }); };
+  const liveLocation = trackingActive ? location : null;
+  const mapUrl = liveLocation ? `https://www.google.com/maps/search/?api=1&query=${liveLocation.lat},${liveLocation.lon}` : undefined;
+  const locationAge = liveLocation?.recordedAt
+    ? Math.max(0, Math.floor((clock - new Date(liveLocation.recordedAt).getTime()) / 1000))
     : Number.POSITIVE_INFINITY;
-  const signal = !location
+  const signal = !trackingActive
+    ? { label: "Đã ngắt tín hiệu", className: "is-offline" }
+    : !liveLocation
     ? { label: "Chưa có tín hiệu", className: "" }
     : locationAge <= 20 && realtimeConnected
       ? { label: "Đang trực tiếp", className: "is-live" }
@@ -163,8 +179,8 @@ export default function CustomerDeliveryPanel({ initial }: { initial: CustomerDe
     ? initial.restaurantLocation
     : initial.destinationLocation;
   const remainingDistance = useMemo(
-    () => location && target ? distanceKm(location, target) : null,
-    [location, target]
+    () => liveLocation && target ? distanceKm(liveLocation, target) : null,
+    [liveLocation, target]
   );
   const targetLabel = TO_RESTAURANT.has(initial.deliveryStatus)
     ? "nhà hàng"
@@ -188,21 +204,21 @@ export default function CustomerDeliveryPanel({ initial }: { initial: CustomerDe
 
   return <section className="customer-delivery-card">
     <div className="customer-delivery-heading"><div><span>Theo dõi giao hàng</span><h2>{deliveryTitle}</h2></div><i className={signal.className}>{signal.label}</i></div>
-    {SHOW_LIVE_MAP.has(initial.deliveryStatus) && (location || initial.restaurantLocation || initial.destinationLocation) ? <>
+    {trackingActive && SHOW_LIVE_MAP.has(initial.deliveryStatus) && (liveLocation || initial.restaurantLocation || initial.destinationLocation) ? <>
       <LiveOrderMap
-        shipper={location}
+        shipper={liveLocation}
         restaurant={initial.restaurantLocation}
         destination={initial.destinationLocation}
         focus={focus}
-        showRoute={Boolean(location && target && initial.deliveryStatus === "delivering")}
+        showRoute={Boolean(liveLocation && target && initial.deliveryStatus === "delivering")}
       />
-      {location && <div className="customer-live-summary">
+      {liveLocation && <div className="customer-live-summary">
         <div><span>Khoảng cách đến {targetLabel}</span><strong>{remainingDistance == null ? "Đang tính…" : `${remainingDistance.toFixed(1)} km`}</strong></div>
         <div><span>Thời gian dự kiến</span><strong>{remainingDistance == null || !TO_CUSTOMER.has(initial.deliveryStatus) ? "—" : estimateEta(remainingDistance)}</strong></div>
         <small>ETA là ước tính gần đúng theo vị trí hiện tại và có thể thay đổi theo giao thông.</small>
       </div>}
     </> : null}
-    {location ? <div className="customer-location"><b>●</b><div><strong>Vị trí cập nhật gần nhất</strong><span>{time(location.recordedAt)}{locationAge < Number.POSITIVE_INFINITY ? ` · ${locationAge < 5 ? "vừa xong" : `${locationAge} giây trước`}` : ""}{location.accuracyM ? ` · sai số khoảng ${Math.round(location.accuracyM)} m` : ""}</span></div>{mapUrl && <a href={mapUrl} target="_blank" rel="noreferrer">Mở Google Maps</a>}</div> : <p className="customer-delivery-muted">Khi tài xế bật tracking, vị trí mới sẽ tự động xuất hiện tại đây.</p>}
+    {trackingActive ? liveLocation ? <div className="customer-location"><b>●</b><div><strong>Vị trí cập nhật gần nhất</strong><span>{time(liveLocation.recordedAt)}{locationAge < Number.POSITIVE_INFINITY ? ` · ${locationAge < 5 ? "vừa xong" : `${locationAge} giây trước`}` : ""}{liveLocation.accuracyM ? ` · sai số khoảng ${Math.round(liveLocation.accuracyM)} m` : ""}</span></div>{mapUrl && <a href={mapUrl} target="_blank" rel="noreferrer">Mở Google Maps</a>}</div> : <p className="customer-delivery-muted">Khi tài xế bật tracking, vị trí mới sẽ tự động xuất hiện tại đây.</p> : <p className="customer-delivery-muted">Theo dõi vị trí đã kết thúc cho đơn hàng này.</p>}
     {initial.proof && <div className="customer-proof"><div><strong>Ảnh giao hàng từ tài xế</strong><span>Gửi lúc {time(initial.proof.submittedAt)}</span></div>{initial.proofUrl && !proofImageFailed ? <figure><img src={initial.proofUrl} alt="Ảnh xác nhận tài xế đã giao đơn hàng" onError={() => setProofImageFailed(true)} /><figcaption><span>Kiểm tra đúng món và vị trí nhận trước khi xác nhận.</span><a href={initial.proofUrl} target="_blank" rel="noreferrer">Mở ảnh kích thước đầy đủ</a></figcaption></figure> : <div className="customer-proof-error"><strong>Chưa thể tải ảnh giao hàng</strong><span>Liên kết ảnh có thể đã hết hạn hoặc Storage tạm thời gián đoạn.</span><button type="button" onClick={() => router.refresh()}>Tải lại ảnh</button></div>}{initial.proof.note && <blockquote>Ghi chú của tài xế: {initial.proof.note}</blockquote>}</div>}
     {initial.canConfirm && <div className="customer-confirm-actions"><button className="is-secondary" disabled={pending} onClick={() => confirm(false)}>Tôi chưa nhận được hàng</button><button disabled={pending} onClick={() => confirm(true)}>{pending ? "Đang xác nhận..." : "Tôi đã nhận hàng"}</button></div>}
     {notice && <p className="customer-delivery-notice" role="status">{notice}</p>}
